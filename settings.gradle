@@ -1,0 +1,29 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.neoforged.net/releases/' }
+        maven { url = 'https://maven.kikugie.dev/releases/' }
+    }
+}
+plugins {
+    id 'dev.kikugie.stonecutter' version '0.10'
+    id 'dev.kikugie.loom-back-compat' version '0.4.3'
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+rootProject.name = 'sdmal'
+stonecutter {
+    kotlinController = false
+    centralScript = 'build.gradle'
+    create(getRootProject()) {
+        ['core', 'impl', 'fabric', 'forge'].each { module ->
+            branch(module) { versions '1.19.2', '1.20.1', '1.21.1', '26.1.2', '26.3' }
+        }
+        branch('neoforge') {
+            version('1.20.1').buildscript('build.legacy.gradle')
+            versions '1.21.1', '26.1.2', '26.3'
+        }
+        vcsVersion = '1.20.1'
+    }
+}

@@ -1,0 +1,98 @@
+import dev.sixik.sdmal.build.PrepareMixinMappings
+
+plugins {
+    id 'java-library'
+    id 'net.minecraftforge.gradle' version '7.0.40'
+    id 'net.minecraftforge.renamer' version '1.1.2'
+}
+apply from: rootProject.file('build.gradle')
+
+def mc = stonecutter.current.version
+def obfuscated = stonecutter.eval(mc, '<1.20.5')
+minecraft {
+    // Keep each node's Mavenizer output separate, including during IDE synchronization.
+    mavenizerOutput = layout.buildDirectory.dir('mavenizer/repo')
+    if (stonecutter.eval(mc, '<26.1')) { mappings channel: 'official', version: mc }
+    runs {
+        configureEach {
+            workingDir = layout.projectDirectory.dir('run')
+            args "--mixin.config=${mod_id}.core.mixins.json", "--mixin.config=${mod_id}.impl.mixins.json"
+            mods {
+                register(mod_id) {
+                    source sourceSets.main
+                }
+            }
+        }
+        register('client')
+        register('server') { args '--nogui' }
+    }
+}
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+dependencies {
+    implementation minecraft.dependency("forge-${mc}", "net.minecraftforge:forge:${mc}-${loader_version}")
+    if (stonecutter.eval(mc, '>=26.1')) {
+        annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.6'
+    }
+}
+tasks.named('jar', Jar) {
+    manifest.attributes('MixinConfigs': "${mod_id}.core.mixins.json,${mod_id}.impl.mixins.json")
+    if (obfuscated) { archiveClassifier = 'dev' }
+}
+def productionJar = tasks.named('jar')
+if (obfuscated) {
+    dependencies { annotationProcessor 'org.spongepowered:mixin:0.8.7:processor' }
+    def mixinMappings = tasks.register('prepareMixinMappings', PrepareMixinMappings) {
+        inputMappings.fileProvider(minecraft.getDependency("forge-${mc}").toSrgFile)
+        outputMappings = layout.buildDirectory.file('mixin/official-to-srg.srg')
+    }
+    def extraMixinMappings = layout.buildDirectory.file('mixin/mixin-members.srg')
+    tasks.named('compileJava', JavaCompile) {
+        def refmap = destinationDirectory.file("${mod_id}.refmap.json")
+        outputs.file(extraMixinMappings).withPropertyName('mixinMemberMappings')
+        inputs.files(mixinMappings.flatMap { it.outputMappings }).withPropertyName('mixinMappings')
+        options.compilerArgs.addAll([
+            "-AreobfSrgFile=${mixinMappings.get().outputMappings.get().asFile.absolutePath}",
+            "-AoutRefMapFile=${refmap.get().asFile.absolutePath}",
+            "-AoutSrgFile=${extraMixinMappings.get().asFile.absolutePath}",
+            '-AdefaultObfuscationEnv=searge'
+        ])
+        doFirst {
+            def mappings = extraMixinMappings.get().asFile
+            mappings.parentFile.mkdirs()
+            mappings.text = ''
+            def references = refmap.get().asFile
+            references.parentFile.mkdirs()
+            references.text = '{"mappings": {}, "data": {}}'
+        }
+    }
+    def combinedMappings = layout.buildDirectory.file('mixin/combined.srg')
+    def mergeMixinMappings = tasks.register('mergeMixinMappings') {
+        dependsOn tasks.named('compileJava')
+        inputs.file(mixinMappings.flatMap { it.outputMappings })
+        inputs.file(extraMixinMappings)
+        outputs.file(combinedMappings)
+        doLast {
+            combinedMappings.get().asFile.text = mixinMappings.get().outputMappings.get().asFile.text +
+                '\n' + extraMixinMappings.get().asFile.text
+        }
+    }
+    renamer.mappings.from minecraft.getDependency("forge-${mc}").toSrgFile
+    renamer.classes(tasks.named('jar', Jar)) {
+        map.setFrom(files(combinedMappings).builtBy(mergeMixinMappings))
+        archiveClassifier = ''
+        output = layout.buildDirectory.file("libs/${mod_id}-forge-${project.version}.jar")
+    }
+    productionJar = tasks.named('renameJar')
+    tasks.named('assemble') { dependsOn productionJar }
+}
+tasks.register('buildAndCollect', Copy) {
+    group = 'build'
+    dependsOn tasks.named('build')
+    from productionJar, tasks.named('sourcesJar')
+    into rootProject.layout.buildDirectory.dir("libs/${mod_version}")
+}

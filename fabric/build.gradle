@@ -1,0 +1,28 @@
+plugins {
+    id 'dev.kikugie.loom-back-compat'
+    id 'java-library'
+}
+apply from: rootProject.file('build.gradle')
+
+dependencies {
+    minecraft "com.mojang:minecraft:${stonecutter.current.version}"
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+}
+if (stonecutter.eval(stonecutter.current.version, '<26.1')) {
+    dependencies { mappings loom.officialMojangMappings() }
+}
+loom {
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+    runs { configureEach { runDir "run/${project.name}" } }
+}
+tasks.register('buildAndCollect', Copy) {
+    group = 'build'
+    dependsOn tasks.named('build')
+    from loomx.modJar.flatMap { it.archiveFile }, loomx.modSourcesJar.flatMap { it.archiveFile }
+    into rootProject.layout.buildDirectory.dir("libs/${mod_version}")
+}

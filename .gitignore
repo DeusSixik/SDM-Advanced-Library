@@ -1,0 +1,13 @@
+.gradle/
+.idea/
+**/build/
+**/run/
+**/run-data/
+*.iml
+**/versions/*/src/
+**/versions/*/stonecutter.gradle*
+/core/versions/1.20.1/logs
+/core/versions/1.21.1/logs
+/core/versions/26.1.2/logs
+/core/versions/26.3/logs
+/core/versions/1.19.2/logs

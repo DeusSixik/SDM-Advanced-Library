@@ -1,0 +1,6 @@
+{
+  "pack": {
+    "description": "sdmal resources",
+    ${pack_metadata}
+  }
+}

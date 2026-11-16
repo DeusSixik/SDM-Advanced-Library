@@ -1,0 +1,52 @@
+plugins {
+    id 'dev.kikugie.loom-back-compat'
+    id 'java-library'
+}
+apply from: rootProject.file('build.gradle')
+
+dependencies {
+    minecraft "com.mojang:minecraft:${stonecutter.current.version}"
+    testImplementation 'org.ow2.asm:asm-tree:9.9.1'
+    // Shared libraries declared here are inherited by impl and every loader.
+}
+if (stonecutter.eval(stonecutter.current.version, '<26.1')) {
+    dependencies { mappings loom.officialMojangMappings() }
+}
+configurations {
+    sharedElements {
+        canBeResolved = false
+        canBeConsumed = true
+        extendsFrom api, implementation
+    }
+    sharedDependencies {
+        canBeResolved = false
+        canBeConsumed = true
+        extendsFrom api, implementation
+    }
+}
+artifacts { sharedElements tasks.named('jar') }
+loom { runs { configureEach { ideConfigGenerated = false } } }
+tasks.matching { it.name in ['remapJar', 'remapSourcesJar'] }.configureEach { enabled = false }
+
+// Benchmarks are isolated from the mod JAR and run only when explicitly requested.
+sourceSets {
+    jmh {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+dependencies {
+    jmhImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+}
+tasks.register('jmh', JavaExec) {
+    group = 'verification'
+    description = 'Measure ECS ticks and field snapshots with JMH and GC allocation profiling.'
+    dependsOn tasks.named('jmhClasses')
+    classpath = sourceSets.jmh.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    args 'dev.sixik.sdmal.core.ecs.EcsBenchmark', '-prof', 'gc', '-rf', 'json',
+        '-rff', layout.buildDirectory.file('reports/jmh/ecs.json').get().asFile.absolutePath
+    doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
+}

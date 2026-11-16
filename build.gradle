@@ -1,0 +1,137 @@
+import dev.sixik.sdmal.build.PrepareMixinSources
+import dev.sixik.sdmal.build.VersionSelector
+
+// Shared conventions, applied by every Stonecutter version node.
+// Version nodes have identical names, so distinct groups prevent Gradle substituting a module for itself.
+group = "${mod_group_id}.${project.parent.name}"
+version = "${mod_version}+${stonecutter.current.version}"
+base.archivesName = "${mod_id}-${project.parent.name}"
+
+def mc = stonecutter.current.version
+def javaVersion = stonecutter.eval(mc, '>=26.1') ? 25 : stonecutter.eval(mc, '>=1.20.5') ? 21 : 17
+ext.requiredJava = javaVersion
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
+    withSourcesJar()
+}
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+}
+dependencies {
+    compileOnly 'org.spongepowered:mixin:0.8.7'
+    testImplementation platform('org.junit:junit-bom:5.14.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = javaVersion
+}
+tasks.withType(Test).configureEach { useJUnitPlatform() }
+tasks.named('processResources', ProcessResources) {
+    def loader = project.parent.name
+    def legacyNeo = loader == 'neoforge' && mc == '1.20.1'
+    def props = [
+        mod_id: mod_id, mod_name: mod_name, mod_version: mod_version,
+        mod_license: mod_license, mod_authors: mod_authors, mod_description: mod_description,
+        minecraft_version: mc, java_version: javaVersion,
+        mixin_java_version: Math.min(javaVersion, 21),
+        loader_version: project.findProperty('loader_version') ?: '',
+        loader_version_range: project.findProperty('loader_version_range') ?: '',
+        minecraft_version_range: "[${mc}]",
+        platform_id: legacyNeo ? 'forge' : loader,
+        platform_version_range: project.findProperty('platform_version_range') ?: '',
+        pack_format: project.property('pack_format')
+    ]
+    def format = project.property('pack_format')
+    props.pack_metadata = javaVersion >= 25 ?
+        "\"min_format\": [${format}, ${project.findProperty('pack_minor_version') ?: 0}], \"max_format\": [${format}, ${project.findProperty('pack_minor_version') ?: 0}]" :
+        "\"pack_format\": ${format}"
+    inputs.properties props
+    // Generated mixin configs contain concrete values; '$' in legal class names must stay literal.
+    filesMatching(['fabric.mod.json', 'META-INF/*.toml', 'pack.mcmeta']) { expand props }
+    if (loader == 'fabric') {
+        exclude 'META-INF/*.toml'
+    } else if (loader == 'forge' || legacyNeo) {
+        exclude 'fabric.mod.json', 'META-INF/neoforge.mods.toml'
+    } else {
+        exclude 'fabric.mod.json', 'META-INF/mods.toml'
+    }
+}
+def module = project.parent.name
+def isLoader = module in ['fabric', 'forge', 'neoforge']
+def sharedNames = module == 'core' ? [] : module == 'impl' ? ['core'] : ['core', 'impl']
+def sharedProjects = sharedNames.collect { project(":${it}:${mc}") }
+sharedProjects.each { shared ->
+    evaluationDependsOn(shared.path)
+    dependencies {
+        compileOnly project(path: shared.path, configuration: 'sharedElements')
+        api project(path: shared.path, configuration: 'sharedDependencies')
+    }
+    tasks.named('check') { dependsOn shared.tasks.named('test') }
+}
+
+// Preserve Stonecutter's source model and feed only selected copies to javac and sourcesJar.
+def versionedTrees = []
+def versionedRoot = rootProject.file("${module}/src/versioned")
+if (versionedRoot.isDirectory()) {
+    versionedRoot.listFiles().findAll { it.isDirectory() }.sort().each { directory ->
+        if (VersionSelector.matches(mc, directory.name)) {
+            versionedTrees.add(fileTree(new File(directory, 'java')) { include '**/*.java' })
+        }
+    }
+}
+ext.unfilteredJavaSources = files(sourceSets.main.java, versionedTrees)
+def preparedSources = tasks.register('prepareMixinSources', PrepareMixinSources) { task ->
+    group = 'build'
+    description = 'Select versioned Java sources and generate separate core/impl mixin configs.'
+    minecraftVersion = mc
+    packageRoot = "${mod_group_id}.${mod_id}"
+    modId = mod_id
+    task.javaVersion.set(project.requiredJava)
+    if (isLoader && (module == 'forge' || module == 'neoforge') && stonecutter.eval(mc, '<1.20.5')) {
+        refmapName = "${mod_id}.refmap.json"
+    }
+    outputDirectory = layout.buildDirectory.dir('generated/mixinSelection')
+    dependsOn tasks.named('stonecutterGenerate')
+    if (module == 'core') coreSources.from(unfilteredJavaSources)
+    else implSources.from(unfilteredJavaSources)
+    if (isLoader) {
+        sharedProjects.each { shared ->
+            dependsOn shared.tasks.named('stonecutterGenerate')
+            if (shared.parent.name == 'core') coreSources.from(shared.unfilteredJavaSources)
+            else implSources.from(shared.unfilteredJavaSources)
+        }
+    }
+}
+tasks.named('compileJava', JavaCompile) {
+    setSource(preparedSources.flatMap { it.outputDirectory.dir('java') })
+}
+tasks.named('sourcesJar', Jar) {
+    from preparedSources.flatMap { it.outputDirectory.dir('java') }
+    includeEmptyDirs = false
+    // Keep the Java plugin's publication variant, but package only the selected Java files.
+    eachFile { details ->
+        if (details.name.endsWith('.java') &&
+            !details.file.toPath().startsWith(preparedSources.get().outputDirectory.dir('java').get().asFile.toPath())) {
+            details.exclude()
+        }
+    }
+}
+if (isLoader) {
+    tasks.named('processResources', ProcessResources) {
+        from preparedSources.flatMap { it.outputDirectory.dir('resources') }
+        sharedProjects.each { from it.sourceSets.main.resources }
+    }
+    tasks.named('sourcesJar', Jar) {
+        from preparedSources.flatMap { it.outputDirectory.dir('resources') }
+        sharedProjects.each { from it.sourceSets.main.resources }
+    }
+}
+tasks.withType(Jar).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+    manifest.attributes('Implementation-Title': mod_name,
+        'Implementation-Version': mod_version, 'Implementation-Vendor': mod_authors)
+}

@@ -1,0 +1,32 @@
+import dev.kikugie.stonecutter.controller.task.StonecutterTaskMutexService
+
+plugins {
+    id 'net.neoforged.moddev' version '2.0.148'
+    id 'java-library'
+}
+apply from: rootProject.file('build.gradle')
+neoForge {
+    version = loader_version
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+    runs {
+        client { client() }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+    }
+}
+tasks.named('createMinecraftArtifacts') {
+    dependsOn 'stonecutterGenerate'
+    usesService(StonecutterTaskMutexService.create(gradle, 'minecraftArtifacts'))
+}
+tasks.register('buildAndCollect', Copy) {
+    group = 'build'
+    dependsOn tasks.named('build')
+    from tasks.named('jar'), tasks.named('sourcesJar')
+    into rootProject.layout.buildDirectory.dir("libs/${mod_version}")
+}

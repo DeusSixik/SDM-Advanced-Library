@@ -1,0 +1,28 @@
+plugins {
+    id 'dev.kikugie.loom-back-compat'
+    id 'java-library'
+}
+apply from: rootProject.file('build.gradle')
+
+dependencies {
+    minecraft "com.mojang:minecraft:${stonecutter.current.version}"
+    // Implementation libraries declared here are inherited by every loader.
+}
+if (stonecutter.eval(stonecutter.current.version, '<26.1')) {
+    dependencies { mappings loom.officialMojangMappings() }
+}
+configurations {
+    sharedElements {
+        canBeResolved = false
+        canBeConsumed = true
+        extendsFrom api, implementation
+    }
+    sharedDependencies {
+        canBeResolved = false
+        canBeConsumed = true
+        extendsFrom api, implementation
+    }
+}
+artifacts { sharedElements tasks.named('jar') }
+loom { runs { configureEach { ideConfigGenerated = false } } }
+tasks.matching { it.name in ['remapJar', 'remapSourcesJar'] }.configureEach { enabled = false }

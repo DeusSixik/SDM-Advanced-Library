@@ -1,0 +1,11 @@
+SDMAL ECS is adapted from Artisans-Delight's libs/world module.
+Copyright (c) 2026 Sixik.
+Source: https://github.com/DeusSixik/Artisans-Delight
+Branch: 1.21.1-main
+Commit: 88ddc9e13e78a922f2605e0388680b9d678c632e
+Original path: common/src/main/java/dev/sixik/artisans_delight/libs/world
+License: GNU Lesser General Public License version 3 or later (see LICENSE.txt).
+
+The SDMAL adaptation relocates packages to dev.sixik.sdmal.core.ecs, adds
+Minecraft version compatibility, fixes lifecycle and state synchronization,
+and separates the sample application from the distributed library.
