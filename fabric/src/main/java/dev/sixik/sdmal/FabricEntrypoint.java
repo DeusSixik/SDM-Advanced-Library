@@ -2,6 +2,8 @@ package dev.sixik.sdmal;
 
 import dev.sixik.sdmal.example.ecs.blockentity.GeneratorContent;
 import dev.sixik.sdmal.example.ecs.blockentity.GeneratorBlockEntity;
+import dev.sixik.sdmal.example.ecs.multiblock.MultiblockContent;
+import dev.sixik.sdmal.example.ecs.multiblock.MultiblockControllerBlockEntity;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -28,6 +30,8 @@ import java.io.IOException;
 public final class FabricEntrypoint implements ModInitializer {
     /** Registered type assigned after the generator block, before any world can load. */
     private static BlockEntityType<GeneratorBlockEntity> generatorType;
+    /** Registered multiblock controller shell type, assigned before worlds load. */
+    private static BlockEntityType<MultiblockControllerBlockEntity> multiblockType;
     /** Public no-argument constructor used by Fabric Loader. */
     public FabricEntrypoint() {}
 
@@ -58,6 +62,13 @@ public final class FabricEntrypoint implements ModInitializer {
         generatorType = Registry.register(blockEntityRegistry, SDMAdvancedLibrary.id(GeneratorContent.PATH),
             FabricBlockEntityTypeBuilder.create(
                 (pos, state) -> new GeneratorBlockEntity(generatorType, pos, state), generator).build());
+        Block controller = Registry.register(blockRegistry, SDMAdvancedLibrary.id(MultiblockContent.PATH),
+            MultiblockContent.createBlock(() -> multiblockType));
+        Item controllerItem = Registry.register(itemRegistry, SDMAdvancedLibrary.id(MultiblockContent.PATH),
+            MultiblockContent.createItem(controller, legacyTab));
+        multiblockType = Registry.register(blockEntityRegistry, SDMAdvancedLibrary.id(MultiblockContent.PATH),
+            FabricBlockEntityTypeBuilder.create(
+                (pos, state) -> new MultiblockControllerBlockEntity(multiblockType, pos, state), controller).build());
         //? if >=1.19.3 {
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, SDMAdvancedLibrary.id("example_tab"), FabricItemGroup.builder()
             .title(Component.translatable("itemGroup.sdmal.example_tab"))
@@ -65,6 +76,7 @@ public final class FabricEntrypoint implements ModInitializer {
             .displayItems((parameters, output) -> {
                 output.accept(food);
                 output.accept(generatorItem);
+                output.accept(controllerItem);
             }).build());
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.BUILDING_BLOCKS).register(entries -> entries.accept(blockItem));
         //?}

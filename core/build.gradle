@@ -102,6 +102,19 @@ tasks.register('jmhBlockEntities', JavaExec) {
     doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
 }
 
+tasks.register('jmhMultiblock', JavaExec) {
+    group = 'verification'
+    description = 'Measure the example multiblock matcher and primitive production compute with GC profiling.'
+    dependsOn tasks.named('jmhClasses')
+    classpath = sourceSets.jmh.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    args 'dev.sixik.sdmal.example.ecs.multiblock.MultiblockBenchmark', '-prof', 'gc', '-foe', 'true',
+        '-jvmArgsAppend', '-Xms512m -Xmx512m -XX:+UseG1GC', '-rf', 'json',
+        '-rff', layout.buildDirectory.file('reports/jmh/ecs-multiblock.json').get().asFile.absolutePath
+    doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
+}
+
 tasks.register('jmhCleanup', JavaExec) {
     group = 'verification'
     description = 'Compare frozen and current ECS implementations with identical workloads and GC profiling.'

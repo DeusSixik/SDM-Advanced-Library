@@ -159,9 +159,10 @@ class GeneratorInteractionTest {
         var block = mock(GeneratorBlock.class, CALLS_REAL_METHODS);
         var stack = mock(ItemStack.class);
         when(stack.getCount()).thenReturn(3);
-        var methods = Arrays.asList(GeneratorBlock.class.getDeclaredMethods());
+        var methods = Arrays.asList(EcsExampleBlock.class.getDeclaredMethods());
         var method = methods.stream().filter(m -> m.getName().equals("use")).findFirst().orElse(null);
         if (method != null) {
+            method.setAccessible(true);
             method.invoke(block, Blocks.FURNACE.defaultBlockState(), level, POS, player,
                 InteractionHand.MAIN_HAND, mock(BlockHitResult.class));
             return stack;

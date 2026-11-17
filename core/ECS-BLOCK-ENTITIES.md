@@ -169,6 +169,9 @@ render state показывают контракт, а не заявляют о�
 
 ## Проверки и измерения
 
+Отдельный зарегистрированный пример целой структуры:
+[мультиблок на ECS](ECS-MULTIBLOCK-EXAMPLE.md).
+
 ```powershell
 .\gradlew.bat buildAll
 .\gradlew.bat :core:1.20.1:jmhBlockEntities

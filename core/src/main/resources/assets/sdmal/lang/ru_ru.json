@@ -5,5 +5,21 @@
   "item.sdmal.example_item": "Пример предмета",
   "block.sdmal.ecs_generator": "ECS-генератор",
   "message.sdmal.ecs_generator.energy": "ECS-генератор: энергия %s / %s | Тик ECS: %s",
-  "message.sdmal.ecs_generator.inactive": "ECS-генератор неактивен: %s"
+  "message.sdmal.ecs_generator.inactive": "ECS-генератор неактивен: %s",
+  "block.sdmal.ecs_multiblock_controller": "Контроллер мультиблока ECS",
+  "message.sdmal.ecs_multiblock.status": "Мультиблок ECS: %s | Энергия %s / %s | Части %s / %s | Тик ECS: %s",
+  "message.sdmal.ecs_multiblock.missing": "Нужен %s в [%s, %s, %s]",
+  "message.sdmal.ecs_multiblock.inactive": "Мультиблок ECS неактивен: %s",
+  "message.sdmal.ecs_multiblock.checking": "ожидание проверки структуры",
+  "message.sdmal.ecs_multiblock.formed": "собран",
+  "message.sdmal.ecs_multiblock.incomplete": "не собран",
+  "message.sdmal.ecs_multiblock.unloaded": "нужный чанк выгружен",
+  "message.sdmal.ecs_multiblock.out_of_bounds": "за границами мира",
+  "message.sdmal.ecs_multiblock.assembly.built": "Мультиблок ECS собран. Производство начнётся на следующем активном тике.",
+  "message.sdmal.ecs_multiblock.assembly.already_complete": "Мультиблок ECS уже собран.",
+  "message.sdmal.ecs_multiblock.assembly.unloaded": "Для сборки должны быть загружены все чанки структуры.",
+  "message.sdmal.ecs_multiblock.assembly.out_of_bounds": "Структура не помещается в границы мира.",
+  "message.sdmal.ecs_multiblock.assembly.blocked": "Место для сборки занято. Освободите нужные позиции.",
+  "message.sdmal.ecs_multiblock.assembly.denied": "Здесь нельзя построить структуру.",
+  "message.sdmal.ecs_multiblock.assembly.interrupted": "Сборка прервана. Устраните препятствия и повторите попытку."
 }

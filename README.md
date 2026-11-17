@@ -149,6 +149,11 @@ dev.sixik.sdmal.impl.mixin.server.*  -> server
 `RenderStateComponent` — immutable данные renderer. Симуляцию запускает ECS мира.
 Готовый пример доступен во вкладке SDMAL или через `/give @s sdmal:ecs_generator`.
 ПКМ по установленному генератору показывает в чате энергию и номер тика ECS.
+Пример мультиблока: [core/ECS-MULTIBLOCK-EXAMPLE.md](core/ECS-MULTIBLOCK-EXAMPLE.md).
+`/give @s sdmal:ecs_multiblock_controller`: восемь железных блоков вокруг
+контроллера и блок редстоуна над ним; ПКМ показывает сборку, энергию и недостающую часть.
+Shift+ПКМ с `sdmal:example_item` по контроллеру автоматически достраивает структуру
+в свободных позициях без расхода материалов.
 
 Подсистема объектов и компонентов перенесена из Artisans-Delight в
 `core/src/main/java/dev/sixik/sdmal/api/ecs/`.

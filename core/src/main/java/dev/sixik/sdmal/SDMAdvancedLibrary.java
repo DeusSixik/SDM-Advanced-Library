@@ -1,6 +1,7 @@
 package dev.sixik.sdmal;
 
 import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+import dev.sixik.sdmal.example.item.ExampleItem;
 
 //? if >=1.19.3 {
 
@@ -103,7 +104,7 @@ public final class SDMAdvancedLibrary {
         Item.Properties properties = itemProperties("example_item").food(food.build());
         //? if <1.19.3
         //properties.tab(legacyTab);
-        return new Item(properties);
+        return new ExampleItem(properties);
     }
 
     /**

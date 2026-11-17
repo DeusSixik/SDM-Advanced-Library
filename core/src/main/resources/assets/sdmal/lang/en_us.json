@@ -5,5 +5,21 @@
   "item.sdmal.example_item": "Example Item",
   "block.sdmal.ecs_generator": "ECS Generator",
   "message.sdmal.ecs_generator.energy": "ECS Generator: Energy %s / %s | ECS tick: %s",
-  "message.sdmal.ecs_generator.inactive": "ECS Generator is inactive: %s"
+  "message.sdmal.ecs_generator.inactive": "ECS Generator is inactive: %s",
+  "block.sdmal.ecs_multiblock_controller": "ECS Multiblock Controller",
+  "message.sdmal.ecs_multiblock.status": "ECS Multiblock: %s | Energy %s / %s | Parts %s / %s | ECS tick: %s",
+  "message.sdmal.ecs_multiblock.missing": "Required: %s at [%s, %s, %s]",
+  "message.sdmal.ecs_multiblock.inactive": "ECS Multiblock is inactive: %s",
+  "message.sdmal.ecs_multiblock.checking": "waiting for structure check",
+  "message.sdmal.ecs_multiblock.formed": "formed",
+  "message.sdmal.ecs_multiblock.incomplete": "incomplete",
+  "message.sdmal.ecs_multiblock.unloaded": "required chunk is unloaded",
+  "message.sdmal.ecs_multiblock.out_of_bounds": "outside world bounds",
+  "message.sdmal.ecs_multiblock.assembly.built": "ECS multiblock assembled. Production starts on the next active tick.",
+  "message.sdmal.ecs_multiblock.assembly.already_complete": "ECS multiblock is already assembled.",
+  "message.sdmal.ecs_multiblock.assembly.unloaded": "Assembly requires all structure chunks to be loaded.",
+  "message.sdmal.ecs_multiblock.assembly.out_of_bounds": "The structure does not fit inside the world bounds.",
+  "message.sdmal.ecs_multiblock.assembly.blocked": "Assembly space is occupied. Clear the required positions first.",
+  "message.sdmal.ecs_multiblock.assembly.denied": "You cannot build the structure here.",
+  "message.sdmal.ecs_multiblock.assembly.interrupted": "Assembly was interrupted. Clear any obstacles and try again."
 }

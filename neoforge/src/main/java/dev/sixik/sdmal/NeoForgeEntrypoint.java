@@ -2,6 +2,8 @@ package dev.sixik.sdmal;
 
 import dev.sixik.sdmal.example.ecs.blockentity.GeneratorContent;
 import dev.sixik.sdmal.example.ecs.blockentity.GeneratorBlockEntity;
+import dev.sixik.sdmal.example.ecs.multiblock.MultiblockContent;
+import dev.sixik.sdmal.example.ecs.multiblock.MultiblockControllerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import java.util.Set;
 import net.minecraft.core.registries.Registries;
@@ -48,6 +50,15 @@ public final class NeoForgeEntrypoint {
     /** Generator shell type; initialized by the block entity registry event. */
     public static final Supplier<BlockEntityType<GeneratorBlockEntity>> ECS_GENERATOR_TYPE =
         BLOCK_ENTITIES.register(GeneratorContent.PATH, NeoForgeEntrypoint::createGeneratorType);
+    /** Controller for the iron platform and redstone core multiblock example. */
+    public static final Supplier<Block> ECS_MULTIBLOCK = BLOCKS.register(MultiblockContent.PATH,
+        () -> MultiblockContent.createBlock(() -> NeoForgeEntrypoint.ECS_MULTIBLOCK_TYPE.get()));
+    /** Registered multiblock controller shell type. */
+    public static final Supplier<BlockEntityType<MultiblockControllerBlockEntity>> ECS_MULTIBLOCK_TYPE =
+        BLOCK_ENTITIES.register(MultiblockContent.PATH, NeoForgeEntrypoint::createMultiblockType);
+    /** Placeable controller item for the SDMAL creative tab and /give. */
+    public static final Supplier<Item> ECS_MULTIBLOCK_ITEM = ITEMS.register(MultiblockContent.PATH,
+        () -> MultiblockContent.createItem(ECS_MULTIBLOCK.get(), null));
     /** Generator item for creative inventory and /give. */
     public static final Supplier<Item> ECS_GENERATOR_ITEM = ITEMS.register(GeneratorContent.PATH,
         () -> GeneratorContent.createItem(ECS_GENERATOR.get(), null));
@@ -63,6 +74,7 @@ public final class NeoForgeEntrypoint {
         .displayItems((parameters, output) -> {
             output.accept(EXAMPLE_ITEM.get());
             output.accept(ECS_GENERATOR_ITEM.get());
+            output.accept(ECS_MULTIBLOCK_ITEM.get());
         }).build());
 
     /**
@@ -114,6 +126,20 @@ public final class NeoForgeEntrypoint {
         *///?} else {
         return BlockEntityType.Builder.of(
             (pos, state) -> new GeneratorBlockEntity(ECS_GENERATOR_TYPE.get(), pos, state), ECS_GENERATOR.get()).build(null);
+        //?}
+    }
+
+    /**
+     * Builds the controller type after its only valid block has been registered.
+     * @return unregistered multiblock controller type
+     */
+    private static BlockEntityType<MultiblockControllerBlockEntity> createMultiblockType() {
+        //? if >=1.21.2 {
+        /*return new BlockEntityType<>((pos, state) -> new MultiblockControllerBlockEntity(ECS_MULTIBLOCK_TYPE.get(), pos, state),
+            Set.of(ECS_MULTIBLOCK.get()));
+        *///?} else {
+        return BlockEntityType.Builder.of(
+            (pos, state) -> new MultiblockControllerBlockEntity(ECS_MULTIBLOCK_TYPE.get(), pos, state), ECS_MULTIBLOCK.get()).build(null);
         //?}
     }
 

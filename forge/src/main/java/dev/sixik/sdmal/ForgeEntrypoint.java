@@ -2,6 +2,8 @@ package dev.sixik.sdmal;
 
 import dev.sixik.sdmal.example.ecs.blockentity.GeneratorContent;
 import dev.sixik.sdmal.example.ecs.blockentity.GeneratorBlockEntity;
+import dev.sixik.sdmal.example.ecs.multiblock.MultiblockContent;
+import dev.sixik.sdmal.example.ecs.multiblock.MultiblockControllerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import java.util.Set;
 //? if >=1.19.3 {
@@ -47,6 +49,21 @@ public final class ForgeEntrypoint {
     /** Registered shell type with the generator block as its only valid host. */
     public static final RegistryObject<BlockEntityType<GeneratorBlockEntity>> ECS_GENERATOR_TYPE =
         BLOCK_ENTITIES.register(GeneratorContent.PATH, ForgeEntrypoint::createGeneratorType);
+    /** Controller for the iron platform and redstone core multiblock example. */
+    public static final RegistryObject<Block> ECS_MULTIBLOCK = BLOCKS.register(MultiblockContent.PATH,
+        () -> MultiblockContent.createBlock(() -> ForgeEntrypoint.ECS_MULTIBLOCK_TYPE.get()));
+    /** Registered shell type for the multiblock controller. */
+    public static final RegistryObject<BlockEntityType<MultiblockControllerBlockEntity>> ECS_MULTIBLOCK_TYPE =
+        BLOCK_ENTITIES.register(MultiblockContent.PATH, ForgeEntrypoint::createMultiblockType);
+    /** Placeable multiblock controller item. */
+    public static final RegistryObject<Item> ECS_MULTIBLOCK_ITEM = ITEMS.register(MultiblockContent.PATH,
+        () -> MultiblockContent.createItem(ECS_MULTIBLOCK.get(),
+            //? if <1.19.3 {
+            /*LEGACY_TAB
+            *///?} else {
+            null
+            //?}
+        ));
     /** Generator item for creative inventory and /give. */
     public static final RegistryObject<Item> ECS_GENERATOR_ITEM = ITEMS.register(GeneratorContent.PATH,
         () -> GeneratorContent.createItem(ECS_GENERATOR.get(),
@@ -83,6 +100,7 @@ public final class ForgeEntrypoint {
         .displayItems((parameters, output) -> {
             output.accept(EXAMPLE_ITEM.get());
             output.accept(ECS_GENERATOR_ITEM.get());
+            output.accept(ECS_MULTIBLOCK_ITEM.get());
         }).build());
     //?}
 
@@ -137,6 +155,20 @@ public final class ForgeEntrypoint {
         *///?} else {
         return BlockEntityType.Builder.of(
             (pos, state) -> new GeneratorBlockEntity(ECS_GENERATOR_TYPE.get(), pos, state), ECS_GENERATOR.get()).build(null);
+        //?}
+    }
+
+    /**
+     * Builds the controller type after its only valid block has been registered.
+     * @return unregistered multiblock controller type
+     */
+    private static BlockEntityType<MultiblockControllerBlockEntity> createMultiblockType() {
+        //? if >=1.21.2 {
+        /*return new BlockEntityType<>((pos, state) -> new MultiblockControllerBlockEntity(ECS_MULTIBLOCK_TYPE.get(), pos, state),
+            Set.of(ECS_MULTIBLOCK.get()));
+        *///?} else {
+        return BlockEntityType.Builder.of(
+            (pos, state) -> new MultiblockControllerBlockEntity(ECS_MULTIBLOCK_TYPE.get(), pos, state), ECS_MULTIBLOCK.get()).build(null);
         //?}
     }
 

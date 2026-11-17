@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "sdmal:item/ecs_multiblock_controller"
+  }
+}
