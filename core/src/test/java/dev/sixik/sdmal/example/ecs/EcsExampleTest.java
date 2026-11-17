@@ -1,7 +1,7 @@
 package dev.sixik.sdmal.example.ecs;
 
-import dev.sixik.sdmal.core.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.core.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+import dev.sixik.sdmal.api.ecs.WorldObjectManager;
 import io.netty.buffer.Unpooled;
 import java.util.UUID;
 import net.minecraft.SharedConstants;
@@ -73,7 +73,7 @@ class EcsExampleTest {
                 output.readBytes(snapshot);
             } finally { output.release(); }
 
-            var mirrorObject = new dev.sixik.sdmal.core.ecs.WorldObject(object.id());
+            var mirrorObject = new dev.sixik.sdmal.api.ecs.WorldObject(object.id());
             mirrorObject.setPersistent(false);
             mirrorObject.sleep();
             client.add(mirrorObject);

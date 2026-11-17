@@ -13,3 +13,9 @@
 /core/versions/26.1.2/logs
 /core/versions/26.3/logs
 /core/versions/1.19.2/logs
+/docs
+/docs
+docs/ECS.md
+docs/ECS-PLAN.md
+docs/ECS-EXAMPLE.md
+docs/ECS-ANNOTATIONS.md

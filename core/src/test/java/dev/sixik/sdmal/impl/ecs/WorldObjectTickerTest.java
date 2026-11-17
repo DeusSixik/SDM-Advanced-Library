@@ -1,8 +1,8 @@
 package dev.sixik.sdmal.impl.ecs;
 
-import dev.sixik.sdmal.core.ecs.AbstractWorldObjectComponent;
-import dev.sixik.sdmal.core.ecs.TickableComponent;
-import dev.sixik.sdmal.core.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.AbstractWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.TickableComponent;
+import dev.sixik.sdmal.api.ecs.WorldObjectManager;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -83,14 +83,14 @@ class WorldObjectTickerTest {
         try (var manager = new WorldObjectManager()) {
             Counter counter = manager.create().attach(new Counter());
             counter.fail = true;
-            assertThrows(dev.sixik.sdmal.core.ecs.WorldObjectException.class, manager::tickAll);
-            assertThrows(dev.sixik.sdmal.core.ecs.WorldObjectException.class, manager::tickAll);
+            assertThrows(dev.sixik.sdmal.api.ecs.WorldObjectException.class, manager::tickAll);
+            assertThrows(dev.sixik.sdmal.api.ecs.WorldObjectException.class, manager::tickAll);
             assertEquals(2, manager.consecutiveTickFailures());
             counter.fail = false;
             manager.tickAll();
             assertEquals(0, manager.consecutiveTickFailures());
             counter.fail = true;
-            assertThrows(dev.sixik.sdmal.core.ecs.WorldObjectException.class, manager::tickAll);
+            assertThrows(dev.sixik.sdmal.api.ecs.WorldObjectException.class, manager::tickAll);
             assertEquals(1, manager.consecutiveTickFailures());
         }
     }

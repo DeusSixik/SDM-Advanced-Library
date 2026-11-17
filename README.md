@@ -137,8 +137,14 @@ dev.sixik.sdmal.impl.mixin.server.*  -> server
 
 ## ECS
 
+Публичный API: `dev.sixik.sdmal.api.ecs`, аннотации: `api.ecs.annotations`.
+Карта пакетов и переход со старых импортов: [core/ECS-API.md](core/ECS-API.md).
+План и критерии рефакторинга: [core/ECS-CLEANUP-PLAN.md](core/ECS-CLEANUP-PLAN.md).
+Выполненный рефакторинг, JMH до/после и ограничения результатов:
+[core/ECS-PERFORMANCE.md](core/ECS-PERFORMANCE.md).
+
 Подсистема объектов и компонентов перенесена из Artisans-Delight в
-`core/src/main/java/dev/sixik/sdmal/core/ecs/`.
+`core/src/main/java/dev/sixik/sdmal/api/ecs/`.
 Она включает менеджер объектов, типы компонентов, lifecycle, поля, NBT-кодеки
 и full/delta синхронизацию. Основные имена классов сохранены.
 
@@ -203,6 +209,12 @@ public-конструктора без аргументов. `sdmal-ecs-processo
 
 Запуск игры: `:fabric:<версия>:runClient`, `:forge:<версия>:runClient`
 или `:neoforge:<версия>:runClient`. Для сервера используется `runServer`.
+Для фаз и параллельных систем используйте `WorldObjectManager.scheduler()` и
+`worldContext()`; контракт и пример находятся в [core/ECS-PARALLEL-PLAN.md](core/ECS-PARALLEL-PLAN.md)
+и разделе «Фазы и параллельные системы» в [core/ECS.md](core/ECS.md).
+Обычному компоненту достаточно `SnapshotTickableComponent<S,R>` с методами
+`capture/compute/apply`: менеджер автоматически группирует и запускает его,
+без отдельного класса системы и ручной регистрации в scheduler.
 Forge/NeoForge сохраняют параметры в `config/sdmal-common.toml`,
 Fabric — в `config/sdmal-common.json` с теми же ключами и значениями по умолчанию.
 

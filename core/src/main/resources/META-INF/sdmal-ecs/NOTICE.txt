@@ -6,6 +6,7 @@ Commit: 88ddc9e13e78a922f2605e0388680b9d678c632e
 Original path: common/src/main/java/dev/sixik/artisans_delight/libs/world
 License: GNU Lesser General Public License version 3 or later (see LICENSE.txt).
 
-The SDMAL adaptation relocates packages to dev.sixik.sdmal.core.ecs, adds
+The SDMAL adaptation exposes its API in dev.sixik.sdmal.api.ecs, keeps internal
+serialization in dev.sixik.sdmal.core.ecs, and adds
 Minecraft version compatibility, fixes lifecycle and state synchronization,
 and separates the sample application from the distributed library.

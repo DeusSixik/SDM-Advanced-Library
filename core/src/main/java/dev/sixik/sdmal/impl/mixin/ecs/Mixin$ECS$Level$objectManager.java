@@ -1,10 +1,10 @@
 package dev.sixik.sdmal.impl.mixin.ecs;
 
 import dev.sixik.sdmal.SDMAdvancedLibrary;
-import dev.sixik.sdmal.core.ecs.WorldObjectException;
-import dev.sixik.sdmal.core.ecs.WorldObjectManager;
-import dev.sixik.sdmal.core.ecs.minecraft.LevelObjectManager;
-import dev.sixik.sdmal.core.ecs.minecraft.WorldObjectManagerApi;
+import dev.sixik.sdmal.api.ecs.WorldObjectException;
+import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelObjectManager;
+import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;

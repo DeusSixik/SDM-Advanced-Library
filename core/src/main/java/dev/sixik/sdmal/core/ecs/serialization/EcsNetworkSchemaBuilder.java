@@ -1,6 +1,12 @@
 package dev.sixik.sdmal.core.ecs.serialization;
 
-import dev.sixik.sdmal.core.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
+import dev.sixik.sdmal.api.ecs.annotations.EcsSync;
+import dev.sixik.sdmal.api.ecs.annotations.EcsUseNetworkAdapter;
+import dev.sixik.sdmal.api.ecs.serialization.EcsNetworkSerializer;
+import dev.sixik.sdmal.api.ecs.serialization.EcsSerializationException;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -14,44 +20,74 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Stages finite binary schemas independently of NBT layouts and registrations. */
+/**
+ * Stages finite binary schemas independently of NBT layouts and registrations.
+ */
 final class EcsNetworkSchemaBuilder {
-    /** Existing explicit binary registrations. */
+    /**
+     * Existing explicit binary registrations.
+     */
     private final Map<Type, EcsNetworkSerializer<?>> registered;
-    /** Successful prior structural resolutions. */
+
+    /**
+     * Successful prior structural resolutions.
+     */
     private final Map<Type, EcsNetworkSerializer<?>> resolved;
-    /** Successful prior per-field override instances. */
+
+    /**
+     * Successful prior per-field override instances.
+     */
     private final Map<Class<? extends EcsNetworkSerializer<?>>, EcsNetworkSerializer<?>> overrides;
-    /** New binary adapters awaiting complete schema success. */
+
+    /**
+     * New binary adapters awaiting complete schema success.
+     */
     private final Map<Type, EcsNetworkSerializer<?>> pending = new LinkedHashMap<>();
-    /** New annotation adapters awaiting complete schema success. */
-    private final Map<Class<? extends EcsNetworkSerializer<?>>, EcsNetworkSerializer<?>> pendingOverrides = new HashMap<>();
-    /** Active resolution path, bounded to 64 levels and rejecting cycles. */
+
+    /**
+     * New annotation adapters awaiting complete schema success.
+     */
+    private final Map<Class<? extends EcsNetworkSerializer<?>>, EcsNetworkSerializer<?>>
+            pendingOverrides = new HashMap<>();
+
+    /**
+     * Active resolution path, bounded to 64 levels and rejecting cycles.
+     */
     private final Set<Type> visiting = new LinkedHashSet<>();
 
     /**
      * Captures registry maps while the caller holds their monitor.
+     *
      * @param registered exact explicit formats
      * @param resolved successful prior resolutions
      * @param overrides cached annotation adapters
      */
-    EcsNetworkSchemaBuilder(Map<Type, EcsNetworkSerializer<?>> registered, Map<Type, EcsNetworkSerializer<?>> resolved,
-        Map<Class<? extends EcsNetworkSerializer<?>>, EcsNetworkSerializer<?>> overrides) {
-        this.registered = registered; this.resolved = resolved; this.overrides = overrides;
+    EcsNetworkSchemaBuilder(
+            Map<Type, EcsNetworkSerializer<?>> registered,
+            Map<Type, EcsNetworkSerializer<?>> resolved,
+            Map<Class<? extends EcsNetworkSerializer<?>>, EcsNetworkSerializer<?>> overrides) {
+        this.registered = registered;
+        this.resolved = resolved;
+        this.overrides = overrides;
     }
 
     /**
      * Publishes adapters after the complete requested schema has been validated.
+     *
      * @param target resolved adapter map
      * @param targetOverrides annotation adapter map
      */
-    void publish(Map<Type, EcsNetworkSerializer<?>> target,
-        Map<Class<? extends EcsNetworkSerializer<?>>, EcsNetworkSerializer<?>> targetOverrides) {
-        target.putAll(pending); targetOverrides.putAll(pendingOverrides);
+    void publish(
+            Map<Type, EcsNetworkSerializer<?>> target,
+            Map<Class<? extends EcsNetworkSerializer<?>>, EcsNetworkSerializer<?>>
+                    targetOverrides) {
+        target.putAll(pending);
+        targetOverrides.putAll(pendingOverrides);
     }
 
     /**
      * Resolves native scalar, generic collection, enum or opted-in record formats.
+     *
      * @param declared concrete type
      * @return checked non-null binary value adapter
      */
@@ -63,23 +99,28 @@ final class EcsNetworkSchemaBuilder {
         known = resolved.get(type);
         if (known != null) return known;
         if (visiting.size() >= 64 || !visiting.add(type))
-            throw new EcsSerializationException("Recursive or excessively deep ECS wire schema: " + type);
+            throw new EcsSerializationException(
+                    "Recursive or excessively deep ECS wire schema: " + type);
         try {
             var adapter = registered.get(type);
             if (adapter == null) adapter = EcsNetworkStructures.build(type, this);
             var result = checked(type, adapter);
             pending.put(type, result);
             return result;
-        } finally { visiting.remove(type); }
+        } finally {
+            visiting.remove(type);
+        }
     }
 
     /**
      * Selects only EcsSync fields and resolves inherited concrete generic arguments.
+     *
      * @param type concrete annotated component class
      * @return complete key-sorted wire schema
      */
     EcsNetworkSchema component(Class<?> type) {
-        if (!AnnotatedWorldObjectComponent.class.isAssignableFrom(type) || Modifier.isAbstract(type.getModifiers()))
+        if (!AnnotatedWorldObjectComponent.class.isAssignableFrom(type)
+                || Modifier.isAbstract(type.getModifiers()))
             throw new EcsSerializationException("Expected concrete AnnotatedWorldObjectComponent");
         List<EcsNetworkMember> members = new ArrayList<>();
         Set<String> keys = new LinkedHashSet<>();
@@ -90,28 +131,38 @@ final class EcsNetworkSchemaBuilder {
             for (Field field : raw.getDeclaredFields()) {
                 if (!field.isAnnotationPresent(EcsSync.class)) {
                     if (field.isAnnotationPresent(EcsUseNetworkAdapter.class))
-                        throw new EcsSerializationException(field + ": @EcsUseNetworkAdapter requires @EcsSync");
+                        throw new EcsSerializationException(
+                                field + ": @EcsUseNetworkAdapter requires @EcsSync");
                     continue;
                 }
-                if (Modifier.isFinal(field.getModifiers()) || Modifier.isStatic(field.getModifiers())
-                    || Modifier.isTransient(field.getModifiers()) || field.isSynthetic())
-                    throw new EcsSerializationException(field + ": synced component fields must be mutable instance fields");
+                if (Modifier.isFinal(field.getModifiers())
+                        || Modifier.isStatic(field.getModifiers())
+                        || Modifier.isTransient(field.getModifiers())
+                        || field.isSynthetic())
+                    throw new EcsSerializationException(
+                            field + ": synced component fields must be mutable instance fields");
                 var member = member(field, EcsTypes.substitute(field.getGenericType(), bindings));
-                if (!keys.add(member.key())) throw new EcsSerializationException("Duplicate synced key: " + member.key());
+                if (!keys.add(member.key()))
+                    throw new EcsSerializationException("Duplicate synced key: " + member.key());
                 members.add(member);
             }
             current = EcsTypes.substitute(raw.getGenericSuperclass(), bindings);
         }
         members.sort(Comparator.comparing(EcsNetworkMember::key));
-        if (members.size() > 4096) throw new EcsSerializationException("Too many synced component fields");
+        if (members.size() > 4096)
+            throw new EcsSerializationException("Too many synced component fields");
         String[] descriptions = new String[members.size()];
-        for (int index = 0; index < descriptions.length; index++) descriptions[index] = members.get(index).schemaName();
-        return new EcsNetworkSchema(List.copyOf(members), EcsWireSchema.fingerprint(EcsWireSchema.describe("component/v1", descriptions)));
+        for (int index = 0; index < descriptions.length; index++)
+            descriptions[index] = members.get(index).schemaName();
+        return new EcsNetworkSchema(
+                members.toArray(EcsNetworkMember[]::new),
+                EcsWireSchema.fingerprint(EcsWireSchema.describe("component/v1", descriptions)));
     }
 
     /**
-     * Resolves an explicit wire key or reuses a member's stable persistence key.
-     * For a record all constructor components are encoded; a persistence key is sufficient there.
+     * Resolves an explicit wire key or reuses a member's stable persistence key. For a record all
+     * constructor components are encoded; a persistence key is sufficient there.
+     *
      * @param field selected component field or record backing field
      * @param type concrete member value type
      * @return cached field/adapter plan
@@ -121,35 +172,55 @@ final class EcsNetworkSchemaBuilder {
         try {
             EcsSync sync = field.getAnnotation(EcsSync.class);
             EcsPersist persist = field.getAnnotation(EcsPersist.class);
-            String key = sync == null || sync.value().isEmpty() ? persist == null ? "" : persist.value() : sync.value();
-            if (key.isBlank() || key.length() > 1024) throw new EcsSerializationException("Explicit stable network key is required");
+            String key =
+                    sync == null || sync.value().isEmpty()
+                            ? persist == null ? "" : persist.value()
+                            : sync.value();
+            if (key.isBlank() || key.length() > 1024)
+                throw new EcsSerializationException("Explicit stable network key is required");
             EcsTypes.requireConcrete(type);
             var override = field.getAnnotation(EcsUseNetworkAdapter.class);
             var serializer = override == null ? resolve(type) : override(type, override.value());
-            var lookup = MethodHandles.privateLookupIn(field.getDeclaringClass(), MethodHandles.lookup());
-            var handle = lookup.findVarHandle(field.getDeclaringClass(), field.getName(), field.getType());
-            return new EcsNetworkMember(key, path, handle, serializer, !EcsTypes.raw(type).isPrimitive(),
-                Modifier.isVolatile(field.getModifiers()));
-        } catch (Throwable failure) { throw EcsSerializationException.at(path, failure); }
+            var lookup =
+                    MethodHandles.privateLookupIn(
+                            field.getDeclaringClass(), MethodHandles.lookup());
+            var handle =
+                    lookup.findVarHandle(
+                            field.getDeclaringClass(), field.getName(), field.getType());
+            return new EcsNetworkMember(
+                    key,
+                    path,
+                    handle,
+                    serializer,
+                    !EcsTypes.raw(type).isPrimitive(),
+                    Modifier.isVolatile(field.getModifiers()),
+                    override == null ? EcsNetworkMember.primitiveKind(field.getType()) : 0);
+        } catch (Throwable failure) {
+            throw SerializationFailures.at(path, failure);
+        }
     }
 
     /**
      * Instantiates and checks a native per-member override.
+     *
      * @param type exact member type
      * @param adapterClass no-argument native adapter class
      * @return checked adapter
      * @throws ReflectiveOperationException if its constructor cannot be called
      */
-    private EcsNetworkSerializer<?> override(Type type, Class<? extends EcsNetworkSerializer<?>> adapterClass)
-        throws ReflectiveOperationException {
+    private EcsNetworkSerializer<?> override(
+            Type type, Class<? extends EcsNetworkSerializer<?>> adapterClass)
+            throws ReflectiveOperationException {
         Type argument = EcsTypes.adapterValue(adapterClass, EcsNetworkSerializer.class);
         if (argument == null || !EcsTypes.boxed(type).equals(EcsTypes.boxed(argument)))
-            throw new EcsSerializationException("Network adapter has incompatible value type: " + adapterClass.getName());
+            throw new EcsSerializationException(
+                    "Network adapter has incompatible value type: " + adapterClass.getName());
         var adapter = overrides.get(adapterClass);
         if (adapter == null) adapter = pendingOverrides.get(adapterClass);
         if (adapter == null) {
             var constructor = adapterClass.getDeclaredConstructor();
-            if (!constructor.trySetAccessible()) throw new IllegalAccessException("Network adapter constructor is inaccessible");
+            if (!constructor.trySetAccessible())
+                throw new IllegalAccessException("Network adapter constructor is inaccessible");
             adapter = constructor.newInstance();
             pendingOverrides.put(adapterClass, adapter);
         }
@@ -158,6 +229,7 @@ final class EcsNetworkSchemaBuilder {
 
     /**
      * Freezes an adapter's stable wire name and validates all value boundaries.
+     *
      * @param type declared exact type
      * @param adapter native format implementation
      * @return immutable checked wrapper
@@ -165,16 +237,24 @@ final class EcsNetworkSchemaBuilder {
     @SuppressWarnings("unchecked")
     static EcsNetworkSerializer<?> checked(Type type, EcsNetworkSerializer<?> adapter) {
         String schema = adapter.schemaName();
-        if (schema == null || schema.isBlank()) throw new EcsSerializationException("Network adapter requires a stable schemaName");
+        if (schema == null || schema.isBlank())
+            throw new EcsSerializationException("Network adapter requires a stable schemaName");
         Class<?> raw = EcsTypes.raw(EcsTypes.boxed(type));
         var delegate = (EcsNetworkSerializer<Object>) adapter;
-        return EcsNetworkBuiltins.of(schema, (buffer, value) -> {
-            if (value == null || !raw.isInstance(value)) throw new EcsSerializationException("Expected non-null " + type.getTypeName());
-            delegate.write(buffer, value);
-        }, buffer -> {
-            Object value = delegate.read(buffer);
-            if (value == null || !raw.isInstance(value)) throw new EcsSerializationException("Network adapter returned incompatible " + type.getTypeName());
-            return value;
-        });
+        return EcsNetworkBuiltins.of(
+                schema,
+                (buffer, value) -> {
+                    if (value == null || !raw.isInstance(value))
+                        throw new EcsSerializationException(
+                                "Expected non-null " + type.getTypeName());
+                    delegate.write(buffer, value);
+                },
+                buffer -> {
+                    Object value = delegate.read(buffer);
+                    if (value == null || !raw.isInstance(value))
+                        throw new EcsSerializationException(
+                                "Network adapter returned incompatible " + type.getTypeName());
+                    return value;
+                });
     }
 }

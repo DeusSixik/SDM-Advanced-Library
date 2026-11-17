@@ -1,0 +1,42 @@
+{
+  "1.19.2": {
+    "tests": 250,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "1.20.1": {
+    "tests": 250,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "1.21.1": {
+    "tests": 250,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "26.1.2": {
+    "tests": 250,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "26.3": {
+    "tests": 250,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "processor": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "mod_jars": 14,
+  "runtime_source_sha256": "f4ab17bdd7b8a740fdc3c94ac1ef48419d96d627b5c21e547095126c95eea52d",
+  "baseline_hashes_verified": true,
+  "benchmark_artifacts_excluded": true
+}

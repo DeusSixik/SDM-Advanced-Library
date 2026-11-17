@@ -1,13 +1,38 @@
 package dev.sixik.sdmal.core.ecs.serialization;
 
-import dev.sixik.sdmal.core.ecs.AnnotatedWorldObjectComponent;
-import dev.sixik.sdmal.core.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.core.ecs.WorldObjectComponentType;
-import dev.sixik.sdmal.core.ecs.WorldObjectManager;
-import dev.sixik.sdmal.core.ecs.codecs.ExternFieldCodecs;
-import dev.sixik.sdmal.core.ecs.sync.FieldCodec;
-import dev.sixik.sdmal.core.ecs.sync.FieldCodecs;
+import static org.junit.jupiter.api.Assertions.*;
+
+import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+import dev.sixik.sdmal.api.ecs.WorldObjectComponentType;
+import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.annotations.EcsData;
+import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
+import dev.sixik.sdmal.api.ecs.annotations.EcsSync;
+import dev.sixik.sdmal.api.ecs.annotations.EcsUseNetworkAdapter;
+import dev.sixik.sdmal.api.ecs.codecs.ExternFieldCodecs;
+import dev.sixik.sdmal.api.ecs.serialization.EcsNetworkSerializer;
+import dev.sixik.sdmal.api.ecs.serialization.EcsSerializationException;
+import dev.sixik.sdmal.api.ecs.serialization.EcsSerializer;
+import dev.sixik.sdmal.api.ecs.serialization.TypeRef;
+import dev.sixik.sdmal.api.ecs.sync.FieldCodec;
+
 import io.netty.buffer.Unpooled;
+
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.ChunkPos;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,24 +44,9 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import net.minecraft.SharedConstants;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.SectionPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.Bootstrap;
-import net.minecraft.world.level.ChunkPos;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Exercises native binary layouts, independent capability registries and atomic framed component updates.
+ * Exercises native binary layouts, independent capability registries and atomic framed component
+ * updates.
  */
 class EcsNetworkSerializersTest {
     /**
@@ -110,7 +120,8 @@ class EcsNetworkSerializersTest {
     }
 
     /**
-     * Generic records reuse stable persisted keys and encode their members directly through native adapters.
+     * Generic records reuse stable persisted keys and encode their members directly through native
+     * adapters.
      */
     @Test
     void structures_recordsNestedGenericsNullableCollections_roundTrip() {
@@ -130,10 +141,9 @@ class EcsNetworkSerializersTest {
             assertEquals(new WireData(5), target.networkOnly);
             target.batteries.add(new Battery(0, 1));
             assertEquals(2, source.batteries.size());
-            assertNotSame(EcsNetworkSerializers.serializer(new TypeRef<List<UUID>>() {
-                    }),
-                    EcsNetworkSerializers.serializer(new TypeRef<List<String>>() {
-                    }));
+            assertNotSame(
+                    NetworkSerialization.serializer(new TypeRef<List<UUID>>() {}),
+                    NetworkSerialization.serializer(new TypeRef<List<String>>() {}));
         } finally {
             buffer.release();
         }
@@ -215,7 +225,8 @@ class EcsNetworkSerializersTest {
                 FriendlyByteBuf truncated = new FriendlyByteBuf(original.copy(0, length));
                 try {
                     var target = new Selection();
-                    assertThrows(EcsSerializationException.class, () -> target.readNetwork(truncated));
+                    assertThrows(
+                            EcsSerializationException.class, () -> target.readNetwork(truncated));
                     assertEquals(100, target.energy);
                     assertEquals("initial", target.visual);
                     assertEquals(0, truncated.readerIndex());
@@ -234,7 +245,8 @@ class EcsNetworkSerializersTest {
      * @param corruption distinct malformed packet category
      */
     @ParameterizedTest
-    @ValueSource(strings = {"length", "oversize", "version", "fingerprint", "count", "flag", "trailing"})
+    @ValueSource(
+            strings = {"length", "oversize", "version", "fingerprint", "count", "flag", "trailing"})
     void frame_malformedMetadataOrValues_rejectsAtomically(String corruption) {
         var source = new Selection();
         source.energy = 44;
@@ -265,13 +277,14 @@ class EcsNetworkSerializersTest {
     }
 
     /**
-     * Binary transport never invokes the dual adapter's NBT methods, even when the same field is persisted.
+     * Binary transport never invokes the dual adapter's NBT methods, even when the same field is
+     * persisted.
      */
     @Test
     void custom_dualCapabilityAdapter_callsOnlyFriendlyByteBufMethods() {
         var adapter = new DualAdapter();
-        EcsSerializers.register(External.class, adapter);
-        EcsNetworkSerializers.register(External.class, adapter);
+        NbtSerialization.register(External.class, adapter);
+        NetworkSerialization.register(External.class, adapter);
         var source = new DualComponent();
         source.value = new External(71);
         var target = new DualComponent();
@@ -280,7 +293,10 @@ class EcsNetworkSerializersTest {
             source.writeNetwork(buffer);
             target.readNetwork(buffer);
             assertEquals(new External(71), target.value);
-            var error = assertThrows(EcsSerializationException.class, () -> source.writeNbt(new CompoundTag()));
+            var error =
+                    assertThrows(
+                            EcsSerializationException.class,
+                            () -> source.writeNbt(new CompoundTag()));
             assertInstanceOf(AssertionError.class, error.getCause());
         } finally {
             buffer.release();
@@ -288,16 +304,17 @@ class EcsNetworkSerializersTest {
     }
 
     /**
-     * Registered network-only types do not need NBT adapters, and field overrides retain separate formats.
+     * Registered network-only types do not need NBT adapters, and field overrides retain separate
+     * formats.
      */
     @Test
     void custom_networkOnlyTypeAndFieldOverride_needNoPersistenceAdapter() {
-        EcsNetworkSerializers.register(OnlyWire.class, new WireAdapter());
+        NetworkSerialization.register(OnlyWire.class, new WireAdapter());
         var source = new WireComponent();
         source.value = new OnlyWire(13);
         source.compact = new OnlyWire(17);
-        EcsSerializers.validateComponent(WireComponent.class);
-        EcsNetworkSerializers.validateComponent(WireComponent.class);
+        NbtSerialization.validateComponent(WireComponent.class);
+        NetworkSerialization.validateComponent(WireComponent.class);
         var target = new WireComponent();
         FriendlyByteBuf buffer = buffer();
         try {
@@ -305,8 +322,12 @@ class EcsNetworkSerializersTest {
             target.readNetwork(buffer);
             assertEquals(source.value, target.value);
             assertEquals(source.compact, target.compact);
-            assertThrows(EcsSerializationException.class, () -> EcsSerializers.serializer(OnlyWire.class));
-            assertThrows(IllegalStateException.class, () -> EcsNetworkSerializers.register(OnlyWire.class, new WireAdapter()));
+            assertThrows(
+                    EcsSerializationException.class,
+                    () -> NbtSerialization.serializer(OnlyWire.class));
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> NetworkSerialization.register(OnlyWire.class, new WireAdapter()));
         } finally {
             buffer.release();
         }
@@ -317,10 +338,16 @@ class EcsNetworkSerializersTest {
      */
     @Test
     void schema_missingNativeAdapter_canRegisterAndRetry() {
-        assertThrows(EcsSerializationException.class, () -> EcsNetworkSerializers.validateComponent(LateComponent.class));
-        EcsNetworkSerializers.register(Late.class, EcsNetworkBuiltins.of("test:late/i32/v1",
-                (buffer, value) -> buffer.writeInt(value.value()), buffer -> new Late(buffer.readInt())));
-        assertDoesNotThrow(() -> EcsNetworkSerializers.validateComponent(LateComponent.class));
+        assertThrows(
+                EcsSerializationException.class,
+                () -> NetworkSerialization.validateComponent(LateComponent.class));
+        NetworkSerialization.register(
+                Late.class,
+                EcsNetworkBuiltins.of(
+                        "test:late/i32/v1",
+                        (buffer, value) -> buffer.writeInt(value.value()),
+                        buffer -> new Late(buffer.readInt())));
+        assertDoesNotThrow(() -> NetworkSerialization.validateComponent(LateComponent.class));
     }
 
     /**
@@ -328,12 +355,14 @@ class EcsNetworkSerializersTest {
      */
     @Test
     void custom_genericAdapterRegistration_doesNotEraseArguments() {
-        var token = new TypeRef<Envelope<UUID>>() {
-        };
-        EcsNetworkSerializers.register(token, EcsNetworkBuiltins.of("test:uuid-envelope/v1",
-                (buffer, value) -> buffer.writeUUID(value.value()), buffer -> new Envelope<>(buffer.readUUID())));
-        var serializer = EcsNetworkSerializers.serializer(new TypeRef<Envelope<UUID>>() {
-        });
+        var token = new TypeRef<Envelope<UUID>>() {};
+        NetworkSerialization.register(
+                token,
+                EcsNetworkBuiltins.of(
+                        "test:uuid-envelope/v1",
+                        (buffer, value) -> buffer.writeUUID(value.value()),
+                        buffer -> new Envelope<>(buffer.readUUID())));
+        var serializer = NetworkSerialization.serializer(new TypeRef<Envelope<UUID>>() {});
         var value = new Envelope<>(UUID.randomUUID());
         FriendlyByteBuf buffer = buffer();
         try {
@@ -342,20 +371,31 @@ class EcsNetworkSerializersTest {
         } finally {
             buffer.release();
         }
-        assertThrows(EcsSerializationException.class, () -> EcsNetworkSerializers.serializer(new TypeRef<Envelope<String>>() {
-        }));
+        assertThrows(
+                EcsSerializationException.class,
+                () -> NetworkSerialization.serializer(new TypeRef<Envelope<String>>() {}));
     }
 
     /**
-     * Stable format names are mandatory; adapters returning null violate the present-value contract.
+     * Stable format names are mandatory; adapters returning null violate the present-value
+     * contract.
      */
     @Test
     void custom_invalidAdapterContracts_reject() {
-        assertThrows(EcsSerializationException.class, () -> EcsNetworkSerializers.register(Invalid.class,
-                EcsNetworkBuiltins.of(" ", (buffer, value) -> buffer.writeByte(0), buffer -> new Invalid())));
-        EcsNetworkSerializers.register(Invalid.class,
-                EcsNetworkBuiltins.of("test:null/v1", (buffer, value) -> buffer.writeByte(0), buffer -> null));
-        var serializer = EcsNetworkSerializers.serializer(Invalid.class);
+        assertThrows(
+                EcsSerializationException.class,
+                () ->
+                        NetworkSerialization.register(
+                                Invalid.class,
+                                EcsNetworkBuiltins.of(
+                                        " ",
+                                        (buffer, value) -> buffer.writeByte(0),
+                                        buffer -> new Invalid())));
+        NetworkSerialization.register(
+                Invalid.class,
+                EcsNetworkBuiltins.of(
+                        "test:null/v1", (buffer, value) -> buffer.writeByte(0), buffer -> null));
+        var serializer = NetworkSerialization.serializer(Invalid.class);
         FriendlyByteBuf buffer = buffer();
         try {
             assertThrows(EcsSerializationException.class, () -> serializer.read(buffer));
@@ -365,7 +405,8 @@ class EcsNetworkSerializersTest {
     }
 
     /**
-     * Writing more than the frame cap rejects the component and restores the caller's writer position.
+     * Writing more than the frame cap rejects the component and restores the caller's writer
+     * position.
      */
     @Test
     void frame_excessiveAdapterOutput_rejectsWithWriterRollback() {
@@ -386,8 +427,12 @@ class EcsNetworkSerializersTest {
      */
     @ParameterizedTest
     @MethodSource("invalidComponents")
-    void schema_invalidWireMember_rejectsAtRegistration(Class<? extends AnnotatedWorldObjectComponent> type) {
-        var error = assertThrows(EcsSerializationException.class, () -> EcsNetworkSerializers.validateComponent(type));
+    void schema_invalidWireMember_rejectsAtRegistration(
+            Class<? extends AnnotatedWorldObjectComponent> type) {
+        var error =
+                assertThrows(
+                        EcsSerializationException.class,
+                        () -> NetworkSerialization.validateComponent(type));
         assertTrue(error.getMessage().contains(type.getName()));
     }
 
@@ -395,8 +440,17 @@ class EcsNetworkSerializersTest {
      * @return distinct invalid binary schema declarations
      */
     private static List<Class<? extends AnnotatedWorldObjectComponent>> invalidComponents() {
-        return List.of(NoKey.class, StaticField.class, FinalField.class, DuplicateKey.class, Raw.class,
-                Wildcard.class, MissingSync.class, WrongOverride.class, UnknownType.class, RecursiveComponent.class);
+        return List.of(
+                NoKey.class,
+                StaticField.class,
+                FinalField.class,
+                DuplicateKey.class,
+                Raw.class,
+                Wildcard.class,
+                MissingSync.class,
+                WrongOverride.class,
+                UnknownType.class,
+                RecursiveComponent.class);
     }
 
     /**
@@ -406,13 +460,19 @@ class EcsNetworkSerializersTest {
     void registry_invalidWireSchema_isNotInstalled() {
         String id = "test:wire_invalid_" + UUID.randomUUID();
         var registry = WorldObjectComponentRegistry.instance();
-        var type = new WorldObjectComponentType<>(id, NoKey.class, WorldObjectComponentType.DuplicatePolicy.REJECT, NoKey::new);
+        var type =
+                new WorldObjectComponentType<>(
+                        id,
+                        NoKey.class,
+                        WorldObjectComponentType.DuplicatePolicy.REJECT,
+                        NoKey::new);
         assertThrows(EcsSerializationException.class, () -> registry.register(type));
         assertTrue(registry.get(id).isEmpty());
     }
 
     /**
-     * Invalid data in a late record constructor leaves previously decoded primitive fields untouched.
+     * Invalid data in a late record constructor leaves previously decoded primitive fields
+     * untouched.
      */
     @Test
     void record_invalidCanonicalState_rollsBackComponentAndReaderIndex() {
@@ -451,14 +511,13 @@ class EcsNetworkSerializersTest {
     }
 
     /**
-     * Container readers reject oversized/truncated lengths before allocating elements and duplicate map keys.
+     * Container readers reject oversized/truncated lengths before allocating elements and duplicate
+     * map keys.
      */
     @Test
     void collections_badCountsAndDuplicates_reject() {
-        var list = EcsNetworkSerializers.serializer(new TypeRef<List<Integer>>() {
-        });
-        var map = EcsNetworkSerializers.serializer(new TypeRef<Map<String, Integer>>() {
-        });
+        var list = NetworkSerialization.serializer(new TypeRef<List<Integer>>() {});
+        var map = NetworkSerialization.serializer(new TypeRef<Map<String, Integer>>() {});
         FriendlyByteBuf buffer = buffer();
         try {
             buffer.writeVarInt(65_537);
@@ -481,7 +540,8 @@ class EcsNetworkSerializersTest {
     }
 
     /**
-     * Scalar values use the version's actual byte buffer, including numeric boundaries and exact floats.
+     * Scalar values use the version's actual byte buffer, including numeric boundaries and exact
+     * floats.
      */
     @Test
     void builtins_nativeScalarsMinecraftEnumsAndArrays_roundTrip() {
@@ -498,7 +558,7 @@ class EcsNetworkSerializersTest {
         roundTrip(BlockPos.class, new BlockPos(-12, -50, 19));
         roundTrip(ChunkPos.class, new ChunkPos(-42, 6));
         roundTrip(State.class, State.RUNNING);
-        var section = EcsNetworkSerializers.serializer(SectionPos.class);
+        var section = NetworkSerialization.serializer(SectionPos.class);
         FriendlyByteBuf buffer = buffer();
         try {
             var value = SectionPos.of(-5, 3, 6);
@@ -506,21 +566,21 @@ class EcsNetworkSerializersTest {
             assertEquals(value.asLong(), section.read(buffer).asLong());
             buffer.clear();
             var identifier = dev.sixik.sdmal.SDMAdvancedLibrary.id("example");
-            var codec = EcsNetworkSerializers.fromCodec(ExternFieldCodecs.resourceLocation());
+            var codec = NetworkSerialization.fromCodec(ExternFieldCodecs.resourceLocation());
             codec.write(buffer, identifier);
             assertEquals(identifier, codec.read(buffer));
             buffer.clear();
-            var ints = EcsNetworkSerializers.serializer(int[].class);
-            ints.write(buffer, new int[]{1, -1});
-            assertArrayEquals(new int[]{1, -1}, ints.read(buffer));
+            var ints = NetworkSerialization.serializer(int[].class);
+            ints.write(buffer, new int[] {1, -1});
+            assertArrayEquals(new int[] {1, -1}, ints.read(buffer));
             buffer.clear();
-            var bytes = EcsNetworkSerializers.serializer(byte[].class);
-            bytes.write(buffer, new byte[]{-1, 0});
-            assertArrayEquals(new byte[]{-1, 0}, bytes.read(buffer));
+            var bytes = NetworkSerialization.serializer(byte[].class);
+            bytes.write(buffer, new byte[] {-1, 0});
+            assertArrayEquals(new byte[] {-1, 0}, bytes.read(buffer));
             buffer.clear();
-            var longs = EcsNetworkSerializers.serializer(long[].class);
-            longs.write(buffer, new long[]{Long.MIN_VALUE});
-            assertArrayEquals(new long[]{Long.MIN_VALUE}, longs.read(buffer));
+            var longs = NetworkSerialization.serializer(long[].class);
+            longs.write(buffer, new long[] {Long.MIN_VALUE});
+            assertArrayEquals(new long[] {Long.MIN_VALUE}, longs.read(buffer));
         } finally {
             buffer.release();
         }
@@ -531,15 +591,20 @@ class EcsNetworkSerializersTest {
      */
     @Test
     void adapters_fromExistingCodec_usesNativeMethodsOnly() {
-        FieldCodec<Integer> existing = FieldCodec.<Integer>builder().schema("test:native/i32/v1")
-                .nbt((tag, key, value) -> {
-                            throw new AssertionError("NBT write called");
-                        },
-                        (tag, key, fallback) -> {
-                            throw new AssertionError("NBT read called");
-                        })
-                .network((buffer, value) -> buffer.writeInt(value), FriendlyByteBuf::readInt).build();
-        var adapter = EcsNetworkSerializers.fromCodec(existing);
+        FieldCodec<Integer> existing =
+                FieldCodec.<Integer>builder()
+                        .schema("test:native/i32/v1")
+                        .nbt(
+                                (tag, key, value) -> {
+                                    throw new AssertionError("NBT write called");
+                                },
+                                (tag, key, fallback) -> {
+                                    throw new AssertionError("NBT read called");
+                                })
+                        .network(
+                                (buffer, value) -> buffer.writeInt(value), FriendlyByteBuf::readInt)
+                        .build();
+        var adapter = NetworkSerialization.fromCodec(existing);
         FriendlyByteBuf buffer = buffer();
         try {
             adapter.write(buffer, 123);
@@ -561,16 +626,22 @@ class EcsNetworkSerializersTest {
             var component = manager.create().attach(new Scalar());
             var executor = Executors.newSingleThreadExecutor();
             try {
-                executor.submit(() -> {
-                    FriendlyByteBuf buffer = buffer();
-                    try {
-                        assertThrows(IllegalStateException.class, () -> component.writeNetwork(buffer));
-                        assertThrows(IllegalStateException.class, () -> component.readNetwork(buffer));
-                        assertEquals(0, buffer.writerIndex());
-                    } finally {
-                        buffer.release();
-                    }
-                }).get(5, TimeUnit.SECONDS);
+                executor.submit(
+                                () -> {
+                                    FriendlyByteBuf buffer = buffer();
+                                    try {
+                                        assertThrows(
+                                                IllegalStateException.class,
+                                                () -> component.writeNetwork(buffer));
+                                        assertThrows(
+                                                IllegalStateException.class,
+                                                () -> component.readNetwork(buffer));
+                                        assertEquals(0, buffer.writerIndex());
+                                    } finally {
+                                        buffer.release();
+                                    }
+                                })
+                        .get(5, TimeUnit.SECONDS);
             } finally {
                 executor.shutdownNow();
             }
@@ -578,14 +649,15 @@ class EcsNetworkSerializersTest {
     }
 
     /**
-     * Checks native round-trip equality; the float fixtures are exactly representable binary values.
+     * Checks native round-trip equality; the float fixtures are exactly representable binary
+     * values.
      *
-     * @param type  concrete class
+     * @param type concrete class
      * @param value expected value
-     * @param <T>   value type
+     * @param <T> value type
      */
     private static <T> void roundTrip(Class<T> type, T value) {
-        var serializer = EcsNetworkSerializers.serializer(type);
+        var serializer = NetworkSerialization.serializer(type);
         FriendlyByteBuf buffer = buffer();
         try {
             serializer.write(buffer, value);
@@ -635,11 +707,13 @@ class EcsNetworkSerializersTest {
         @EcsPersist("energy")
         @EcsSync
         private int energy = 100;
+
         /**
          * Persisted state that never travels.
          */
         @EcsPersist("secret")
         private int secret = 7;
+
         /**
          * Network-only visual state.
          */
@@ -650,7 +724,7 @@ class EcsNetworkSerializersTest {
     /**
      * Validated custom data whose stable NBT keys are reused for native record layout.
      *
-     * @param stored   units in [0, capacity]
+     * @param stored units in [0, capacity]
      * @param capacity maximum units
      */
     @EcsData
@@ -658,11 +732,12 @@ class EcsNetworkSerializersTest {
         /**
          * Validates reconstructed state.
          *
-         * @param stored   stored units
+         * @param stored stored units
          * @param capacity maximum units
          */
         private Battery {
-            if (stored < 0 || stored > capacity) throw new IllegalArgumentException("Invalid battery");
+            if (stored < 0 || stored > capacity)
+                throw new IllegalArgumentException("Invalid battery");
         }
     }
 
@@ -670,11 +745,10 @@ class EcsNetworkSerializersTest {
      * Generic nested record fixture.
      *
      * @param value exact nested value
-     * @param <T>   concrete nested type
+     * @param <T> concrete nested type
      */
     @EcsData
-    private record Box<T>(@EcsPersist("value") T value) {
-    }
+    private record Box<T>(@EcsPersist("value") T value) {}
 
     /**
      * Network-only record does not require persistence annotations.
@@ -682,8 +756,7 @@ class EcsNetworkSerializersTest {
      * @param value wire integer
      */
     @EcsData
-    private record WireData(@EcsSync("value") int value) {
-    }
+    private record WireData(@EcsSync("value") int value) {}
 
     /**
      * Nested binary structures fixture.
@@ -694,11 +767,13 @@ class EcsNetworkSerializersTest {
          */
         @EcsSync("batteries")
         private List<Battery> batteries = new ArrayList<>();
+
         /**
          * Nested specialized record/map/optional types.
          */
         @EcsSync("values")
         private Map<UUID, Optional<Box<List<UUID>>>> values = new LinkedHashMap<>();
+
         /**
          * Data selected only for network.
          */
@@ -755,6 +830,7 @@ class EcsNetworkSerializersTest {
          */
         @EcsSync("a")
         private int first;
+
         /**
          * Last key.
          */
@@ -771,6 +847,7 @@ class EcsNetworkSerializersTest {
          */
         @EcsSync("z")
         private String renamedLast;
+
         /**
          * First key declared last.
          */
@@ -783,13 +860,13 @@ class EcsNetworkSerializersTest {
      *
      * @param value payload
      */
-    private record External(int value) {
-    }
+    private record External(int value) {}
 
     /**
      * Proves the network capability never invokes persistence methods.
      */
-    private static final class DualAdapter implements EcsSerializer<External>, EcsNetworkSerializer<External> {
+    private static final class DualAdapter
+            implements EcsSerializer<External>, EcsNetworkSerializer<External> {
         /**
          * Deliberately fails if the NBT route is invoked.
          *
@@ -816,7 +893,7 @@ class EcsNetworkSerializersTest {
          * Writes a raw integer.
          *
          * @param buffer destination
-         * @param value  external value
+         * @param value external value
          */
         @Override
         public void write(FriendlyByteBuf buffer, External value) {
@@ -860,8 +937,7 @@ class EcsNetworkSerializersTest {
      *
      * @param value integer payload
      */
-    private record OnlyWire(int value) {
-    }
+    private record OnlyWire(int value) {}
 
     /**
      * Network-only adapter requiring no persistence implementation.
@@ -871,7 +947,7 @@ class EcsNetworkSerializersTest {
          * Writes a raw integer.
          *
          * @param buffer destination
-         * @param value  payload
+         * @param value payload
          */
         @Override
         public void write(FriendlyByteBuf buffer, OnlyWire value) {
@@ -905,14 +981,13 @@ class EcsNetworkSerializersTest {
         /**
          * Creates a stateless annotation adapter.
          */
-        public CompactAdapter() {
-        }
+        public CompactAdapter() {}
 
         /**
          * Writes a variable integer.
          *
          * @param buffer destination
-         * @param value  payload
+         * @param value payload
          */
         @Override
         public void write(FriendlyByteBuf buffer, OnlyWire value) {
@@ -948,6 +1023,7 @@ class EcsNetworkSerializersTest {
          */
         @EcsSync("value")
         private OnlyWire value;
+
         /**
          * Field-local compact adapter.
          */
@@ -961,8 +1037,7 @@ class EcsNetworkSerializersTest {
      *
      * @param value integer payload
      */
-    private record Late(int value) {
-    }
+    private record Late(int value) {}
 
     /**
      * Retryable native schema fixture.
@@ -984,6 +1059,7 @@ class EcsNetworkSerializersTest {
          */
         @EcsSync("a")
         private int first = 1;
+
         /**
          * Last-decoded validated record.
          */
@@ -998,14 +1074,13 @@ class EcsNetworkSerializersTest {
         /**
          * Creates the failing fixture adapter.
          */
-        public FailingAdapter() {
-        }
+        public FailingAdapter() {}
 
         /**
          * Writes a partial value and then rejects it.
          *
          * @param buffer destination
-         * @param value  fixture integer
+         * @param value fixture integer
          */
         @Override
         public void write(FriendlyByteBuf buffer, Integer value) {
@@ -1059,16 +1134,14 @@ class EcsNetworkSerializersTest {
      * Generic external type without EcsData opt-in.
      *
      * @param value typed payload
-     * @param <T>   concrete payload type
+     * @param <T> concrete payload type
      */
-    private record Envelope<T>(T value) {
-    }
+    private record Envelope<T>(T value) {}
 
     /**
      * Invalid adapter value fixture.
      */
-    private record Invalid() {
-    }
+    private record Invalid() {}
 
     /**
      * Adapter deliberately exceeding the complete component frame budget.
@@ -1077,14 +1150,13 @@ class EcsNetworkSerializersTest {
         /**
          * Creates the failure-injection adapter.
          */
-        public HugeAdapter() {
-        }
+        public HugeAdapter() {}
 
         /**
          * Fills a payload beyond its allowed complete frame size.
          *
          * @param buffer output buffer
-         * @param value  ignored fixture value
+         * @param value ignored fixture value
          */
         @Override
         public void write(FriendlyByteBuf buffer, Integer value) {
@@ -1130,8 +1202,7 @@ class EcsNetworkSerializersTest {
         /**
          * Invalid implicit key.
          */
-        @EcsSync
-        private int value;
+        @EcsSync private int value;
     }
 
     /**
@@ -1165,6 +1236,7 @@ class EcsNetworkSerializersTest {
          */
         @EcsSync("same")
         private int first;
+
         /**
          * Second conflicting key.
          */
@@ -1235,8 +1307,7 @@ class EcsNetworkSerializersTest {
      * @param next recursive value
      */
     @EcsData
-    private record Recursive(@EcsPersist("next") Recursive next) {
-    }
+    private record Recursive(@EcsPersist("next") Recursive next) {}
 
     /**
      * Recursive binary schema fixture.

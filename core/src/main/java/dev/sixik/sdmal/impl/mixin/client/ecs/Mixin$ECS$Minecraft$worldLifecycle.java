@@ -1,8 +1,10 @@
 package dev.sixik.sdmal.impl.mixin.client.ecs;
 
 import dev.sixik.sdmal.SDMAdvancedLibrary;
-import dev.sixik.sdmal.core.ecs.WorldObjectException;
-import dev.sixik.sdmal.core.ecs.minecraft.WorldObjectManagerApi;
+import dev.sixik.sdmal.api.ecs.WorldObjectException;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelObjectManager;
+import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
+import dev.sixik.sdmal.impl.ecs.WorldObjectTicker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,6 +18,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class Mixin$ECS$Minecraft$worldLifecycle {
     /** Last world installed into client engines; null before joining or after unload. */
     @Unique private ClientLevel sdm$installedWorld;
+
+    /**
+     * Runs NORMAL at the modern client's relocated block-entity boundary.
+     * Since 26.1 Minecraft.tick dispatches block entities separately from ClientLevel.tickEntities.
+     * @param ci Mixin callback state
+     */
+    //? if >=26.1 {
+    /*@Inject(method = "tick", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/client/multiplayer/ClientLevel;tickBlockEntities()V"))
+    private void sdm$normalTick(CallbackInfo ci) {
+        ClientLevel level = ((Minecraft) (Object) this).level;
+        if (level != null) WorldObjectTicker.normal(LevelObjectManager.getManager(level));
+    }
+    *///?}
 
     /**
      * Releases the previous world's manager before client engines adopt another world.

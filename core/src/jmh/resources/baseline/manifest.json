@@ -1,0 +1,9 @@
+{
+  "minecraft": "1.20.1",
+  "java": 17,
+  "description": "Exact pre-cleanup ECS bytecode and source snapshot. Benchmark-only; excluded from mod JARs.",
+  "files": {
+    "ecs-before-cleanup-1.20.1.jar": "d8313a0431aabaaf91bf2becb628e230ce17c35b9767b4d85a8dd6e83ef45509",
+    "ecs-before-cleanup-sources.zip": "a42ce74104369b57823ba571009fba9944e2d6664d86895ccaee46407e0719cc"
+  }
+}

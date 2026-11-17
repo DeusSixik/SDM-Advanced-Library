@@ -1,5 +1,9 @@
 package dev.sixik.sdmal.processor;
 
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -11,10 +15,6 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.Diagnostic;
 import javax.tools.StandardLocation;
-import java.io.IOException;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 
 /**
  * Validates {@code @EcsComponent} declarations and indexes their binary names for ServiceLoader.
@@ -24,9 +24,9 @@ import java.util.TreeMap;
 @SupportedAnnotationTypes("*")
 public final class EcsComponentProcessor extends AbstractProcessor {
     /** Fully qualified annotation name resolved from the consumer's compilation classpath. */
-    private static final String ANNOTATION = "dev.sixik.sdmal.core.ecs.EcsComponent";
+    private static final String ANNOTATION = "dev.sixik.sdmal.api.ecs.annotations.EcsComponent";
     /** Service interface implemented by every automatically registered component. */
-    private static final String SERVICE = "dev.sixik.sdmal.core.ecs.WorldObjectComponent";
+    private static final String SERVICE = "dev.sixik.sdmal.api.ecs.WorldObjectComponent";
     /** Sorted provider names with originating types, accumulated across processing rounds. */
     private final Map<String, TypeElement> components = new TreeMap<>();
     /** Stable ids already used within this compilation, for duplicate diagnostics. */

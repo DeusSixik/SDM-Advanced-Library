@@ -9,6 +9,7 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 
 /** Bridges the NBT accessor changes while preserving the original on-disk ECS format. */
+@org.jetbrains.annotations.ApiStatus.Internal
 public final class NbtAccess {
     /** Prevents utility instantiation. */
     private NbtAccess() {}

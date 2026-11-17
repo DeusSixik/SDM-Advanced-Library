@@ -1,27 +1,50 @@
 package dev.sixik.sdmal.impl.mixin.ecs;
 
 import dev.sixik.sdmal.SDMAdvancedLibrary;
-import dev.sixik.sdmal.core.ecs.WorldObjectManager;
-import dev.sixik.sdmal.core.ecs.minecraft.LevelObjectManager;
-import dev.sixik.sdmal.impl.ecs.WorldObjectTicker;
+import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelObjectManager;
 import dev.sixik.sdmal.impl.ecs.WorldObjectFileStorage;
+import dev.sixik.sdmal.impl.ecs.WorldObjectTicker;
 import java.io.IOException;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.ProgressListener;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraft.util.ProgressListener;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Ticks the ECS manager once after each server-world tick. */
+/** Dispatches ECS phases around server-world simulation and persists its manager. */
 @Mixin(ServerLevel.class)
 public final class Mixin$ECS$ServerLevel$tick {
 
     /** World-specific file session; a failed load disables automatic replacement. */
     @Unique private WorldObjectFileStorage sdm$storage;
+
+    /**
+     * Opens PRE before vanilla simulation while respecting world freeze.
+     * @param ci Mixin callback state
+     */
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void sdm$preTick(CallbackInfo ci) {
+        Level level = (Level) (Object) this;
+        boolean running = true;
+        //? if >=1.20.3
+        //running = level.tickRateManager().runsNormally();
+        WorldObjectTicker.begin(LevelObjectManager.getManager(level), running);
+    }
+
+    /**
+     * Runs NORMAL after entities and immediately before block-entity ticks.
+     * @param ci Mixin callback state
+     */
+    @Inject(method = "tick", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/server/level/ServerLevel;tickBlockEntities()V"))
+    private void sdm$normalTick(CallbackInfo ci) {
+        WorldObjectTicker.normal(LevelObjectManager.getManager((Level) (Object) this));
+    }
 
     /**
      * Restores ECS after ServerLevel has finished initializing its server/dimension references.
@@ -73,7 +96,7 @@ public final class Mixin$ECS$ServerLevel$tick {
         WorldObjectManager manager = LevelObjectManager.getManager((Level) (Object) this);
         if (manager.isClosed()) return;
         try { sdm$storage.save(manager); }
-        catch (IOException | dev.sixik.sdmal.core.ecs.WorldObjectException failure) {
+        catch (IOException | dev.sixik.sdmal.api.ecs.WorldObjectException failure) {
             SDMAdvancedLibrary.LOGGER.error("ECS archive save failed; previous archive retained", failure);
         }
     }

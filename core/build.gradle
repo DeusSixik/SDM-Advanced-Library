@@ -47,7 +47,7 @@ tasks.register('jmh', JavaExec) {
     classpath = sourceSets.jmh.runtimeClasspath
     mainClass = 'org.openjdk.jmh.Main'
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
-    args 'dev.sixik.sdmal.core.ecs.EcsBenchmark', '-prof', 'gc', '-rf', 'json',
+    args 'dev.sixik.sdmal.api.ecs.EcsBenchmark', '-prof', 'gc', '-rf', 'json',
         '-rff', layout.buildDirectory.file('reports/jmh/ecs.json').get().asFile.absolutePath
     doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
 }
@@ -59,7 +59,61 @@ tasks.register('jmhNetwork', JavaExec) {
     classpath = sourceSets.jmh.runtimeClasspath
     mainClass = 'org.openjdk.jmh.Main'
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
-    args 'dev.sixik.sdmal.core.ecs.EcsNetworkBenchmark', '-prof', 'gc', '-rf', 'json',
+    args 'dev.sixik.sdmal.api.ecs.EcsNetworkBenchmark', '-prof', 'gc', '-rf', 'json',
         '-rff', layout.buildDirectory.file('reports/jmh/ecs-network.json').get().asFile.absolutePath
     doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
+}
+
+tasks.register('jmhScheduler', JavaExec) {
+    group = 'verification'
+    description = 'Measure ECS phase scheduling and GC allocation behavior.'
+    dependsOn tasks.named('jmhClasses')
+    classpath = sourceSets.jmh.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    args 'dev.sixik.sdmal.api.ecs.EcsSchedulerBenchmark', '-prof', 'gc', '-rf', 'json',
+        '-rff', layout.buildDirectory.file('reports/jmh/ecs-scheduler.json').get().asFile.absolutePath
+    doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
+}
+
+tasks.register('jmhComponentTicks', JavaExec) {
+    group = 'verification'
+    description = 'Measure automatic snapshot component ticking with owner and worker batches.'
+    dependsOn tasks.named('jmhClasses')
+    classpath = sourceSets.jmh.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    args 'dev.sixik.sdmal.api.ecs.EcsComponentTickBenchmark', '-prof', 'gc', '-rf', 'json',
+        '-rff', layout.buildDirectory.file('reports/jmh/ecs-component-ticks.json').get().asFile.absolutePath
+    doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
+}
+
+tasks.register('jmhCleanup', JavaExec) {
+    group = 'verification'
+    description = 'Compare frozen and current ECS implementations with identical workloads and GC profiling.'
+    dependsOn tasks.named('jmhClasses')
+    classpath = sourceSets.jmh.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    def methodPattern = providers.gradleProperty('jmhMethod').getOrElse('(before|after)')
+    def reportName = providers.gradleProperty('jmhReport').getOrElse('ecs-cleanup')
+    def vmOptions = '-Xms512m -Xmx512m -XX:+UseG1GC'
+    if (providers.gradleProperty('jmhJfr').isPresent()) {
+        vmOptions += ' -XX:StartFlightRecording=filename=build/reports/jmh/ecs-allocation-profile.jfr,settings=profile,dumponexit=true'
+    }
+    args "dev.sixik.sdmal.benchmark.EcsCleanupBenchmark.${methodPattern}", '-prof', 'gc', '-foe', 'true',
+        '-jvmArgsAppend', vmOptions, '-rf', 'json',
+        '-rff', layout.buildDirectory.file("reports/jmh/${reportName}.json").get().asFile.absolutePath
+    if (providers.gradleProperty('jmhCases').isPresent()) {
+        args '-p', "workload=${providers.gradleProperty('jmhCases').get()}"
+    }
+    if (providers.gradleProperty('jmhForks').isPresent()) {
+        args '-f', providers.gradleProperty('jmhForks').get()
+    }
+    doFirst {
+        if (stonecutter.current.version != '1.20.1') {
+            throw new GradleException('The frozen cleanup baseline uses Minecraft 1.20.1; run :core:1.20.1:jmhCleanup.')
+        }
+        layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs()
+    }
 }

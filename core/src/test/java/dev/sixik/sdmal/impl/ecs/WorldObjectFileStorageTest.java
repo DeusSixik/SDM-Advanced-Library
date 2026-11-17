@@ -1,12 +1,12 @@
 package dev.sixik.sdmal.impl.ecs;
 
-import dev.sixik.sdmal.core.ecs.FieldedWorldObjectComponent;
-import dev.sixik.sdmal.core.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.core.ecs.WorldObjectComponentType;
-import dev.sixik.sdmal.core.ecs.WorldObjectManager;
-import dev.sixik.sdmal.core.ecs.WorldObjectPersistenceException;
-import dev.sixik.sdmal.core.ecs.sync.Field;
-import dev.sixik.sdmal.core.ecs.sync.FieldCodecs;
+import dev.sixik.sdmal.api.ecs.FieldedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+import dev.sixik.sdmal.api.ecs.WorldObjectComponentType;
+import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.WorldObjectPersistenceException;
+import dev.sixik.sdmal.api.ecs.sync.Field;
+import dev.sixik.sdmal.api.ecs.sync.FieldCodecs;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Exercises real compressed-NBT files, backup recovery and refusal to overwrite unreadable/future data. */

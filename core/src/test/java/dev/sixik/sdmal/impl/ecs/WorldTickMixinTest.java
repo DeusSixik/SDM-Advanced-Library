@@ -91,12 +91,12 @@ class WorldTickMixinTest {
         int unregisters = 0;
         for (var instruction : callback.instructions) {
             if (instruction instanceof MethodInsnNode call
-                && call.owner.equals("dev/sixik/sdmal/core/ecs/minecraft/WorldObjectManagerApi")
+                && call.owner.equals("dev/sixik/sdmal/api/ecs/minecraft/WorldObjectManagerApi")
                 && call.name.equals("unregisterWorld")) unregisters++;
         }
         assertEquals(1, unregisters);
         assertTrue(callback.tryCatchBlocks.stream()
-            .anyMatch(block -> "dev/sixik/sdmal/core/ecs/WorldObjectException".equals(block.type)));
+            .anyMatch(block -> "dev/sixik/sdmal/api/ecs/WorldObjectException".equals(block.type)));
         var inject = callback.visibleAnnotations.stream()
             .filter(annotation -> annotation.desc.equals("Lorg/spongepowered/asm/mixin/injection/Inject;"))
             .findFirst().orElseThrow();

@@ -1,18 +1,19 @@
 package dev.sixik.sdmal.processor;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaFileObject;
-import javax.tools.ToolProvider;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.tools.DiagnosticCollector;
+import javax.tools.JavaFileObject;
+import javax.tools.ToolProvider;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Compiles independent consumer sources to exercise semantic validation and service descriptor output. */
@@ -20,7 +21,7 @@ class EcsComponentProcessorTest {
     /** Temporary consumer project owned by the current test. */
     @TempDir Path directory;
     /** Minimal runtime API package used without introducing any Minecraft dependency into the processor. */
-    private static final String API = "dev.sixik.sdmal.core.ecs";
+    private static final String API = "dev.sixik.sdmal.api.ecs";
     /** Relative output path consumed by Java's ServiceLoader. */
     private static final String INDEX = "META-INF/services/" + API + ".WorldObjectComponent";
 
@@ -30,7 +31,7 @@ class EcsComponentProcessorTest {
      */
     @BeforeEach void api() throws IOException {
         source(API + ".WorldObjectComponent", "package " + API + "; public interface WorldObjectComponent {}");
-        source(API + ".EcsComponent", "package " + API + "; "
+        source(API + ".annotations.EcsComponent", "package " + API + ".annotations; "
             + "@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME) "
             + "@java.lang.annotation.Target(java.lang.annotation.ElementType.TYPE) "
             + "public @interface EcsComponent { String id(); }");
@@ -42,9 +43,9 @@ class EcsComponentProcessorTest {
      */
     @Test void compile_qualifiedAndNestedComponents_writesOnlySortedServiceDescriptor() throws IOException {
         source("consumer.Zed", component("Zed", "consumer:zed", "public class Zed implements WorldObjectComponent {}"));
-        source("consumer.Alpha", "package consumer; @" + API + ".EcsComponent(id=\"consumer:alpha\") "
+        source("consumer.Alpha", "package consumer; @" + API + ".annotations.EcsComponent(id=\"consumer:alpha\") "
             + "public class Alpha implements " + API + ".WorldObjectComponent {}");
-        source("consumer.Outer", "package consumer; import " + API + ".*; public class Outer { "
+        source("consumer.Outer", "package consumer; import " + API + ".*; import " + API + ".annotations.*; public class Outer { "
             + "@EcsComponent(id=\"consumer:nested\") public static class Nested implements WorldObjectComponent {} }");
         source("consumer.Comment", "package consumer; // @EcsComponent(id=\"ignored:comment\")\npublic class Comment {}");
         assertTrue(compile(), diagnostics());
@@ -81,7 +82,7 @@ class EcsComponentProcessorTest {
      * @throws IOException if the consumer source cannot be written
      */
     @Test void compile_innerComponent_requiresStatic() throws IOException {
-        source("consumer.Outer", "package consumer; import " + API + ".*; public class Outer { "
+        source("consumer.Outer", "package consumer; import " + API + ".*; import " + API + ".annotations.*; public class Outer { "
             + "@EcsComponent(id=\"consumer:inner\") public class Inner implements WorldObjectComponent {} }");
         assertFalse(compile());
         assertTrue(diagnostics().contains("to be static"), diagnostics());
@@ -169,7 +170,7 @@ class EcsComponentProcessorTest {
      * @return complete independent consumer source
      */
     private String component(String name, String id, String declaration) {
-        return "package consumer; import " + API + ".*; @EcsComponent(id=\"" + id + "\") " + declaration;
+        return "package consumer; import " + API + ".*; import " + API + ".annotations.*; @EcsComponent(id=\"" + id + "\") " + declaration;
     }
 
     /**

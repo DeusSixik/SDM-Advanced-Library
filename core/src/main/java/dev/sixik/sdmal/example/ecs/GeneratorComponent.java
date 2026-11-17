@@ -1,21 +1,24 @@
 package dev.sixik.sdmal.example.ecs;
 
-import dev.sixik.sdmal.core.ecs.AnnotatedWorldObjectComponent;
-import dev.sixik.sdmal.core.ecs.EcsComponent;
-import dev.sixik.sdmal.core.ecs.TickableComponent;
-import dev.sixik.sdmal.core.ecs.WorldObjectManager;
-import dev.sixik.sdmal.core.ecs.serialization.EcsData;
-import dev.sixik.sdmal.core.ecs.serialization.EcsPersist;
-import dev.sixik.sdmal.core.ecs.serialization.EcsSync;
+import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.SnapshotTickableComponent;
+import dev.sixik.sdmal.api.ecs.TickPhase;
+import dev.sixik.sdmal.api.ecs.WorldContext;
+import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.annotations.EcsComponent;
+import dev.sixik.sdmal.api.ecs.annotations.EcsData;
+import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
+import dev.sixik.sdmal.api.ecs.annotations.EcsSync;
 
 import java.util.UUID;
 
 /**
- * Пример автоматического NBT и прямой сетевой сериализации обычных private-полей.
- * Изменяйте компонент на потоке его менеджера; работа из фонового потока передаётся через execute.
+ * Пример автоматического NBT и прямой сетевой сериализации обычных private-полей. Изменяйте
+ * компонент на потоке его менеджера; работа из фонового потока передаётся через execute.
  */
 @EcsComponent(id = "sdmal_example:generator")
-public final class GeneratorComponent extends AnnotatedWorldObjectComponent implements TickableComponent {
+public final class GeneratorComponent extends AnnotatedWorldObjectComponent
+        implements SnapshotTickableComponent<GeneratorComponent.Input, GeneratorComponent.Battery> {
     /**
      * Заряд в условных единицах; сохраняется и передаётся по сети без ручного Codec.
      */
@@ -30,36 +33,78 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent impl
     private UUID ownerId;
 
     /**
-     * Активность генератора; передаётся только по сети, при загрузке остаётся значением по умолчанию.
+     * Активность генератора; передаётся только по сети, при загрузке остаётся значением по
+     * умолчанию.
      */
     @EcsSync("running")
     private boolean running = true;
 
     /**
-     * Число вызовов onTick с момента создания экземпляра; не сохраняется и не передаётся.
+     * Число применённых тиков с момента создания экземпляра; не сохраняется и не передаётся.
      */
     private int localTicks;
 
     /**
      * Создаёт компонент с пустой батареей ёмкостью 100 единиц и включённой генерацией.
      */
-    public GeneratorComponent() {
+    public GeneratorComponent() {}
+
+    /**
+     * Копирует входные значения на потоке мира. Battery неизменяем, поэтому его можно передать в
+     * worker.
+     *
+     * @param context контекст текущего тика
+     * @return независимый снимок заряда и активности
+     */
+    @Override
+    public Input capture(WorldContext context) {
+        checkWorldThread();
+        return new Input(battery, running);
     }
 
     /**
-     * Добавляет одну единицу заряда за вызов; частоту задаёт tickInterval объекта.
+     * Считает следующий заряд без обращения к полям компонента или живому миру.
      *
-     * @param tick локальный номер тика менеджера, не время суток Minecraft
-     * @throws IllegalStateException если управляемый компонент вызван с чужого потока
+     * @param input копия входных значений
+     * @param context очередь команд мира; не используется чистым вычислением
+     * @return новое неизменяемое состояние батареи
      */
     @Override
-    public void onTick(long tick) {
-        checkWorldThread();
-        localTicks++;
-        if (running && battery.stored() < battery.capacity()) {
-            battery = new Battery(battery.stored() + 1, battery.capacity());
-        }
+    public Battery compute(Input input, WorldContext context) {
+        Battery previous = input.battery();
+        return input.running() && previous.stored() < previous.capacity()
+                ? new Battery(previous.stored() + 1, previous.capacity())
+                : previous;
     }
+
+    /**
+     * Применяет вычисленный заряд на потоке мира, после завершения всех jobs этого типа.
+     *
+     * @param result вычисленное состояние батареи
+     * @param context контекст применения и отложенных команд мира
+     */
+    @Override
+    public void apply(Battery result, WorldContext context) {
+        checkWorldThread();
+        battery = result;
+        localTicks++;
+    }
+
+    /**
+     * @return POST, чтобы пример сохранял прежнее обновление после обычных тиков мира
+     */
+    @Override
+    public TickPhase tickPhase() {
+        return TickPhase.POST;
+    }
+
+    /**
+     * Вход worker: только неизменяемые данные, без ссылки на компонент, WorldObject или Level.
+     *
+     * @param battery состояние батареи до тика
+     * @param running активность генератора
+     */
+    public record Input(Battery battery, boolean running) {}
 
     /**
      * @return неизменяемый текущий заряд; читайте на потоке менеджера
@@ -83,7 +128,7 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent impl
     }
 
     /**
-     * @return число локальных вызовов onTick; читайте на потоке менеджера
+     * @return число применённых тиков; читайте на потоке менеджера
      */
     public int localTicks() {
         return localTicks;
@@ -121,10 +166,10 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent impl
     }
 
     /**
-     * Свой тип данных, которому не требуется адаптер: поля record обрабатываются автоматически.
-     * В сетевом снимке всего record используются те же стабильные ключи, что у NBT.
+     * Свой тип данных, которому не требуется адаптер: поля record обрабатываются автоматически. В
+     * сетевом снимке всего record используются те же стабильные ключи, что у NBT.
      *
-     * @param stored   количество заряда в диапазоне [0, capacity]
+     * @param stored количество заряда в диапазоне [0, capacity]
      * @param capacity максимальный заряд, неотрицательный
      */
     @EcsData
@@ -132,12 +177,14 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent impl
         /**
          * Проверяет состояние при создании, NBT-загрузке и чтении сетевого снимка.
          *
-         * @param stored   количество заряда в диапазоне [0, capacity]
+         * @param stored количество заряда в диапазоне [0, capacity]
          * @param capacity максимальный заряд, неотрицательный
-         * @throws IllegalArgumentException если заряд или ёмкость отрицательны либо заряд превышает ёмкость
+         * @throws IllegalArgumentException если заряд или ёмкость отрицательны либо заряд превышает
+         *     ёмкость
          */
         public Battery {
-            if (stored < 0 || capacity < stored) throw new IllegalArgumentException("Invalid battery charge");
+            if (stored < 0 || capacity < stored)
+                throw new IllegalArgumentException("Invalid battery charge");
         }
     }
 }

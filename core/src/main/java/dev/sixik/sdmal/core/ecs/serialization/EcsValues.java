@@ -1,6 +1,9 @@
 package dev.sixik.sdmal.core.ecs.serialization;
 
+import dev.sixik.sdmal.api.ecs.serialization.EcsSerializationException;
+import dev.sixik.sdmal.api.ecs.serialization.EcsSerializer;
 import dev.sixik.sdmal.core.ecs.codecs.NbtAccess;
+
 import net.minecraft.nbt.ByteTag;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.EndTag;
@@ -13,14 +16,13 @@ final class EcsValues {
     /**
      * Prevents utility construction.
      */
-    private EcsValues() {
-    }
+    private EcsValues() {}
 
     /**
      * Encodes a nullable value; adapter payload keys cannot collide with the outer envelope.
      *
      * @param serializer resolved non-null value adapter
-     * @param value      nullable field/element value
+     * @param value nullable field/element value
      * @return owned compound containing a byte presence flag and optional value
      */
     @SuppressWarnings("unchecked")
@@ -30,8 +32,9 @@ final class EcsValues {
         if (value != null) {
             Tag payload = ((EcsSerializer<Object>) serializer).write(value);
             if (payload == null || payload instanceof EndTag)
-                throw new EcsSerializationException("Adapter must return a non-null non-EndTag payload");
-            result.put("v", payload.copy());
+                throw new EcsSerializationException(
+                        "Adapter must return a non-null non-EndTag payload");
+            result.put("v", serializer instanceof OwnedNbtSerializer<?> ? payload : payload.copy());
         }
         return result;
     }
@@ -40,21 +43,28 @@ final class EcsValues {
      * Decodes a nullable envelope without exposing caller-owned NBT to adapters.
      *
      * @param serializer resolved non-null value adapter
-     * @param tag        required envelope
+     * @param tag required envelope
      * @return reconstructed value or null for an explicit absent value
      * @throws EcsSerializationException for malformed presence flags or adapter null results
      */
     static Object read(EcsSerializer<?> serializer, Tag tag) {
-        if (!(tag instanceof CompoundTag envelope) || !(envelope.get("$present") instanceof ByteTag present))
+        if (!(tag instanceof CompoundTag envelope)
+                || !(envelope.get("$present") instanceof ByteTag present))
             throw new EcsSerializationException("Expected annotated value envelope");
         byte flag = NbtAccess.number(present).byteValue();
         if (flag == 0) {
-            if (envelope.get("v") != null) throw new EcsSerializationException("Null envelope contains a value");
+            if (envelope.get("v") != null)
+                throw new EcsSerializationException("Null envelope contains a value");
             return null;
         }
-        if (flag != 1 || envelope.get("v") == null) throw new EcsSerializationException("Invalid value presence flag");
-        Object result = serializer.read(envelope.get("v").copy());
-        if (result == null) throw new EcsSerializationException("Adapter returned null for a present value");
+        if (flag != 1 || envelope.get("v") == null)
+            throw new EcsSerializationException("Invalid value presence flag");
+        Tag payload = envelope.get("v");
+        Object result =
+                serializer.read(
+                        serializer instanceof OwnedNbtSerializer<?> ? payload : payload.copy());
+        if (result == null)
+            throw new EcsSerializationException("Adapter returned null for a present value");
         return result;
     }
 }

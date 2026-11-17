@@ -1,11 +1,12 @@
 package dev.sixik.sdmal.example.ecs;
 
-import dev.sixik.sdmal.core.ecs.WorldObject;
-import dev.sixik.sdmal.core.ecs.EcsComponent;
-import dev.sixik.sdmal.core.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.core.ecs.WorldObjectComponentType;
-import dev.sixik.sdmal.core.ecs.WorldObjectManager;
-import dev.sixik.sdmal.core.ecs.minecraft.LevelObjectManager;
+import dev.sixik.sdmal.api.ecs.WorldObject;
+import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+import dev.sixik.sdmal.api.ecs.WorldObjectComponentType;
+import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.annotations.EcsComponent;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelObjectManager;
+
 import net.minecraft.server.level.ServerLevel;
 
 /**
@@ -15,8 +16,7 @@ public final class EcsExample {
     /**
      * Запрещает создание экземпляра класса регистрации.
      */
-    private EcsExample() {
-    }
+    private EcsExample() {}
 
     /**
      * Returns the descriptor discovered from {@link EcsComponent} during common setup.
@@ -28,8 +28,9 @@ public final class EcsExample {
     }
 
     /**
-     * Создаёт сохраняемый объект: первый ближайший тик, затем один вызов генератора раз в 20 тиков мира.
-     * Не вызывайте при каждой загрузке мира: ранее сохранённые объекты восстанавливаются автоматически.
+     * Создаёт сохраняемый объект: первый ближайший тик, затем один вызов генератора раз в 20 тиков
+     * мира. Не вызывайте при каждой загрузке мира: ранее сохранённые объекты восстанавливаются
+     * автоматически.
      *
      * @param level серверный мир; вызывайте на его потоке при игровом событии создания генератора
      * @return зарегистрированный объект с одним GeneratorComponent
