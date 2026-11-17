@@ -1,8 +1,9 @@
 package dev.sixik.sdmal;
 
+import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+
 //? if >=1.19.3 {
 
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 //?} else {

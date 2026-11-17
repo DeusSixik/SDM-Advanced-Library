@@ -1,5 +1,9 @@
 package dev.sixik.sdmal;
 
+import dev.sixik.sdmal.example.ecs.blockentity.GeneratorContent;
+import dev.sixik.sdmal.example.ecs.blockentity.GeneratorBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import java.util.Set;
 //? if >=1.19.3 {
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -27,6 +31,8 @@ public final class ForgeEntrypoint {
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, SDMAdvancedLibrary.MODID);
     /** Deferred item registry in the mod namespace. */
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, SDMAdvancedLibrary.MODID);
+    /** Deferred block entity registry for the world-backed ECS example. */
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, SDMAdvancedLibrary.MODID);
     /** Legacy creative tab, populated through item properties in Minecraft 1.19.2. */
     //? if <1.19.3 {
     /*public static final CreativeModeTab LEGACY_TAB = new CreativeModeTab(SDMAdvancedLibrary.MODID) {
@@ -35,6 +41,21 @@ public final class ForgeEntrypoint {
     *///?}
     /** Registered example stone block. */
     public static final RegistryObject<Block> EXAMPLE_BLOCK = BLOCKS.register("example_block", SDMAdvancedLibrary::createBlock);
+    /** Placeable generator driven by the ECS world scheduler. */
+    public static final RegistryObject<Block> ECS_GENERATOR = BLOCKS.register(GeneratorContent.PATH,
+        () -> GeneratorContent.createBlock(() -> ForgeEntrypoint.ECS_GENERATOR_TYPE.get()));
+    /** Registered shell type with the generator block as its only valid host. */
+    public static final RegistryObject<BlockEntityType<GeneratorBlockEntity>> ECS_GENERATOR_TYPE =
+        BLOCK_ENTITIES.register(GeneratorContent.PATH, ForgeEntrypoint::createGeneratorType);
+    /** Generator item for creative inventory and /give. */
+    public static final RegistryObject<Item> ECS_GENERATOR_ITEM = ITEMS.register(GeneratorContent.PATH,
+        () -> GeneratorContent.createItem(ECS_GENERATOR.get(),
+            //? if <1.19.3 {
+            /*LEGACY_TAB
+            *///?} else {
+            null
+            //?}
+        ));
     /** Registered item representing the example block. */
     public static final RegistryObject<Item> EXAMPLE_BLOCK_ITEM = ITEMS.register("example_block", () -> SDMAdvancedLibrary.createBlockItem(EXAMPLE_BLOCK.get(),
         //? if <1.19.3 {
@@ -59,7 +80,10 @@ public final class ForgeEntrypoint {
         .title(Component.translatable("itemGroup.sdmal.example_tab"))
         .withTabsBefore(CreativeModeTabs.COMBAT)
         .icon(() -> EXAMPLE_ITEM.get().getDefaultInstance())
-        .displayItems((parameters, output) -> output.accept(EXAMPLE_ITEM.get())).build());
+        .displayItems((parameters, output) -> {
+            output.accept(EXAMPLE_ITEM.get());
+            output.accept(ECS_GENERATOR_ITEM.get());
+        }).build());
     //?}
 
     /**
@@ -86,6 +110,7 @@ public final class ForgeEntrypoint {
         //?}
         BLOCKS.register(bus);
         ITEMS.register(bus);
+        BLOCK_ENTITIES.register(bus);
         //? if >=1.19.3
         TABS.register(bus);
         //? if >=1.20 {
@@ -100,6 +125,20 @@ public final class ForgeEntrypoint {
      * @param event common setup lifecycle event
      */
     private void commonSetup(FMLCommonSetupEvent event) { SDMAdvancedLibrary.commonSetup(ForgeConfig.current); }
+
+    /**
+     * Builds the type after its valid block is registered; factories resolve the type only on placement/load.
+     * @return unregistered generator shell type
+     */
+    private static BlockEntityType<GeneratorBlockEntity> createGeneratorType() {
+        //? if >=1.21.2 {
+        /*return new BlockEntityType<>((pos, state) -> new GeneratorBlockEntity(ECS_GENERATOR_TYPE.get(), pos, state),
+            Set.of(ECS_GENERATOR.get()));
+        *///?} else {
+        return BlockEntityType.Builder.of(
+            (pos, state) -> new GeneratorBlockEntity(ECS_GENERATOR_TYPE.get(), pos, state), ECS_GENERATOR.get()).build(null);
+        //?}
+    }
 
     //? if >=1.19.3 {
     /**

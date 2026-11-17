@@ -475,7 +475,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
          * @return true only while the same awake attachment is still registered in this manager
          */
         boolean live() {
-            if (manager.isClosed() || object.isSleeping() || !object.isLiveIn(manager))
+            if (manager.isClosed() || !object.isTickActive(manager))
                 return false;
             WorldObject.ComponentEntry[] current = object.entriesArray();
             if (current == verifiedEntries) return true;

@@ -2,5 +2,8 @@
   "itemGroup.sdmal.example_tab": "SDMAL",
   "itemGroup.sdmal": "SDMAL",
   "block.sdmal.example_block": "Example Block",
-  "item.sdmal.example_item": "Example Item"
+  "item.sdmal.example_item": "Example Item",
+  "block.sdmal.ecs_generator": "ECS Generator",
+  "message.sdmal.ecs_generator.energy": "ECS Generator: Energy %s / %s | ECS tick: %s",
+  "message.sdmal.ecs_generator.inactive": "ECS Generator is inactive: %s"
 }

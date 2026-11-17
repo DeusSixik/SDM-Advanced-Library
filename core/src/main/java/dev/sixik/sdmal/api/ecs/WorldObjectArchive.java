@@ -261,6 +261,24 @@ final class WorldObjectArchive {
     }
 
     /**
+     * Captures an externally persisted object regardless of its exclusion from the world archive.
+     *
+     * @param object live externally owned object
+     * @param tick current manager sequence
+     * @return independent single-object archive preserving opaque extension fields
+     */
+    CompoundTag encodeHosted(WorldObject object, long tick) {
+        CompoundTag root = template.copy();
+        root.putInt("format", FORMAT);
+        root.putLong("tick", tick);
+        ListTag records = new ListTag();
+        records.add(
+                encodeObject(object, tick, originals.getOrDefault(object.id(), new CompoundTag())));
+        root.put("objects", records);
+        return root;
+    }
+
+    /**
      * Captures one object while retaining unrecognized component payload keys.
      *
      * @param object durable live object

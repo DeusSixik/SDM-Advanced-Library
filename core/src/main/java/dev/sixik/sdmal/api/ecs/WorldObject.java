@@ -15,6 +15,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
 
 /**
  * Snapshot-based container of {@link WorldObjectComponent}s. Managed objects mutate and tick only
@@ -114,6 +115,65 @@ public final class WorldObject {
      * Earliest manager sequence eligible for the next dispatch.
      */
     private long nextTick = 1;
+
+    /**
+     * Optional owner-thread eligibility check, for example a hosted object's chunk activity.
+     */
+    private BooleanSupplier tickCondition;
+
+    /**
+     * Whether an external host owns persistence, forbidding duplicate inclusion in the world
+     * archive.
+     */
+    private boolean hosted;
+
+    /**
+     * Assigns sole persistence ownership to an external host before manager publication.
+     */
+    final void markHosted() {
+        checkMutationThread();
+        requireLive();
+        hosted = true;
+        persistent = false;
+    }
+
+    /**
+     * Manager sequence at which eligibility was last sampled; invalidated by condition replacement.
+     */
+    private long conditionTick = Long.MIN_VALUE;
+
+    /**
+     * Eligibility sampled before this object's first dispatch decision in the current tick.
+     */
+    private boolean conditionAllowsTick;
+
+    /**
+     * Adds an owner-thread activation condition without changing explicit sleep or tick intervals.
+     * The condition is sampled at most once per manager tick and must not mutate ECS structure.
+     *
+     * @param condition eligibility callback, or null for unconditional activation
+     */
+    public void setTickCondition(BooleanSupplier condition) {
+        checkMutationThread();
+        requireLive();
+        tickCondition = condition;
+        conditionTick = Long.MIN_VALUE;
+    }
+
+    /**
+     * Samples an external activation condition without invoking it from worker computation.
+     *
+     * @param tick manager sequence
+     * @return whether external ownership currently permits simulation
+     */
+    private boolean conditionAllowsTick(long tick) {
+        if (tickCondition == null) return true;
+        if (conditionTick != tick) {
+            conditionAllowsTick = tickCondition.getAsBoolean();
+            conditionTick = tick;
+        }
+        return conditionAllowsTick;
+    }
 
     /**
      * Whether this object belongs in world archives; false marks an explicitly transient object.
@@ -277,6 +337,8 @@ public final class WorldObject {
      * @throws IllegalStateException if detached or called outside the manager thread
      */
     public void setPersistent(boolean value) {
+        if (hosted && value)
+            throw new IllegalStateException("Hosted object persistence belongs to its host");
         checkMutationThread();
         requireLive();
         persistent = value;
@@ -373,7 +435,7 @@ public final class WorldObject {
      * @param tick current manager sequence
      */
     final void tickScheduled(WorldObjectManager owner, long tick) {
-        if (manager != owner || sleeping || view.detached || tick < nextTick) return;
+        if (!isTickScheduled(owner, tick)) return;
         nextTick = tick + tickInterval;
         tick(tick);
     }
@@ -387,7 +449,24 @@ public final class WorldObject {
      * @return true for a live, awake object whose interval permits this tick
      */
     final boolean isTickScheduled(WorldObjectManager owner, long tick) {
-        return manager == owner && !sleeping && !view.detached && tick >= nextTick;
+        return manager == owner
+                && !sleeping
+                && !view.detached
+                && tick >= nextTick
+                && conditionAllowsTick(tick);
+    }
+
+    /**
+     * Checks activation for pending snapshot work without consuming interval scheduling.
+     *
+     * @param owner expected world manager
+     * @return whether external ownership permits simulation during the current manager tick
+     */
+    final boolean isTickActive(WorldObjectManager owner) {
+        return manager == owner
+                && !sleeping
+                && !view.detached
+                && conditionAllowsTick(owner.lastTick());
     }
 
     /**

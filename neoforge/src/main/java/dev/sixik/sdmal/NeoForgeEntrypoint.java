@@ -1,5 +1,9 @@
 package dev.sixik.sdmal;
 
+import dev.sixik.sdmal.example.ecs.blockentity.GeneratorContent;
+import dev.sixik.sdmal.example.ecs.blockentity.GeneratorBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import java.util.Set;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -32,10 +36,21 @@ public final class NeoForgeEntrypoint {
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(Registries.BLOCK, SDMAdvancedLibrary.MODID);
     /** Deferred item registry in the mod namespace. */
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, SDMAdvancedLibrary.MODID);
+    /** Deferred shell types for chunk-owned ECS objects. */
+    public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, SDMAdvancedLibrary.MODID);
     /** Deferred creative tab registry. */
     public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, SDMAdvancedLibrary.MODID);
     /** Registered example stone block. */
     public static final Supplier<Block> EXAMPLE_BLOCK = BLOCKS.register("example_block", SDMAdvancedLibrary::createBlock);
+    /** Placeable ECS generator block. */
+    public static final Supplier<Block> ECS_GENERATOR = BLOCKS.register(GeneratorContent.PATH,
+        () -> GeneratorContent.createBlock(() -> NeoForgeEntrypoint.ECS_GENERATOR_TYPE.get()));
+    /** Generator shell type; initialized by the block entity registry event. */
+    public static final Supplier<BlockEntityType<GeneratorBlockEntity>> ECS_GENERATOR_TYPE =
+        BLOCK_ENTITIES.register(GeneratorContent.PATH, NeoForgeEntrypoint::createGeneratorType);
+    /** Generator item for creative inventory and /give. */
+    public static final Supplier<Item> ECS_GENERATOR_ITEM = ITEMS.register(GeneratorContent.PATH,
+        () -> GeneratorContent.createItem(ECS_GENERATOR.get(), null));
     /** Registered item representing the example block. */
     public static final Supplier<Item> EXAMPLE_BLOCK_ITEM = ITEMS.register("example_block", () -> SDMAdvancedLibrary.createBlockItem(EXAMPLE_BLOCK.get(), null));
     /** Registered example food item. */
@@ -45,7 +60,10 @@ public final class NeoForgeEntrypoint {
         .title(Component.translatable("itemGroup.sdmal.example_tab"))
         .withTabsBefore(CreativeModeTabs.COMBAT)
         .icon(() -> EXAMPLE_ITEM.get().getDefaultInstance())
-        .displayItems((parameters, output) -> output.accept(EXAMPLE_ITEM.get())).build());
+        .displayItems((parameters, output) -> {
+            output.accept(EXAMPLE_ITEM.get());
+            output.accept(ECS_GENERATOR_ITEM.get());
+        }).build());
 
     /**
      * Connects content and lifecycle listeners to MinecraftForge.
@@ -60,6 +78,7 @@ public final class NeoForgeEntrypoint {
     //?}
         BLOCKS.register(bus);
         ITEMS.register(bus);
+        BLOCK_ENTITIES.register(bus);
         TABS.register(bus);
         bus.addListener(this::commonSetup);
         bus.addListener(NeoForgeEntrypoint::addCreative);
@@ -83,6 +102,20 @@ public final class NeoForgeEntrypoint {
      * @param event common setup lifecycle event
      */
     private void commonSetup(FMLCommonSetupEvent event) { SDMAdvancedLibrary.commonSetup(NeoForgeConfig.current); }
+
+    /**
+     * Builds the shell type using the constructor/builder provided by this loader version.
+     * @return unregistered type accepting only the generator block
+     */
+    private static BlockEntityType<GeneratorBlockEntity> createGeneratorType() {
+        //? if >=1.21.2 {
+        /*return new BlockEntityType<>((pos, state) -> new GeneratorBlockEntity(ECS_GENERATOR_TYPE.get(), pos, state),
+            Set.of(ECS_GENERATOR.get()));
+        *///?} else {
+        return BlockEntityType.Builder.of(
+            (pos, state) -> new GeneratorBlockEntity(ECS_GENERATOR_TYPE.get(), pos, state), ECS_GENERATOR.get()).build(null);
+        //?}
+    }
 
     /**
      * Adds the example block item to the building blocks tab.

@@ -1,0 +1,9 @@
+{
+  "itemGroup.sdmal.example_tab": "SDMAL",
+  "itemGroup.sdmal": "SDMAL",
+  "block.sdmal.example_block": "Пример блока",
+  "item.sdmal.example_item": "Пример предмета",
+  "block.sdmal.ecs_generator": "ECS-генератор",
+  "message.sdmal.ecs_generator.energy": "ECS-генератор: энергия %s / %s | Тик ECS: %s",
+  "message.sdmal.ecs_generator.inactive": "ECS-генератор неактивен: %s"
+}

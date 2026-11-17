@@ -138,10 +138,17 @@ dev.sixik.sdmal.impl.mixin.server.*  -> server
 ## ECS
 
 Публичный API: `dev.sixik.sdmal.api.ecs`, аннотации: `api.ecs.annotations`.
-Карта пакетов и переход со старых импортов: [core/ECS-API.md](core/ECS-API.md).
-План и критерии рефакторинга: [core/ECS-CLEANUP-PLAN.md](core/ECS-CLEANUP-PLAN.md).
+Карта пакетов и переход со старых импортов: [docs/ECS-API.md](docs/ECS-API.md).
+План и критерии рефакторинга: [docs/ECS-CLEANUP-PLAN.md](docs/ECS-CLEANUP-PLAN.md).
 Выполненный рефакторинг, JMH до/после и ограничения результатов:
-[core/ECS-PERFORMANCE.md](core/ECS-PERFORMANCE.md).
+[docs/ECS-PERFORMANCE.md](docs/ECS-PERFORMANCE.md).
+
+Машины на ECS: [core/ECS-BLOCK-ENTITIES.md](core/ECS-BLOCK-ENTITIES.md).
+`EcsBlockEntity` связывает объект с чанком, сохраняет его данные и синхронизирует
+клиент. `BlockEntityComponent` даёт координаты/dirty/update, а
+`RenderStateComponent` — immutable данные renderer. Симуляцию запускает ECS мира.
+Готовый пример доступен во вкладке SDMAL или через `/give @s sdmal:ecs_generator`.
+ПКМ по установленному генератору показывает в чате энергию и номер тика ECS.
 
 Подсистема объектов и компонентов перенесена из Artisans-Delight в
 `core/src/main/java/dev/sixik/sdmal/api/ecs/`.

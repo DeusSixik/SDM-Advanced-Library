@@ -7,6 +7,7 @@ apply from: rootProject.file('build.gradle')
 dependencies {
     minecraft "com.mojang:minecraft:${stonecutter.current.version}"
     testImplementation 'org.ow2.asm:asm-tree:9.9.1'
+    testImplementation 'org.mockito:mockito-core:5.20.0'
     testImplementation project(':ecs-processor')
     // Shared libraries declared here are inherited by impl and every loader.
 }
@@ -85,6 +86,19 @@ tasks.register('jmhComponentTicks', JavaExec) {
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
     args 'dev.sixik.sdmal.api.ecs.EcsComponentTickBenchmark', '-prof', 'gc', '-rf', 'json',
         '-rff', layout.buildDirectory.file('reports/jmh/ecs-component-ticks.json').get().asFile.absolutePath
+    doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
+}
+
+tasks.register('jmhBlockEntities', JavaExec) {
+    group = 'verification'
+    description = 'Measure hosted ECS activity-gate overhead against standalone objects with GC profiling.'
+    dependsOn tasks.named('jmhClasses')
+    classpath = sourceSets.jmh.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    args 'dev.sixik.sdmal.api.ecs.EcsHostedTickBenchmark', '-prof', 'gc', '-foe', 'true',
+        '-jvmArgsAppend', '-Xms512m -Xmx512m -XX:+UseG1GC', '-rf', 'json',
+        '-rff', layout.buildDirectory.file('reports/jmh/ecs-block-entities.json').get().asFile.absolutePath
     doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
 }
 
