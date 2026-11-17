@@ -1,0 +1,27 @@
+plugins { id 'java-library' }
+
+group = mod_group_id
+version = mod_version
+base.archivesName = "${mod_id}-ecs-processor"
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    withSourcesJar()
+}
+repositories { mavenCentral() }
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.14.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 17 }
+tasks.named('test') { useJUnitPlatform() }
+tasks.withType(Jar).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+tasks.register('buildAndCollect', Copy) {
+    group = 'build'
+    dependsOn tasks.named('build')
+    from tasks.named('jar'), tasks.named('sourcesJar')
+    into rootProject.layout.buildDirectory.dir("libs/${mod_version}")
+}

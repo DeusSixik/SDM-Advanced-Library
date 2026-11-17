@@ -97,6 +97,49 @@ class WorldTickMixinTest {
         assertEquals(1, unregisters);
         assertTrue(callback.tryCatchBlocks.stream()
             .anyMatch(block -> "dev/sixik/sdmal/core/ecs/WorldObjectException".equals(block.type)));
+        var inject = callback.visibleAnnotations.stream()
+            .filter(annotation -> annotation.desc.equals("Lorg/spongepowered/asm/mixin/injection/Inject;"))
+            .findFirst().orElseThrow();
+        assertEquals(method.equals("close") ? "HEAD" : "TAIL",
+            value((AnnotationNode) ((List<?>) value(inject, "at")).get(0), "value"));
+    }
+
+    /**
+     * Server archive hooks resolve against real constructors, save arguments and close methods on every version.
+     * @param method vanilla lifecycle method
+     * @param handler archive callback name
+     * @param at required injection point
+     * @throws IOException if Minecraft or mixin bytecode cannot be read
+     */
+    @ParameterizedTest
+    @CsvSource({"<init>, sdm$load, RETURN", "save, sdm$save, HEAD", "close, sdm$saveBeforeClose, HEAD"})
+    void archiveHook_currentMinecraftBytecode_hasCompatibleTarget(String method, String handler, String at) throws IOException {
+        var target = readClass("net/minecraft/server/level/ServerLevel");
+        var methods = target.methods.stream().filter(candidate -> candidate.name.equals(method)).toList();
+        assertFalse(methods.isEmpty());
+        if (!method.equals("<init>")) assertEquals(1, methods.size());
+        for (var candidate : methods) {
+            assertEquals(0, candidate.access & (Opcodes.ACC_STATIC | Opcodes.ACC_ABSTRACT));
+            assertTrue(candidate.desc.endsWith(")V"));
+        }
+        var mixin = readClass("dev/sixik/sdmal/impl/mixin/ecs/Mixin$ECS$ServerLevel$tick");
+        var callback = mixin.methods.stream().filter(candidate -> candidate.name.equals(handler)).findFirst().orElseThrow();
+        var inject = callback.visibleAnnotations.stream()
+            .filter(annotation -> annotation.desc.equals("Lorg/spongepowered/asm/mixin/injection/Inject;"))
+            .findFirst().orElseThrow();
+        assertEquals(List.of(method), value(inject, "method"));
+        assertEquals(at, value((AnnotationNode) ((List<?>) value(inject, "at")).get(0), "value"));
+        String arguments = method.equals("save") ? "Lnet/minecraft/util/ProgressListener;ZZ" : "";
+        assertEquals("(" + arguments + "Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V", callback.desc);
+        if (method.equals("save")) assertEquals("(" + arguments + ")V", methods.get(0).desc);
+        assertTrue(target.fields.stream().anyMatch(field -> field.name.equals("noSave") && field.desc.equals("Z")));
+        boolean dispatches = false;
+        for (var instruction : callback.instructions) {
+            if (instruction instanceof MethodInsnNode call && (method.equals("<init>")
+                ? call.owner.equals("dev/sixik/sdmal/impl/ecs/WorldObjectFileStorage") && call.name.equals("load")
+                : call.name.equals("sdm$saveArchive"))) dispatches = true;
+        }
+        assertTrue(dispatches);
     }
 
     /**

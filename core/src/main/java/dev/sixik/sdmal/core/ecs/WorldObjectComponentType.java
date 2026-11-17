@@ -11,9 +11,9 @@ import java.util.function.Supplier;
  * creates detached instances; {@link WorldObject} attaches them via
  * {@link AbstractWorldObjectComponent#bind}.
  *
- * <p>Serialization lives in {@code core.ecs.sync}: components that need persistence
- * or network sync extend {@code SyncedWorldObjectComponent} and declare
- * {@code FieldCodec}-backed fields.
+ * <p>Persistence may use {@link AnnotatedWorldObjectComponent} with ordinary annotated fields
+ * or {@link FieldedWorldObjectComponent} with explicit field codecs. Network synchronization
+ * uses {@code SyncedWorldObjectComponent} and revision-tracked fields.
  */
 public final class WorldObjectComponentType<C extends WorldObjectComponent> {
 

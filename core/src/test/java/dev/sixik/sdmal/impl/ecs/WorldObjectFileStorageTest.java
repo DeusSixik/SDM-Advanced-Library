@@ -19,6 +19,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Exercises real compressed-NBT files, backup recovery and refusal to overwrite unreadable/future data. */
@@ -149,6 +151,25 @@ class WorldObjectFileStorageTest {
     }
 
     /**
+     * Serializer failures are reported as ECS errors and never replace the last complete file.
+     * @throws IOException if fixture file IO fails
+     */
+    @Test void save_componentSerializerThrows_wrapsFailureAndKeepsPreviousArchive() throws IOException {
+        Path file = directory.resolve("world.dat");
+        try (var source = new WorldObjectManager()) {
+            var storage = new WorldObjectFileStorage(file); storage.load(source);
+            var component = source.create().attach(new Value(), type);
+            storage.save(source);
+            byte[] before = Files.readAllBytes(file);
+            component.failWrite = true;
+            var failure = assertThrows(WorldObjectPersistenceException.class, () -> storage.save(source));
+            assertInstanceOf(IllegalArgumentException.class, failure.getCause());
+            assertArrayEquals(before, Files.readAllBytes(file));
+            try (var entries = Files.list(directory)) { assertEquals(1, entries.count()); }
+        }
+    }
+
+    /**
      * Corruption introduced after load cannot replace a valid previous backup.
      * @throws IOException if fixture file IO fails
      */
@@ -163,6 +184,60 @@ class WorldObjectFileStorageTest {
             assertThrows(IOException.class, () -> storage.save(source));
             assertEquals("bad data", Files.readString(file));
             assertArrayEquals(backup, Files.readAllBytes(directory.resolve("world.dat.bak")));
+            try (var entries = Files.list(directory)) { assertEquals(2, entries.count()); }
+        }
+    }
+
+    /**
+     * Complete NBT cannot conceal an invalid gzip checksum or missing trailer.
+     * @param truncate true to remove the trailer, false to corrupt its CRC
+     * @throws IOException if fixture file IO fails
+     */
+    @ParameterizedTest @ValueSource(booleans = {true, false})
+    void load_invalidGzipTrailer_rejectsAndClosesFile(boolean truncate) throws IOException {
+        Path file = directory.resolve("world.dat");
+        try (var source = new WorldObjectManager()) {
+            var storage = new WorldObjectFileStorage(file); storage.load(source);
+            source.create().attach(new Value(), type); storage.save(source);
+        }
+        byte[] bytes = Files.readAllBytes(file);
+        if (truncate) bytes = java.util.Arrays.copyOf(bytes, bytes.length - 8);
+        else bytes[bytes.length - 8] ^= 1;
+        Files.write(file, bytes);
+        try (var restored = new WorldObjectManager()) {
+            var storage = new WorldObjectFileStorage(file);
+            assertThrows(IOException.class, () -> storage.load(restored));
+            assertFalse(storage.isWritable());
+            assertEquals(0, restored.size());
+        }
+        Files.delete(file);
+        assertFalse(Files.exists(file));
+    }
+
+    /**
+     * An external newer-format file stays untouched even after this session recovered an older backup.
+     * @param recover whether this session first had to recover from a corrupt primary
+     * @throws IOException if fixture file IO fails
+     */
+    @ParameterizedTest @ValueSource(booleans = {true, false})
+    void save_futurePrimaryIntroducedAfterLoad_preservesBothFiles(boolean recover) throws IOException {
+        Path file = directory.resolve("world.dat");
+        Path backup = directory.resolve("world.dat.bak");
+        try (var source = new WorldObjectManager()) {
+            var storage = new WorldObjectFileStorage(file); storage.load(source);
+            source.create().attach(new Value(), type);
+            storage.save(source); storage.save(source);
+        }
+        if (recover) Files.writeString(file, "corrupt primary");
+        try (var restored = new WorldObjectManager()) {
+            var storage = new WorldObjectFileStorage(file); storage.load(restored);
+            var future = restored.writeNbt(); future.putInt("format", WorldObjectManager.ARCHIVE_FORMAT + 1);
+            try (var output = Files.newOutputStream(file)) { NbtIo.writeCompressed(future, output); }
+            byte[] before = Files.readAllBytes(file);
+            byte[] previous = Files.readAllBytes(backup);
+            assertThrows(IOException.class, () -> storage.save(restored));
+            assertArrayEquals(before, Files.readAllBytes(file));
+            assertArrayEquals(previous, Files.readAllBytes(backup));
             try (var entries = Files.list(directory)) { assertEquals(2, entries.count()); }
         }
     }
@@ -197,5 +272,14 @@ class WorldObjectFileStorageTest {
     private static final class Value extends FieldedWorldObjectComponent {
         /** Saved integer payload. */
         final Field<Integer> value = field("value", FieldCodecs.intValue(), 0);
+        /** Whether this fixture should reject its next persistence snapshot. */
+        boolean failWrite;
+        /**
+         * Simulates a user-defined serializer failure after field serialization.
+         * @param nbt destination compound
+         */
+        @Override protected void writeExtraNbt(net.minecraft.nbt.CompoundTag nbt) {
+            if (failWrite) throw new IllegalArgumentException("Fixture serializer failure");
+        }
     }
 }

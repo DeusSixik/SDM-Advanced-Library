@@ -148,6 +148,7 @@ final class WorldObjectArchive {
         Set<Long> slots = new HashSet<>();
         Map<String, Integer> counts = new LinkedHashMap<>();
         Map<WorldObjectComponent, Boolean> instances = new IdentityHashMap<>();
+        Map<Long, CompoundTag> migrated = new LinkedHashMap<>();
         for (int index = 0; index < components.size(); index++) {
             if (!(components.get(index) instanceof CompoundTag component))
                 throw new WorldObjectPersistenceException("Component record must be a compound");
@@ -173,8 +174,13 @@ final class WorldObjectArchive {
                 if (current < 0 || version > current)
                     throw new WorldObjectPersistenceException("Unsupported component version " + typeId + ": " + version);
                 CompoundTag payload = data.copy();
-                if (version < current)
+                if (version < current) {
                     payload = java.util.Objects.requireNonNull(persistent.migrateNbt(version, payload), "migration payload");
+                    CompoundTag updated = component.copy();
+                    updated.put("data", payload.copy());
+                    updated.putInt("version", current);
+                    migrated.put(slot, updated);
+                }
                 persistent.readNbt(payload);
             } else if (version != 0) {
                 throw new WorldObjectPersistenceException("Component no longer supports saved state: " + typeId);
@@ -183,6 +189,11 @@ final class WorldObjectArchive {
         }
         WorldObject object = new WorldObject(id);
         object.prepareRestoredComponents(entries);
+        for (int index = 0; index < components.size(); index++) {
+            CompoundTag component = (CompoundTag) components.get(index);
+            CompoundTag updated = migrated.get(sequence(component, "slot", Long.MAX_VALUE - 1));
+            if (updated != null) components.set(index, updated);
+        }
         return new Restored(object, interval, delay, sleeping);
     }
 
@@ -249,10 +260,15 @@ final class WorldObjectArchive {
             CompoundTag data = saved.get("data") instanceof CompoundTag previous ? previous.copy() : new CompoundTag();
             int version = 0;
             if (entry.component() instanceof PersistentWorldObjectComponent persistent) {
-                version = persistent.dataVersion();
-                if (version < 0)
-                    throw new WorldObjectPersistenceException("Negative component data version " + type.id());
-                persistent.writeNbt(data);
+                try {
+                    version = persistent.dataVersion();
+                    if (version < 0)
+                        throw new WorldObjectPersistenceException("Negative component data version " + type.id());
+                    persistent.writeNbt(data);
+                } catch (Throwable failure) {
+                    EcsFailures.rethrowFatal(failure);
+                    throw new WorldObjectPersistenceException("Could not save component " + type.id() + " on " + object.id(), failure);
+                }
             }
             saved.putString("type", type.id());
             saved.putLong("slot", entry.sequence());

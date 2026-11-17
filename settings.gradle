@@ -13,6 +13,7 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 rootProject.name = 'sdmal'
+include 'ecs-processor'
 stonecutter {
     kotlinController = false
     centralScript = 'build.gradle'

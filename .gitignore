@@ -1,6 +1,8 @@
 .gradle/
 .idea/
 **/build/
+# Gradle helper sources use dev.sixik.sdmal.build as their Java package.
+!buildSrc/src/**/build/
 **/run/
 **/run-data/
 *.iml

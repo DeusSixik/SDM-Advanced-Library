@@ -12,6 +12,7 @@
 import dev.sixik.sdmal.core.ecs.TickableComponent;
 import dev.sixik.sdmal.core.ecs.WorldObject;
 import dev.sixik.sdmal.core.ecs.WorldObjectComponentType;
+import dev.sixik.sdmal.core.ecs.WorldObjectComponentRegistry;
 import dev.sixik.sdmal.core.ecs.WorldObjectManager;
 import dev.sixik.sdmal.core.ecs.sync.FieldCodecs;
 import dev.sixik.sdmal.core.ecs.sync.SyncedWorldObjectComponent;
@@ -26,9 +27,10 @@ public final class CounterComponent extends SyncedWorldObjectComponent implement
     }
 }
 
-// Инициализация типа; при необходимости регистрируется в WorldObjectComponentRegistry.instance().
-var counterType = new WorldObjectComponentType<>("yourmod:counter", CounterComponent.class,
-    WorldObjectComponentType.DuplicatePolicy.REJECT, CounterComponent::new);
+// Выполнить один раз при инициализации мода, до загрузки миров.
+var counterType = WorldObjectComponentRegistry.instance().register(
+    new WorldObjectComponentType<>("yourmod:counter", CounterComponent.class,
+        WorldObjectComponentType.DuplicatePolicy.REJECT, CounterComponent::new));
 
 WorldObjectManager manager = new WorldObjectManager();
 WorldObject object = manager.create();
@@ -59,7 +61,7 @@ detach окончателен, перенос уже отсоединённог�
 
 ```java
 // Фоновый поток передаёт работу игровому потоку.
-manager.execute(() -> object.attach(new CounterComponent()));
+manager.execute(() -> object.attach(new CounterComponent(), counterType));
 
 object.setTickInterval(20); // Первый ближайший тик, затем раз в 20 тиков менеджера.
 object.sleep();            // Компоненты и object.defer(...) ждут пробуждения.
@@ -88,6 +90,28 @@ Close отбрасывает ожидающую работу. Медленная
 `IllegalStateException`. Это намеренное уточнение API; замените такие вызовы
 на команды менеджера. Для standalone WorldObject остаются snapshot/lock механизмы,
 но его жизненный цикл должен координировать вызывающий код.
+
+## Сохранение через аннотации
+
+`AnnotatedWorldObjectComponent` позволяет сохранять обычные private-поля через
+`@EcsPersist("stable_key")`, без `Field<T>` и явного кодека на каждом поле.
+Свои records поддерживаются через `@EcsData`, сторонние типы — через
+`EcsSerializers.register(type, adapter)`; для особого формата поля есть
+`@EcsUseAdapter`. Схема проверяется при регистрации компонента и кешируется.
+Небольшой компилируемый пример с пояснениями: [ECS-EXAMPLE.md](ECS-EXAMPLE.md).
+Все типы, ограничения и переход со старого формата: [ECS-ANNOTATIONS.md](ECS-ANNOTATIONS.md).
+`@EcsSync` выбирает поля для прямых полных снимков через `FriendlyByteBuf`:
+`writeNetwork(buffer)` / `readNetwork(buffer)`, без промежуточного NBT.
+Сетевые адаптеры регистрируются отдельно в `EcsNetworkSerializers`.
+Для автоматических ревизий и delta продолжайте использовать tracked-поля.
+
+Для самого компонента достаточно добавить `@EcsComponent(id = "modid:name")`
+к public-классу с public-конструктором без аргументов и подключить `sdmal-ecs-processor`
+в `annotationProcessor`. Сборка пишет индекс в `META-INF/services`, а общий setup
+загружает его через `ServiceLoader` до загрузки миров, не создавая компоненты.
+Сканирования JAR и обращений к сгенерированным Java-классам нет. Дескриптор можно
+получить через `WorldObjectComponentRegistry.instance().require(MyComponent.class)`.
+Ручной `new WorldObjectComponentType<>(...)` остаётся для динамических типов.
 
 ## Поля, NBT и сеть
 
@@ -154,7 +178,7 @@ if (serverComponent.writeDelta(deltaBuffer, senderTracker)) {
 
 ```java
 WorldObjectManager manager = LevelObjectManager.getManager(level);
-CounterComponent counter = manager.create().attach(new CounterComponent());
+CounterComponent counter = manager.create().attach(new CounterComponent(), counterType);
 // CounterComponent.onTick(...) вызывается автоматически после тика этого мира.
 ```
 
@@ -174,7 +198,8 @@ bridge-интерфейс для этой интеграции и собстве
 Аргумент — локальный счётчик менеджера, не `gameTime` и не время суток.
 
 Отдельный `new WorldObjectManager()` не привязан к миру: его тикает владелец.
-Хранение файлов и передача сетевых пакетов остаются на вызывающем моде.
+Для него можно использовать `writeNbt()`/`readNbt()` или отдельную сессию
+`WorldObjectFileStorage`; передачу сетевых пакетов организует вызывающий мод.
 При смене измерения без disconnect и в нестандартных путях выгрузки вызывайте
 `WorldObjectManagerApi.unregisterWorld(level)` из unload-события загрузчика,
 если путь обходит Minecraft-методы ниже. Обычная замена/очистка клиентского мира
@@ -191,6 +216,104 @@ bridge-интерфейс для этой интеграции и собстве
 Нормальные ошибки компонентов агрегируются; лог содержит первый stack trace и
 каждый сотый подряд неуспешный тик. Успешный тик сбрасывает счётчик. Фатальные
 ошибки VM, ThreadDeath и LinkageError немедленно выходят наружу.
+
+## Сохранение мира и миграции
+
+На сервере ECS автоматически загружается после конструктора `ServerLevel`,
+сохраняется при ванильном `ServerLevel.save` и перед закрытием измерения.
+Флаг `noSave`/`save-off` учитывается. Каждое измерение получает отдельный gzip-NBT
+архив: `<world>/data/sdmal/ecs/<namespace>/<dimension>.dat`.
+Например, обычный мир использует `minecraft/overworld.dat`, а измерение
+`yourmod:planet/moon` — `yourmod/planet/moon.dat`. На клиенте файлы ECS
+автоматически не создаются; серверное состояние туда само не реплицируется.
+
+Объекты по умолчанию сохраняемые. **Зарегистрируйте типы в
+`WorldObjectComponentRegistry.instance()` до загрузки миров** и прикрепляйте
+компоненты через `attach(component, registeredType)`. Фабрика типа должна каждый
+раз возвращать новый, ещё не прикреплённый `AbstractWorldObjectComponent`.
+Компонент без зарегистрированного типа вызывает явную ошибку сохранения всего
+архива. Для временных объектов используйте `object.setPersistent(false)`:
+такой объект целиком исключается из файла вместе с его компонентами.
+
+`AnnotatedWorldObjectComponent`, `FieldedWorldObjectComponent` и его наследники реализуют
+`PersistentWorldObjectComponent`. Для собственной сериализации реализуйте
+`writeNbt(CompoundTag)` и `readNbt(CompoundTag)`. Обычный зарегистрированный
+компонент без этого интерфейса восстанавливается только фабрикой: его произвольные
+Java-поля не сохраняются. Версия его состояния — 0; у persistent-компонента
+`dataVersion()` по умолчанию возвращает 1.
+
+При изменении формата данных увеличьте `dataVersion()` и реализуйте миграцию
+из каждой поддерживаемой старой схемы. Например, методы компонента, который
+переименовал NBT-ключ `old_count` в `count`:
+
+```java
+@Override
+public int dataVersion() {
+    return 2;
+}
+
+@Override
+public CompoundTag migrateNbt(int savedVersion, CompoundTag nbt) {
+    if (savedVersion != 1) {
+        throw new WorldObjectPersistenceException("Unsupported counter schema: " + savedVersion);
+    }
+    var previous = nbt.get("old_count");
+    if (previous != null) nbt.put("count", previous);
+    nbt.remove("old_count");
+    return nbt;
+}
+```
+
+Версия схемы компонента не связана с версией Minecraft и не запускает vanilla
+DataFixer. Миграция получает независимую копию данных, должна сохранить нужные
+неизвестные ключи и вернуть данные текущей схемы. Удалённые миграцией ключи
+не возвращаются при следующем сохранении. Миграция и `readNbt()` выполняются
+до назначения владельца: обращаться к миру в них нельзя. После восстановления
+всего состава менеджера вызываются membership-listeners и `onAttached()`.
+Из них уже доступны другие загруженные объекты и поля. Вызовы `tickAll()` и
+`writeNbt()` до завершения восстановления отклоняются; работу можно отложить
+через `manager.execute(...)`. Ошибки обычных callbacks возвращаются в диагностике,
+остальные callbacks выполняются, загруженное состояние остаётся доступным.
+
+Если тип отсутствует, фабрика/миграция/чтение завершается ошибкой или версия
+компонента новее поддерживаемой, **весь объект** остаётся неактивной записью.
+Его исходный NBT сохраняется целиком при следующих записях, UUID резервируется
+и доступен через `unresolvedObjectIds()`. После возврата нужной реализации объект
+можно восстановить при следующей загрузке мира. Частичный объект не запускается.
+Неизвестные ключи известных объектов и компонентов также сохраняются.
+Некорректный корневой формат или повторяющийся UUID отклоняет весь архив
+до изменения менеджера.
+
+Архив сохраняет UUID, порядок объектов и прикрепления компонентов, поля,
+локальный счётчик тиков, сон, интервал и оставшуюся задержку до тика.
+Очереди команд, listeners, сетевые ревизии и DeltaTracker не сохраняются.
+`manager.readNbt(tag)` допускается один раз, только в свежем пустом менеджере
+без тиков и ожидающих команд. Отдельную файловую сессию можно подключить так:
+
+```java
+var storage = new WorldObjectFileStorage(path);
+var manager = new WorldObjectManager();
+var warnings = storage.load(manager); // Сначала загрузить, затем создавать объекты.
+// ... изменение объектов на потоке владельца ...
+storage.save(manager);               // IOException означает, что запись не завершена.
+manager.close();                     // Для standalone-менеджера само по себе не сохраняет файл.
+```
+
+`WorldObjectFileStorage` находится в `dev.sixik.sdmal.impl.ecs`; публичные
+контракты архива — в `core.ecs`. Операции выполняются синхронно на потоке мира
+во время сохранения, файловых операций на обычном ECS-тике нет. Ограничения:
+100 000 объектов, 4096 компонентов на объект, 64 MiB для сжатого файла и
+64 MiB для бюджета декодирования NBT (это учёт выделений, а не размер raw NBT).
+
+Перед заменой создаётся временный файл в том же каталоге, проверяется чтение
+и gzip checksum, данные сбрасываются на диск. Предыдущий архив копируется в
+`.dat.bak`; замена использует атомарное перемещение, где оно поддерживается.
+Повреждённый или отсутствующий основной файл восстанавливается из резервной копии.
+При неудачной загрузке запись отключается для этой сессии. Более новая версия
+корневого формата блокирует загрузку и запись: откат к старому `.bak` не выполняется.
+Ошибки сериализации и записи сохраняют предыдущий основной файл; ошибки
+автоматических операций попадают в лог. Это отдельные файлы ECS, а не общая
+транзакция с сохранением чанков Minecraft.
 
 ## Отличия от исходника
 
@@ -216,6 +339,12 @@ JMH изолирован в `core/src/jmh/java`, не входит в мод и 
 Результаты с профилем аллокаций: `core/versions/1.20.1/build/reports/jmh/ecs.json`.
 Оптимизация структур данных под конкретную нагрузку требует отдельных измерений;
 полный игровой мир в этом бенчмарке не моделируется.
+
+JUnit проверяет реальные временные NBT-файлы, повреждение gzip, резервные копии,
+миграции, неизвестные типы, lifecycle и дескрипторы Minecraft-хуков на всех пяти
+версиях. Проверка применения серверных миксинов проводится отдельно на Fabric
+1.20.1 и 26.3 без создания игрового мира. Полный цикл сохранения и перезапуска
+мира в запущенной игре этими проверками не моделируется.
 
 Замеры текущей реализации на JDK 17 (128 объектов, одинаковая нагрузка): обход
 старой map-структуры — около 733 нс/56 B на тик, стабильный активный массив —

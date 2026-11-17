@@ -122,6 +122,7 @@ public final class SDMAdvancedLibrary {
      * @param config validated configuration values
      */
     public static void commonSetup(Config config) {
+        dev.sixik.sdmal.core.ecs.WorldObjectComponentRegistry.instance().registerServices();
         LOGGER.info("HELLO FROM COMMON SETUP");
         if (config.logDirtBlock()) {
             //? if >=1.19.3 {

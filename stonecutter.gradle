@@ -34,6 +34,7 @@ tasks.register('buildAll') {
     group = 'build'
     description = 'Build and test every supported Minecraft/loader combination.'
     dependsOn stonecutter.tasks.names('buildAndCollect') { it.branch.getId() in ['fabric', 'forge', 'neoforge'] }
+    dependsOn ':ecs-processor:buildAndCollect'
 }
 ['Fabric': 'fabric', 'Forge': 'forge', 'NeoForge': 'neoforge'].each { label, loader ->
     tasks.register("build${label}") {

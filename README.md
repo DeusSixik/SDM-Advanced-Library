@@ -49,6 +49,8 @@ NeoForge для 1.19.2 не существует. Названия 1.19, 1.20 и
 сгенерированные JSON или вручную перечислять классы в них не нужно.
 Для Forge 1.19.2/1.20.1 и NeoForge 1.20.1 сборка также создаёт общий
 `sdmal.refmap.json` и применяет дополнительные mappings для `@Shadow`/`@Overwrite`.
+При запуске Forge 1.19.2/1.20.1 из Gradle автоматически создаются обратные
+SRG → official mappings и включается remap refmap для среды разработки.
 Fabric обрабатывает ссылки миксинов при remap JAR.
 
 Общие исходники из `src/main/java` компилируются во все целевые версии.
@@ -152,6 +154,22 @@ dev.sixik.sdmal.impl.mixin.server.*  -> server
 Менеджер владеет своими объектами и изменяется только в потоке создания;
 для фоновых задач используйте `execute(...)`. Доступны сон/пробуждение объектов,
 интервалы тиков и запросы `query(...)`/`queryTypes(...)`.
+
+Серверные миры автоматически сохраняют ECS в отдельный NBT-файл каждого
+измерения с резервной копией. Поддерживаются миграции схем компонентов и
+сохранение неизвестных записей. Типы компонентов нужно зарегистрировать до
+загрузки миров и передавать в `attach(component, type)`; временные объекты
+помечайте `setPersistent(false)`. Примеры и формат — в [core/ECS.md](core/ECS.md).
+Для обычных полей без `Field`/`Codec` доступен `AnnotatedWorldObjectComponent`:
+`@EcsPersist`, records с `@EcsData` и реестр адаптеров пользовательских типов.
+Для компонента достаточно public-класса с `@EcsComponent(id = "modid:name")` и
+public-конструктора без аргументов. `sdmal-ecs-processor` в `annotationProcessor`
+добавляет компоненты в `META-INF/services`, а общий setup загружает их через
+`ServiceLoader`. Обращаться к generated-классам и вызывать регистрацию вручную не нужно.
+Небольшой пример — в [core/ECS-EXAMPLE.md](core/ECS-EXAMPLE.md),
+полное руководство — в [core/ECS-ANNOTATIONS.md](core/ECS-ANNOTATIONS.md). `@EcsSync`
+отправляет выбранные поля напрямую через `FriendlyByteBuf`; сетевые адаптеры
+подключаются через `EcsNetworkSerializers`. Ревизии и delta остаются у `TrackedField`.
 
 ## Сборка
 

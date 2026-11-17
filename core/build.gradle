@@ -7,6 +7,7 @@ apply from: rootProject.file('build.gradle')
 dependencies {
     minecraft "com.mojang:minecraft:${stonecutter.current.version}"
     testImplementation 'org.ow2.asm:asm-tree:9.9.1'
+    testImplementation project(':ecs-processor')
     // Shared libraries declared here are inherited by impl and every loader.
 }
 if (stonecutter.eval(stonecutter.current.version, '<26.1')) {
@@ -48,5 +49,17 @@ tasks.register('jmh', JavaExec) {
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
     args 'dev.sixik.sdmal.core.ecs.EcsBenchmark', '-prof', 'gc', '-rf', 'json',
         '-rff', layout.buildDirectory.file('reports/jmh/ecs.json').get().asFile.absolutePath
+    doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
+}
+
+tasks.register('jmhNetwork', JavaExec) {
+    group = 'verification'
+    description = 'Measure native annotated ECS packets against an NBT-in-buffer reference with GC profiling.'
+    dependsOn tasks.named('jmhClasses')
+    classpath = sourceSets.jmh.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    args 'dev.sixik.sdmal.core.ecs.EcsNetworkBenchmark', '-prof', 'gc', '-rf', 'json',
+        '-rff', layout.buildDirectory.file('reports/jmh/ecs-network.json').get().asFile.absolutePath
     doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
 }

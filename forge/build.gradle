@@ -1,4 +1,5 @@
 import dev.sixik.sdmal.build.PrepareMixinMappings
+import net.minecraftforge.gradle.internal.SlimeLauncherRunTask
 
 plugins {
     id 'java-library'
@@ -49,6 +50,16 @@ if (obfuscated) {
     def mixinMappings = tasks.register('prepareMixinMappings', PrepareMixinMappings) {
         inputMappings.fileProvider(minecraft.getDependency("forge-${mc}").toSrgFile)
         outputMappings = layout.buildDirectory.file('mixin/official-to-srg.srg')
+        runtimeMappings = layout.buildDirectory.file('mixin/srg-to-official.srg')
+    }
+    // Dev Minecraft uses official names, while the packaged refmap must keep production SRG names.
+    minecraft.runs.configureEach {
+        systemProperty 'mixin.env.remapRefMap', 'true'
+        systemProperties.put('mixin.env.refMapRemappingFile',
+            mixinMappings.flatMap { it.runtimeMappings }.map { it.asFile.absolutePath })
+    }
+    tasks.withType(SlimeLauncherRunTask).configureEach {
+        dependsOn mixinMappings
     }
     def extraMixinMappings = layout.buildDirectory.file('mixin/mixin-members.srg')
     tasks.named('compileJava', JavaCompile) {

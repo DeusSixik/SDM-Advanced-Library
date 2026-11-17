@@ -2,6 +2,7 @@ package dev.sixik.sdmal.impl.ecs;
 
 import dev.sixik.sdmal.core.ecs.WorldObjectManager;
 import dev.sixik.sdmal.core.ecs.WorldObjectPersistenceException;
+import dev.sixik.sdmal.core.ecs.codecs.NbtAccess;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -18,6 +19,7 @@ import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 
@@ -133,8 +135,15 @@ public final class WorldObjectFileStorage {
             try (var output = Files.newOutputStream(temporary)) { NbtIo.writeCompressed(snapshot, output); }
             force(temporary);
             readTag(temporary);
+            if (exists(file)) {
+                CompoundTag previous = null;
+                try { previous = readTag(file); }
+                catch (IOException failure) { if (!recoveredBackup) throw failure; }
+                if (previous != null && (!(previous.get("format") instanceof IntTag format)
+                    || NbtAccess.number(format).intValue() != WorldObjectManager.ARCHIVE_FORMAT))
+                    throw new IOException("Existing ECS archive has an unsupported format; left untouched: " + file);
+            }
             if (exists(file) && !recoveredBackup) {
-                readTag(file);
                 backupTemporary = Files.createTempFile(file.getParent(), "ecs-backup-", ".tmp");
                 Files.copy(file, backupTemporary, StandardCopyOption.REPLACE_EXISTING);
                 force(backupTemporary);
@@ -191,7 +200,10 @@ public final class WorldObjectFileStorage {
         try (var raw = Files.newInputStream(source);
              var gzip = new GZIPInputStream(raw);
              var input = new DataInputStream(gzip)) {
-            return NbtIo.read(input, accounter);
+            CompoundTag root = NbtIo.read(input, accounter);
+            if (root == null) throw new IOException("Missing ECS archive root: " + source);
+            if (input.read() != -1) throw new IOException("Trailing data after ECS archive: " + source);
+            return root;
         } catch (RuntimeException failure) {
             throw new IOException("Invalid ECS NBT archive: " + source, failure);
         }

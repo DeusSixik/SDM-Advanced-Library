@@ -81,6 +81,8 @@ class WorldObjectPersistenceTest {
                 var manager = component.owner().orElseThrow().manager().orElseThrow();
                 assertEquals(2, manager.size());
                 assertEquals(2, manager.query(Probe.class).size());
+                assertThrows(IllegalStateException.class, manager::tickAll);
+                assertThrows(IllegalStateException.class, manager::writeNbt);
                 observations.add(component.value.get());
             }
         };
@@ -90,8 +92,22 @@ class WorldObjectPersistenceTest {
             source.create().attach(new Probe(inspect), type).value.set(8);
             CompoundTag saved = source.writeNbt();
             restoring[0] = true;
+            restored.addListener(new WorldObjectManager.Listener() {
+                /**
+                 * Checks the same guard during the earlier membership notification phase.
+                 * @param manager restored manager
+                 * @param object published object
+                 */
+                @Override public void onObjectAdded(WorldObjectManager manager, WorldObject object) {
+                    assertThrows(IllegalStateException.class, manager::tickAll);
+                    assertThrows(IllegalStateException.class, manager::writeNbt);
+                }
+            });
             assertTrue(restored.readNbt(saved).isEmpty());
             assertEquals(List.of(7, 8), observations);
+            restored.tickAll();
+            assertEquals(1, restored.lastTick());
+            assertDoesNotThrow(restored::writeNbt);
         }
     }
 
@@ -168,13 +184,77 @@ class WorldObjectPersistenceTest {
             UUID id = source.create().id();
             source.get(id).orElseThrow().attach(new Counter(), firstType).value.set(7);
             CompoundTag saved = source.writeNbt();
+            var payload = (CompoundTag) component(object(saved, 0), 0).get("data");
+            payload.putString("obsolete", "remove during migration");
+            payload.putString("extension", "keep during migration");
             WorldObjectComponentRegistry.instance().unregister(firstType.id());
             var upgraded = new WorldObjectComponentType<>(firstType.id(), UpgradedCounter.class,
                 WorldObjectComponentType.DuplicatePolicy.REJECT, UpgradedCounter::new);
             WorldObjectComponentRegistry.instance().register(upgraded);
             assertTrue(restored.readNbt(saved).isEmpty());
             assertEquals(107, restored.get(id).orElseThrow().getSingle(upgraded).orElseThrow().value.get());
-            assertEquals(2, NbtAccess.number((NumericTag) component(object(restored.writeNbt(), 0), 0).get("version")).intValue());
+            var upgradedRecord = component(object(restored.writeNbt(), 0), 0);
+            assertEquals(2, NbtAccess.number((NumericTag) upgradedRecord.get("version")).intValue());
+            var upgradedPayload = (CompoundTag) upgradedRecord.get("data");
+            assertNull(upgradedPayload.get("obsolete"));
+            assertEquals("keep during migration", NbtAccess.string(upgradedPayload.get("extension"), ""));
+        }
+    }
+
+    /** A factory failure quarantines its whole object without preventing independent objects from loading. */
+    @Test void archive_factoryFailure_preservesRawObjectWithoutPartialActivation() {
+        boolean[] failing = {false};
+        var counter = type(Counter.class, Counter::new);
+        var plain = type(Plain.class, () -> {
+            if (failing[0]) throw new IllegalStateException("Unavailable implementation");
+            return new Plain();
+        });
+        try (var source = new WorldObjectManager(); var restored = new WorldObjectManager()) {
+            var rejected = source.create();
+            rejected.attach(new Counter(), counter);
+            rejected.attach(new Plain(), plain);
+            var accepted = source.create(); accepted.attach(new Counter(), counter);
+            CompoundTag saved = source.writeNbt();
+            CompoundTag expected = object(saved, 0).copy();
+            failing[0] = true;
+            assertEquals(1, restored.readNbt(saved).size());
+            assertEquals(List.of(accepted.id()), restored.snapshot().stream().map(WorldObject::id).toList());
+            assertEquals(expected, object(restored.writeNbt(), 0));
+            assertTrue(restored.unresolvedObjectIds().contains(rejected.id()));
+        }
+    }
+
+    /** Stateless registered components need only a factory and restore without persistent-state methods. */
+    @Test void archive_plainTypedComponent_restoresUsingFactory() {
+        var plain = type(Plain.class, Plain::new);
+        try (var source = new WorldObjectManager(); var restored = new WorldObjectManager()) {
+            var object = source.create(); object.attach(new Plain(), plain);
+            assertTrue(restored.readNbt(source.writeNbt()).isEmpty());
+            assertTrue(restored.get(object.id()).orElseThrow().has(plain));
+        }
+    }
+
+    /** Attachment failures produce diagnostics after all restored components receive their callbacks. */
+    @Test void archive_attachmentFailure_continuesOtherCallbacksAndKeepsLoadedState() {
+        boolean[] failing = {false};
+        List<UUID> callbacks = new ArrayList<>();
+        Consumer<Probe> inspect = probe -> {
+            if (failing[0]) {
+                callbacks.add(probe.owner().orElseThrow().id());
+                throw new IllegalStateException("Fixture callback failure");
+            }
+        };
+        var type = type(Probe.class, () -> new Probe(inspect));
+        try (var source = new WorldObjectManager(); var restored = new WorldObjectManager()) {
+            source.create().attach(new Probe(inspect), type);
+            source.create().attach(new Probe(inspect), type);
+            CompoundTag saved = source.writeNbt();
+            failing[0] = true;
+            assertEquals(2, restored.readNbt(saved).size());
+            assertEquals(source.snapshot().stream().map(WorldObject::id).toList(), callbacks);
+            assertEquals(2, restored.size());
+            assertDoesNotThrow(restored::writeNbt);
+            assertDoesNotThrow(restored::tickAll);
         }
     }
 
@@ -245,6 +325,9 @@ class WorldObjectPersistenceTest {
         @Override public void onTick(long tick) { value.update(previous -> previous + 1); }
     }
 
+    /** Stateless fixture using only registered construction and the base ownership contract. */
+    private static final class Plain extends AbstractWorldObjectComponent { }
+
     /** Observes staged attachment after a complete archive load. */
     private static final class Probe extends Counter {
         /** Attachment observer supplied by the test. */
@@ -270,6 +353,7 @@ class WorldObjectPersistenceTest {
          */
         @Override public CompoundTag migrateNbt(int savedVersion, CompoundTag nbt) {
             assertEquals(1, savedVersion);
+            nbt.remove("obsolete");
             nbt.putInt("value", NbtAccess.number((NumericTag) nbt.get("value")).intValue() + 100);
             return nbt;
         }

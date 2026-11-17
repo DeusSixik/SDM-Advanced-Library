@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import net.minecraft.nbt.CompoundTag;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -93,6 +94,10 @@ public final class WorldObjectManager implements AutoCloseable {
      * Prevents replacing an already loaded archive, including one containing only unresolved records.
      */
     private boolean archiveLoaded;
+    /**
+     * Prevents ticking or capturing partially completed restoration callbacks on the owner thread.
+     */
+    private boolean restoring;
 
     /**
      * Observes registration and removal after membership changes become visible.
@@ -212,12 +217,13 @@ public final class WorldObjectManager implements AutoCloseable {
      * Captures a versioned world archive on the owner thread. Queued work and transient objects are excluded.
      *
      * @return independent NBT compound, including unresolved objects and unknown fields
-     * @throws IllegalStateException           if closed or called outside the owner thread
+     * @throws IllegalStateException           if closed, restoring or called outside the owner thread
      * @throws WorldObjectPersistenceException if a durable object contains an unregistered component
      */
     public CompoundTag writeNbt() {
         checkThread();
         if (closed) throw new IllegalStateException("Cannot save a closed manager");
+        if (restoring) throw new IllegalStateException("Cannot save during archive restoration");
         return archive.encode(snapshot(), tickCounter);
     }
 
@@ -232,38 +238,43 @@ public final class WorldObjectManager implements AutoCloseable {
      */
     public List<String> readNbt(CompoundTag nbt) {
         checkThread();
-        if (closed || archiveLoaded || !objects.isEmpty() || tickCounter != 0 || !commands.isEmpty())
+        if (closed || restoring || archiveLoaded || !objects.isEmpty() || tickCounter != 0 || !commands.isEmpty())
             throw new IllegalStateException("Load requires a fresh empty manager with no pending commands");
-        var decoded = WorldObjectArchive.decode(Objects.requireNonNull(nbt, "nbt"));
-        archive = decoded.archive();
-        archiveLoaded = true;
-        tickCounter = decoded.tick();
-        for (var restored : decoded.objects()) {
-            WorldObject object = restored.object();
-            object.claimManager(this);
-            object.restoreSchedule(tickCounter, restored.interval(), restored.delay(), restored.sleeping());
-            objects.put(object.id(), object);
-            ordered.add(object);
-        }
-        refreshMembership();
-        List<String> diagnostics = new ArrayList<>(decoded.warnings());
-        for (var restored : decoded.objects()) {
-            WorldObject object = restored.object();
-            try {
-                if (!object.isDetached()) fireMembership(object, true);
-            } catch (Exception failure) {
-                diagnostics.add("Object listener " + object.id() + ": " + failure);
+        restoring = true;
+        try {
+            var decoded = WorldObjectArchive.decode(Objects.requireNonNull(nbt, "nbt"));
+            archive = decoded.archive();
+            archiveLoaded = true;
+            tickCounter = decoded.tick();
+            for (var restored : decoded.objects()) {
+                WorldObject object = restored.object();
+                object.claimManager(this);
+                object.restoreSchedule(tickCounter, restored.interval(), restored.delay(), restored.sleeping());
+                objects.put(object.id(), object);
+                ordered.add(object);
             }
-        }
-        for (var restored : decoded.objects()) {
-            WorldObject object = restored.object();
-            try {
-                if (!object.isDetached()) object.finishRestoredComponents();
-            } catch (Exception failure) {
-                diagnostics.add("Attachment lifecycle " + object.id() + ": " + failure);
+            refreshMembership();
+            List<String> diagnostics = new ArrayList<>(decoded.warnings());
+            for (var restored : decoded.objects()) {
+                WorldObject object = restored.object();
+                try {
+                    if (!object.isDetached()) fireMembership(object, true);
+                } catch (Exception failure) {
+                    diagnostics.add("Object listener " + object.id() + ": " + failure);
+                }
             }
+            for (var restored : decoded.objects()) {
+                WorldObject object = restored.object();
+                try {
+                    if (!object.isDetached()) object.finishRestoredComponents();
+                } catch (Exception failure) {
+                    diagnostics.add("Attachment lifecycle " + object.id() + ": " + failure);
+                }
+            }
+            return List.copyOf(diagnostics);
+        } finally {
+            restoring = false;
         }
-        return List.copyOf(diagnostics);
     }
 
     /**
@@ -422,6 +433,7 @@ public final class WorldObjectManager implements AutoCloseable {
      */
     public void tickAll() {
         checkThread();
+        if (restoring) throw new IllegalStateException("Cannot tick during archive restoration");
         if (closed) return;
         if (ticking) throw new IllegalStateException("Recursive manager tick");
         ticking = true;
