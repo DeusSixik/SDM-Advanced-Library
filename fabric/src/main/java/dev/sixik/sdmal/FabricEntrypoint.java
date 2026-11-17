@@ -26,17 +26,28 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import java.io.IOException;
 
-/** Registers the shared examples and configuration on Fabric. */
+/**
+ * Registers the shared examples and configuration on Fabric.
+ */
 public final class FabricEntrypoint implements ModInitializer {
-    /** Registered type assigned after the generator block, before any world can load. */
+    /**
+     * Registered type assigned after the generator block, before any world can load.
+     */
     private static BlockEntityType<GeneratorBlockEntity> generatorType;
-    /** Registered multiblock controller shell type, assigned before worlds load. */
+    /**
+     * Registered multiblock controller shell type, assigned before worlds load.
+     */
     private static BlockEntityType<MultiblockControllerBlockEntity> multiblockType;
-    /** Public no-argument constructor used by Fabric Loader. */
+    /**
+     * Public no-argument constructor used by Fabric Loader.
+     */
     public FabricEntrypoint() {}
 
-    /** Registers the mod content after Minecraft's built-in registries are bootstrapped. */
+    /**
+     * Registers the mod content after Minecraft's built-in registries are bootstrapped.
+     */
     @Override public void onInitialize() {
+        dev.sixik.sdmal.network.FabricNetwork.initialize();
         //? if >=1.19.3 {
         var blockRegistry = BuiltInRegistries.BLOCK;
         var itemRegistry = BuiltInRegistries.ITEM;

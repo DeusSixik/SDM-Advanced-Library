@@ -168,6 +168,18 @@ final class EcsNetworkSchemaBuilder {
      * @return cached field/adapter plan
      */
     EcsNetworkMember member(Field field, Type type) {
+        return member(field, type, false);
+    }
+
+    /**
+     * Resolves a field, allowing its Java name as the default key for packet payloads.
+     *
+     * @param field instance field
+     * @param type resolved field type
+     * @param implicitKey whether an unannotated Java name is permitted
+     * @return immutable binary member plan
+     */
+    EcsNetworkMember member(Field field, Type type, boolean implicitKey) {
         String path = field.getDeclaringClass().getName() + "." + field.getName();
         try {
             EcsSync sync = field.getAnnotation(EcsSync.class);
@@ -176,6 +188,7 @@ final class EcsNetworkSchemaBuilder {
                     sync == null || sync.value().isEmpty()
                             ? persist == null ? "" : persist.value()
                             : sync.value();
+            if (key.isEmpty() && implicitKey) key = field.getName();
             if (key.isBlank() || key.length() > 1024)
                 throw new EcsSerializationException("Explicit stable network key is required");
             EcsTypes.requireConcrete(type);

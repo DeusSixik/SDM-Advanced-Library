@@ -60,6 +60,20 @@ public final class NetworkSerialization {
     private NetworkSerialization() {}
 
     /**
+     * Builds a packet's automatic field format using the same native adapters as ECS sync.
+     *
+     * @param type concrete class or record implementing Packet
+     * @param <T> packet type
+     * @return immutable format; callers cache it after first use
+     */
+    public static synchronized <T> EcsNetworkSerializer<T> packetCodec(Class<T> type) {
+        var builder = new EcsNetworkSchemaBuilder(REGISTERED, RESOLVED, OVERRIDES);
+        var codec = PacketSchema.build(type, builder);
+        builder.publish(RESOLVED, OVERRIDES);
+        return codec;
+    }
+
+    /**
      * Registers one exact concrete binary type without requiring NBT methods.
      *
      * @param type non-generic concrete class

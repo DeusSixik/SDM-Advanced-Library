@@ -9,14 +9,14 @@ public final class FabricClientEntrypoint implements ClientModInitializer {
     /**
      * Public no-argument constructor used by Fabric Loader.
      */
-    public FabricClientEntrypoint() {
-    }
+    public FabricClientEntrypoint() {}
 
     /**
      * Logs the original client initialization message and development player name.
      */
     @Override
     public void onInitializeClient() {
+        dev.sixik.sdmal.network.FabricClientNetwork.initialize();
         ClientSetup.initialize();
     }
 }

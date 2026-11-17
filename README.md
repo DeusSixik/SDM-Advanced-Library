@@ -1,5 +1,8 @@
 # SDMAL
 
+Автоматические C2S/S2C пакеты с `@NetworkPacket`, `Packet.send()` и бинарной
+сериализацией полей: [API, примеры и подключение processor](core/NETWORK-PACKETS.md).
+
 Мультиверсионный проект на Stonecutter 0.10. Gradle запускается на JDK 25;
 Java toolchains автоматически выбирают Java 17, 21 или 25 для целевой версии.
 

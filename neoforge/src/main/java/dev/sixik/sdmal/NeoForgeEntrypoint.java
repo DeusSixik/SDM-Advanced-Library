@@ -31,42 +31,72 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 //?}
 import java.util.function.Supplier;
 
-/** Registers common content with both the legacy and modern MinecraftForge APIs. */
+/**
+ * Registers common content with both the legacy and modern MinecraftForge APIs.
+ */
 @Mod(SDMAdvancedLibrary.MODID)
 public final class NeoForgeEntrypoint {
-    /** Deferred block registry in the mod namespace. */
+    /**
+     * Deferred block registry in the mod namespace.
+     */
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(Registries.BLOCK, SDMAdvancedLibrary.MODID);
-    /** Deferred item registry in the mod namespace. */
+    /**
+     * Deferred item registry in the mod namespace.
+     */
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, SDMAdvancedLibrary.MODID);
-    /** Deferred shell types for chunk-owned ECS objects. */
+    /**
+     * Deferred shell types for chunk-owned ECS objects.
+     */
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, SDMAdvancedLibrary.MODID);
-    /** Deferred creative tab registry. */
+    /**
+     * Deferred creative tab registry.
+     */
     public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, SDMAdvancedLibrary.MODID);
-    /** Registered example stone block. */
+    /**
+     * Registered example stone block.
+     */
     public static final Supplier<Block> EXAMPLE_BLOCK = BLOCKS.register("example_block", SDMAdvancedLibrary::createBlock);
-    /** Placeable ECS generator block. */
+    /**
+     * Placeable ECS generator block.
+     */
     public static final Supplier<Block> ECS_GENERATOR = BLOCKS.register(GeneratorContent.PATH,
         () -> GeneratorContent.createBlock(() -> NeoForgeEntrypoint.ECS_GENERATOR_TYPE.get()));
-    /** Generator shell type; initialized by the block entity registry event. */
+    /**
+     * Generator shell type; initialized by the block entity registry event.
+     */
     public static final Supplier<BlockEntityType<GeneratorBlockEntity>> ECS_GENERATOR_TYPE =
         BLOCK_ENTITIES.register(GeneratorContent.PATH, NeoForgeEntrypoint::createGeneratorType);
-    /** Controller for the iron platform and redstone core multiblock example. */
+    /**
+     * Controller for the iron platform and redstone core multiblock example.
+     */
     public static final Supplier<Block> ECS_MULTIBLOCK = BLOCKS.register(MultiblockContent.PATH,
         () -> MultiblockContent.createBlock(() -> NeoForgeEntrypoint.ECS_MULTIBLOCK_TYPE.get()));
-    /** Registered multiblock controller shell type. */
+    /**
+     * Registered multiblock controller shell type.
+     */
     public static final Supplier<BlockEntityType<MultiblockControllerBlockEntity>> ECS_MULTIBLOCK_TYPE =
         BLOCK_ENTITIES.register(MultiblockContent.PATH, NeoForgeEntrypoint::createMultiblockType);
-    /** Placeable controller item for the SDMAL creative tab and /give. */
+    /**
+     * Placeable controller item for the SDMAL creative tab and /give.
+     */
     public static final Supplier<Item> ECS_MULTIBLOCK_ITEM = ITEMS.register(MultiblockContent.PATH,
         () -> MultiblockContent.createItem(ECS_MULTIBLOCK.get(), null));
-    /** Generator item for creative inventory and /give. */
+    /**
+     * Generator item for creative inventory and /give.
+     */
     public static final Supplier<Item> ECS_GENERATOR_ITEM = ITEMS.register(GeneratorContent.PATH,
         () -> GeneratorContent.createItem(ECS_GENERATOR.get(), null));
-    /** Registered item representing the example block. */
+    /**
+     * Registered item representing the example block.
+     */
     public static final Supplier<Item> EXAMPLE_BLOCK_ITEM = ITEMS.register("example_block", () -> SDMAdvancedLibrary.createBlockItem(EXAMPLE_BLOCK.get(), null));
-    /** Registered example food item. */
+    /**
+     * Registered example food item.
+     */
     public static final Supplier<Item> EXAMPLE_ITEM = ITEMS.register("example_item", () -> SDMAdvancedLibrary.createFoodItem(null));
-    /** Example creative tab containing the food item. */
+    /**
+     * Example creative tab containing the food item.
+     */
     public static final Supplier<CreativeModeTab> EXAMPLE_TAB = TABS.register("example_tab", () -> CreativeModeTab.builder()
         .title(Component.translatable("itemGroup.sdmal.example_tab"))
         .withTabsBefore(CreativeModeTabs.COMBAT)
@@ -93,6 +123,10 @@ public final class NeoForgeEntrypoint {
         BLOCK_ENTITIES.register(bus);
         TABS.register(bus);
         bus.addListener(this::commonSetup);
+        //? if >=1.21 {
+        /*dev.sixik.sdmal.network.NeoForgeNetwork.initialize(net.minecraftforge.fml.loading.FMLEnvironment.dist.isClient());
+        bus.addListener(dev.sixik.sdmal.network.NeoForgeNetwork::register);
+        *///?}
         bus.addListener(NeoForgeEntrypoint::addCreative);
         bus.addListener(NeoForgeConfig::onLoad);
         //? if >=1.21 {
@@ -113,7 +147,11 @@ public final class NeoForgeEntrypoint {
      * Runs shared initialization after the native configuration has loaded.
      * @param event common setup lifecycle event
      */
-    private void commonSetup(FMLCommonSetupEvent event) { SDMAdvancedLibrary.commonSetup(NeoForgeConfig.current); }
+    private void commonSetup(FMLCommonSetupEvent event) {
+        //? if <1.21
+        dev.sixik.sdmal.network.ForgeNetwork.initialize();
+        SDMAdvancedLibrary.commonSetup(NeoForgeConfig.current);
+    }
 
     /**
      * Builds the shell type using the constructor/builder provided by this loader version.

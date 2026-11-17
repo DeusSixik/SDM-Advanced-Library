@@ -18,6 +18,8 @@ stonecutter.parameters {
             replace('FabricItemGroup', 'FabricCreativeModeTab')
             replace('ItemGroupEvents', 'CreativeModeTabEvents')
             replace('modifyEntriesEvent', 'modifyOutputEvent')
+            replace('playC2S', 'serverboundPlay')
+            replace('playS2C', 'clientboundPlay')
         }
         string(loader == 'neoforge' && current.version != '1.20.1') {
             replace('net.minecraftforge.fml', 'net.neoforged.fml')
@@ -27,6 +29,9 @@ stonecutter.parameters {
             replace('net.minecraftforge.event', 'net.neoforged.neoforge.event')
             replace('net.minecraftforge.registries', 'net.neoforged.neoforge.registries')
             replace('ForgeConfigSpec', 'ModConfigSpec')
+        }
+        string(loader == 'neoforge' && current.parsed.matches('>=26.1')) {
+            replace('FMLEnvironment.dist', 'FMLEnvironment.getDist()')
         }
     }
 }

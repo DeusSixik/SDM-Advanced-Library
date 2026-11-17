@@ -1,1 +1,2 @@
 dev.sixik.sdmal.processor.EcsComponentProcessor,aggregating
+dev.sixik.sdmal.processor.NetworkPacketProcessor,aggregating

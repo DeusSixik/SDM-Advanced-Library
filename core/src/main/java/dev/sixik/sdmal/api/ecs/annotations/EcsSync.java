@@ -7,13 +7,15 @@ import java.lang.annotation.Target;
 
 /**
  * Selects an ordinary component field for direct binary network snapshots, independently of
- * persistence.
+ * persistence. On automatic network packets, every instance field is already selected and this
+ * annotation optionally supplies a stable alias.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.RECORD_COMPONENT})
 public @interface EcsSync {
     /**
-     * @return stable wire key, or empty to reuse this member's EcsPersist key
+     * @return stable wire key, or empty to reuse EcsPersist; packets also fall back to the Java
+     *     field name
      */
     String value() default "";
 }
