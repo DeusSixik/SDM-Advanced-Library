@@ -13,13 +13,14 @@ final class EcsWireSchema {
     /**
      * Prevents utility construction.
      */
-    private EcsWireSchema() {}
+    private EcsWireSchema() {
+    }
 
     /**
      * Encodes parts with character lengths so user keys/adapter names cannot create delimiter
      * collisions.
      *
-     * @param kind stable format kind including version
+     * @param kind  stable format kind including version
      * @param parts ordered nested descriptions
      * @return canonical schema description
      */

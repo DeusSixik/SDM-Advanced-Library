@@ -61,7 +61,7 @@ public final class WorldObjectManager implements AutoCloseable {
 
     /**
      * @return owner-thread composition revision, including attachment replacement and ordering
-     *     changes
+     * changes
      */
     long structureVersion() {
         return structureVersion;
@@ -176,7 +176,7 @@ public final class WorldObjectManager implements AutoCloseable {
 
     /**
      * @return true only on the manager's owner thread, without granting compute callbacks
-     *     live-state access
+     * live-state access
      */
     boolean isOwnerThread() {
         return Thread.currentThread() == ownerThread;
@@ -239,14 +239,14 @@ public final class WorldObjectManager implements AutoCloseable {
 
     /**
      * @return whether the currently executing legacy component imposes a current-tick command
-     *     deadline
+     * deadline
      */
     boolean legacyMustComplete() {
         return Thread.currentThread() == ownerThread
                 && tickingComponent != null
                 && (EcsExecutionPolicy.flags(tickingComponent.getClass())
-                                & EcsExecutionPolicy.CURRENT_TICK)
-                        != 0;
+                & EcsExecutionPolicy.CURRENT_TICK)
+                != 0;
     }
 
     /**
@@ -278,17 +278,19 @@ public final class WorldObjectManager implements AutoCloseable {
          * Receives a newly registered object.
          *
          * @param manager owning manager, non-null
-         * @param object newly registered object, non-null
+         * @param object  newly registered object, non-null
          */
-        default void onObjectAdded(WorldObjectManager manager, WorldObject object) {}
+        default void onObjectAdded(WorldObjectManager manager, WorldObject object) {
+        }
 
         /**
          * Receives a removed, permanently detached object.
          *
          * @param manager former owning manager, non-null
-         * @param object removed object, non-null
+         * @param object  removed object, non-null
          */
-        default void onObjectRemoved(WorldObjectManager manager, WorldObject object) {}
+        default void onObjectRemoved(WorldObjectManager manager, WorldObject object) {
+        }
     }
 
     /**
@@ -332,7 +334,7 @@ public final class WorldObjectManager implements AutoCloseable {
      *
      * @param budget maximum commands per tick, greater than zero
      * @throws IllegalArgumentException if budget is not positive
-     * @throws IllegalStateException if called outside the owner thread
+     * @throws IllegalStateException    if called outside the owner thread
      */
     public void setCommandBudget(int budget) {
         checkThread();
@@ -359,7 +361,7 @@ public final class WorldObjectManager implements AutoCloseable {
      * @param object unowned live object, non-null
      * @return false for an already registered UUID, leaving the argument untouched
      * @throws IllegalStateException if closed, detached, already owned or on the wrong thread
-     * @throws WorldObjectException after registration if a listener fails
+     * @throws WorldObjectException  after registration if a listener fails
      */
     public boolean add(WorldObject object) {
         checkThread();
@@ -392,9 +394,9 @@ public final class WorldObjectManager implements AutoCloseable {
      * excluded.
      *
      * @return independent NBT compound, including unresolved objects and unknown fields
-     * @throws IllegalStateException if closed, restoring or called outside the owner thread
+     * @throws IllegalStateException           if closed, restoring or called outside the owner thread
      * @throws WorldObjectPersistenceException if a durable object contains an unregistered
-     *     component
+     *                                         component
      */
     public CompoundTag writeNbt() {
         checkThread();
@@ -410,7 +412,7 @@ public final class WorldObjectManager implements AutoCloseable {
      *
      * @param nbt caller-owned archive, non-null and never mutated
      * @return immutable diagnostics for unresolved objects and non-fatal lifecycle failures
-     * @throws IllegalStateException unless the manager is fresh, empty, and on the owner thread
+     * @throws IllegalStateException           unless the manager is fresh, empty, and on the owner thread
      * @throws WorldObjectPersistenceException if the root format or object identities are invalid
      */
     public List<String> readNbt(CompoundTag nbt) {
@@ -478,7 +480,7 @@ public final class WorldObjectManager implements AutoCloseable {
      * @param id registered UUID, non-null
      * @return true if an object was removed
      * @throws IllegalStateException if called outside the owner thread
-     * @throws WorldObjectException after cleanup if callbacks fail
+     * @throws WorldObjectException  after cleanup if callbacks fail
      */
     public boolean remove(UUID id) {
         checkThread();
@@ -613,7 +615,7 @@ public final class WorldObjectManager implements AutoCloseable {
      * skipped even if an older dispatch snapshot references them.
      *
      * @throws IllegalStateException if called recursively or outside the owner thread
-     * @throws WorldObjectException after all work if non-fatal commands/components failed
+     * @throws WorldObjectException  after all work if non-fatal commands/components failed
      */
     public void tickAll() {
         beginTick();
@@ -805,7 +807,7 @@ public final class WorldObjectManager implements AutoCloseable {
      * Calls every membership observer, preserving cleanup despite non-fatal failures.
      *
      * @param object object whose membership changed
-     * @param added true for registration, false for removal
+     * @param added  true for registration, false for removal
      * @throws WorldObjectException after all observers if any failed
      */
     private void fireMembership(WorldObject object, boolean added) {
@@ -827,7 +829,7 @@ public final class WorldObjectManager implements AutoCloseable {
      * are harmless on the owner thread.
      *
      * @throws IllegalStateException if called outside the owner thread
-     * @throws WorldObjectException after cleanup if any lifecycle callback failed
+     * @throws WorldObjectException  after cleanup if any lifecycle callback failed
      */
     @Override
     public void close() {
@@ -873,7 +875,7 @@ public final class WorldObjectManager implements AutoCloseable {
      * Throws one aggregate after mandatory work has completed.
      *
      * @param failures collected non-fatal failures, non-null
-     * @param message diagnostic context
+     * @param message  diagnostic context
      * @throws WorldObjectException if failures is non-empty
      */
     private static void throwFailures(List<Throwable> failures, String message) {

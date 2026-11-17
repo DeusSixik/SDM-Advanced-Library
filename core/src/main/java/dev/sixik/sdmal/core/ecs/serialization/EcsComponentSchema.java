@@ -19,7 +19,7 @@ record EcsComponentSchema(EcsMember[] members) {
      * Stages all encoded members before updating the destination compound.
      *
      * @param component source component whose state is protected by its caller
-     * @param target owned output compound, possibly containing unknown keys
+     * @param target    owned output compound, possibly containing unknown keys
      */
     void write(Object component, CompoundTag target) {
         Tag[] staged = new Tag[members.length];
@@ -33,7 +33,7 @@ record EcsComponentSchema(EcsMember[] members) {
      * Decodes every present field before committing; unannotated/missing fields are untouched.
      *
      * @param component target component whose state is protected by its caller
-     * @param source caller-owned input, never mutated
+     * @param source    caller-owned input, never mutated
      */
     void read(Object component, CompoundTag source) {
         Object[] staged = new Object[members.length];

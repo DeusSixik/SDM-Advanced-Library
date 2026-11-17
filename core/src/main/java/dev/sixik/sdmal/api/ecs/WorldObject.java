@@ -47,7 +47,8 @@ public final class WorldObject {
      * One attached component plus the type it was attached with ({@code null} = untyped).
      */
     public record ComponentEntry(
-            WorldObjectComponent component, WorldObjectComponentType<?> type, long sequence) {}
+            WorldObjectComponent component, WorldObjectComponentType<?> type, long sequence) {
+    }
 
     /**
      * Aggregates per-component tick failures; individual causes are {@code suppressed}.
@@ -357,10 +358,10 @@ public final class WorldObject {
     /**
      * Restores scheduling after manager ownership is claimed.
      *
-     * @param tick restored manager sequence
+     * @param tick     restored manager sequence
      * @param interval positive dispatch interval
-     * @param delay positive remaining delay
-     * @param asleep whether this object is sleeping
+     * @param delay    positive remaining delay
+     * @param asleep   whether this object is sleeping
      */
     final void restoreSchedule(long tick, int interval, int delay, boolean asleep) {
         tickInterval = interval;
@@ -417,7 +418,7 @@ public final class WorldObject {
      *
      * @param ticks positive number of manager ticks between component dispatches
      * @throws IllegalArgumentException if ticks is less than one
-     * @throws IllegalStateException if detached or called outside the manager thread
+     * @throws IllegalStateException    if detached or called outside the manager thread
      */
     public void setTickInterval(int ticks) {
         checkMutationThread();
@@ -432,7 +433,7 @@ public final class WorldObject {
      * Dispatches a due active object from the owning manager's stable snapshot.
      *
      * @param owner expected manager, non-null
-     * @param tick current manager sequence
+     * @param tick  current manager sequence
      */
     final void tickScheduled(WorldObjectManager owner, long tick) {
         if (!isTickScheduled(owner, tick)) return;
@@ -445,7 +446,7 @@ public final class WorldObject {
      * component groups capture this decision before any of the three phases runs.
      *
      * @param owner expected owner manager
-     * @param tick selected manager sequence
+     * @param tick  selected manager sequence
      * @return true for a live, awake object whose interval permits this tick
      */
     final boolean isTickScheduled(WorldObjectManager owner, long tick) {
@@ -531,7 +532,7 @@ public final class WorldObject {
     /**
      * Attaches an untyped component (always allowed, duplicates permitted).
      *
-     * @param <C> component type
+     * @param <C>       component type
      * @param component component instance, non-null
      * @return supplied component after attachment, never null
      */
@@ -545,9 +546,9 @@ public final class WorldObject {
      * (including itself). A throwing {@code onAttached} still leaves the component attached;
      * listeners are notified regardless.
      *
-     * @param <C> component type
+     * @param <C>       component type
      * @param component component instance, non-null
-     * @param type component descriptor used for typed membership and duplicate policies
+     * @param type      component descriptor used for typed membership and duplicate policies
      * @return supplied component after attachment, never null
      */
     public <C extends WorldObjectComponent> C attach(
@@ -574,11 +575,11 @@ public final class WorldObject {
                 List<ComponentEntry> clashing = view.byType.getOrDefault(type, List.of());
                 if (!clashing.isEmpty()) {
                     switch (type.duplicatePolicy()) {
-                        case REJECT ->
-                                throw new DuplicateComponentException(
-                                        "Duplicate component of type '" + type.id() + "' on " + id);
+                        case REJECT -> throw new DuplicateComponentException(
+                                "Duplicate component of type '" + type.id() + "' on " + id);
                         case REPLACE -> replaced = List.copyOf(clashing);
-                        case ALLOW_MULTIPLE -> {}
+                        case ALLOW_MULTIPLE -> {
+                        }
                     }
                 }
             }
@@ -668,7 +669,7 @@ public final class WorldObject {
     /**
      * Detaches every component assignable to {@code componentClass}.
      *
-     * @param <C> component type
+     * @param <C>            component type
      * @param componentClass expected component class, non-null
      * @return immutable list of removed components in their previous tick order
      */
@@ -681,7 +682,7 @@ public final class WorldObject {
     /**
      * Detaches every component attached under {@code type}.
      *
-     * @param <C> component type
+     * @param <C>  component type
      * @param type component descriptor used for typed membership and duplicate policies
      * @return immutable list of removed components in their previous tick order
      */
@@ -694,9 +695,9 @@ public final class WorldObject {
     /**
      * Removes matching components atomically and invokes all required detach callbacks.
      *
-     * @param <C> component type
+     * @param <C>    component type
      * @param filter predicate selecting component entries to remove
-     * @param cast conversion from a matching component to its declared type
+     * @param cast   conversion from a matching component to its declared type
      * @return immutable list of removed components in their previous tick order
      */
     private <C extends WorldObjectComponent> List<C> detachMatching(
@@ -801,7 +802,7 @@ public final class WorldObject {
     /**
      * All components assignable to {@code componentClass}, in tick order.
      *
-     * @param <C> component type
+     * @param <C>            component type
      * @param componentClass expected component class, non-null
      * @return immutable list of matching components in tick order
      */
@@ -820,7 +821,7 @@ public final class WorldObject {
     /**
      * First component assignable to {@code componentClass}, if any.
      *
-     * @param <C> component type
+     * @param <C>            component type
      * @param componentClass expected component class, non-null
      * @return matching value, or Optional.empty() when absent
      */
@@ -837,7 +838,7 @@ public final class WorldObject {
     /**
      * All components attached under {@code type}, in tick order. O(1) index lookup.
      *
-     * @param <C> component type
+     * @param <C>  component type
      * @param type component descriptor used for typed membership and duplicate policies
      * @return immutable list of matching components in tick order
      */
@@ -854,7 +855,7 @@ public final class WorldObject {
     /**
      * First component attached under {@code type}, if any. O(1) index lookup.
      *
-     * @param <C> component type
+     * @param <C>  component type
      * @param type component descriptor used for typed membership and duplicate policies
      * @return matching value, or Optional.empty() when absent
      */
@@ -1018,8 +1019,8 @@ public final class WorldObject {
      * @param budget maximum tasks to execute, greater than zero
      * @return number of attempted tasks, including failures
      * @throws IllegalArgumentException if budget is not positive
-     * @throws WorldObjectException after the batch if any task failed
-     * @throws IllegalStateException if called outside the owning manager thread
+     * @throws WorldObjectException     after the batch if any task failed
+     * @throws IllegalStateException    if called outside the owning manager thread
      */
     public int drainDeferred(int budget) {
         checkMutationThread();
@@ -1081,7 +1082,7 @@ public final class WorldObject {
      * Notifies all relevant structural observers and collects their failures.
      *
      * @param component component instance, non-null
-     * @param failures collected callback failures; populated or reported by this operation
+     * @param failures  collected callback failures; populated or reported by this operation
      */
     private void fireAdded(WorldObjectComponent component, List<Throwable> failures) {
         for (WorldObjectListener listener : listeners) {
@@ -1098,7 +1099,7 @@ public final class WorldObject {
      * Notifies all relevant structural observers and collects their failures.
      *
      * @param component component instance, non-null
-     * @param failures collected callback failures; populated or reported by this operation
+     * @param failures  collected callback failures; populated or reported by this operation
      */
     private void fireRemoved(WorldObjectComponent component, List<Throwable> failures) {
         for (WorldObjectListener listener : listeners) {
@@ -1132,7 +1133,7 @@ public final class WorldObject {
      * ticks.
      *
      * @param component component instance, non-null
-     * @param cause original failure to preserve in the exception
+     * @param cause     original failure to preserve in the exception
      */
     private void fireError(WorldObjectComponent component, Throwable cause) {
         for (WorldObjectListener listener : listeners) {
@@ -1195,7 +1196,7 @@ public final class WorldObject {
      * Checks an attached entry against a component type, including compatible untyped instances.
      *
      * @param entry component snapshot entry being inspected
-     * @param type component descriptor used for typed membership and duplicate policies
+     * @param type  component descriptor used for typed membership and duplicate policies
      * @return true if the entry has this type or is an untyped instance of its class
      */
     private static boolean matches(ComponentEntry entry, WorldObjectComponentType<?> type) {
@@ -1208,7 +1209,7 @@ public final class WorldObject {
     /**
      * Compares component identity order between two snapshots.
      *
-     * @param first first value to compare, possibly null
+     * @param first  first value to compare, possibly null
      * @param second second value to compare, possibly null
      * @return true if both lists contain the same component identities in the same order
      */
@@ -1228,7 +1229,7 @@ public final class WorldObject {
      * Reports collected callback failures after mandatory work has completed.
      *
      * @param failures collected callback failures; populated or reported by this operation
-     * @param message diagnostic context of the failure
+     * @param message  diagnostic context of the failure
      */
     private static void throwIfFailed(List<Throwable> failures, String message) {
         if (failures == null || failures.isEmpty()) {
@@ -1336,8 +1337,8 @@ public final class WorldObject {
         /**
          * Creates a View with the supplied configuration.
          *
-         * @param entries component entries in their current ordering
-         * @param byType immutable index from exact component type to ordered entries
+         * @param entries  component entries in their current ordering
+         * @param byType   immutable index from exact component type to ordered entries
          * @param detached whether this snapshot represents a permanently detached object
          */
         private View(

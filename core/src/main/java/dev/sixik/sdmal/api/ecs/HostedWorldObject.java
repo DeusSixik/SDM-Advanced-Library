@@ -81,9 +81,9 @@ public final class HostedWorldObject {
                 var entry = entries.get(i);
                 if (entry.type() == null
                         || WorldObjectComponentRegistry.instance()
-                                        .get(entry.type().id())
-                                        .orElse(null)
-                                != entry.type())
+                        .get(entry.type().id())
+                        .orElse(null)
+                        != entry.type())
                     throw new WorldObjectException(
                             "Hosted synchronization requires registered component types");
                 output.writeUtf(entry.type().id(), 1024);
@@ -112,7 +112,7 @@ public final class HostedWorldObject {
      * composition. Once decoding succeeds, lifecycle callbacks run during commit. Their failures
      * are reported after replacement; user callback side effects cannot be rolled back.
      *
-     * @param input caller-owned full snapshot; reader index rolls back on failure
+     * @param input        caller-owned full snapshot; reader index rolls back on failure
      * @param runtimeSetup client host binding before publication
      */
     public void readNetwork(FriendlyByteBuf input, Consumer<WorldObject> runtimeSetup) {
@@ -153,7 +153,7 @@ public final class HostedWorldObject {
                     throw new WorldObjectException("Invalid hosted attachment sequence");
                 if (counts.merge(typeId, 1, Integer::sum) > 1
                         && type.duplicatePolicy()
-                                != WorldObjectComponentType.DuplicatePolicy.ALLOW_MULTIPLE)
+                        != WorldObjectComponentType.DuplicatePolicy.ALLOW_MULTIPLE)
                     throw new WorldObjectException("Duplicate hosted component " + typeId);
                 WorldObjectComponent component = type.createDefault();
                 if (!(component instanceof AbstractWorldObjectComponent)
@@ -237,7 +237,8 @@ public final class HostedWorldObject {
     /**
      * Creates an empty handle without allocating an ECS object or invoking user callbacks.
      */
-    public HostedWorldObject() {}
+    public HostedWorldObject() {
+    }
 
     /**
      * Returns the active object without creating one. Inspect component values on the manager
@@ -279,11 +280,11 @@ public final class HostedWorldObject {
      * objects before publication. An unresolved saved object stays inactive and its original data
      * remains available through save().
      *
-     * @param owner owning world manager
-     * @param defaults initial typed components for a new host, including stable persistence
-     *     registrations
+     * @param owner        owning world manager
+     * @param defaults     initial typed components for a new host, including stable persistence
+     *                     registrations
      * @param runtimeSetup transient position/host binding and activation setup; must not publish to
-     *     the manager
+     *                     the manager
      * @return true when active, false when saved data cannot currently be restored
      */
     public boolean bind(

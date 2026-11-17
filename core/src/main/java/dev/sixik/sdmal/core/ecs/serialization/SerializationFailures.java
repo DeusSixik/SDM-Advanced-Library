@@ -11,12 +11,13 @@ final class SerializationFailures {
     /**
      * Prevents utility construction.
      */
-    private SerializationFailures() {}
+    private SerializationFailures() {
+    }
 
     /**
      * Adds a member path without concealing fatal JVM failures from constructors or adapters.
      *
-     * @param path schema or value location
+     * @param path    schema or value location
      * @param failure original invocation/access failure
      * @return contextual non-fatal exception
      */

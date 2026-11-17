@@ -1,5 +1,8 @@
 # SDMAL
 
+Автоматическая регистрация предметов, блоков, BlockEntity и вкладок через
+`@RegisterContent`: [контракт, примеры и порядок во вкладках](core/REGISTER-CONTENT.md).
+
 Автоматические C2S/S2C пакеты с `@NetworkPacket`, `Packet.send()` и бинарной
 сериализацией полей: [API, примеры и подключение processor](core/NETWORK-PACKETS.md).
 

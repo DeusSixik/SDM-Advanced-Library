@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
 public @interface EcsSync {
     /**
      * @return stable wire key, or empty to reuse EcsPersist; packets also fall back to the Java
-     *     field name
+     * field name
      */
     String value() default "";
 }

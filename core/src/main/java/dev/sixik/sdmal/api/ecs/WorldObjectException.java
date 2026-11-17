@@ -18,7 +18,7 @@ public class WorldObjectException extends RuntimeException {
      * Creates a WorldObjectException with the supplied configuration.
      *
      * @param message diagnostic context of the failure
-     * @param cause original failure to preserve in the exception
+     * @param cause   original failure to preserve in the exception
      */
     public WorldObjectException(String message, Throwable cause) {
         super(message, cause);

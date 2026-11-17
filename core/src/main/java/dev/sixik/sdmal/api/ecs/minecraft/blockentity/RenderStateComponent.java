@@ -8,7 +8,7 @@ import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
  * packet.
  *
  * @param <S> deeply immutable render-state value; must not contain Level, BlockEntity or live
- *     components
+ *            components
  */
 public abstract class RenderStateComponent<S> extends AnnotatedWorldObjectComponent {
     /**
@@ -19,7 +19,8 @@ public abstract class RenderStateComponent<S> extends AnnotatedWorldObjectCompon
     /**
      * Creates an unpublished rendering projection.
      */
-    protected RenderStateComponent() {}
+    protected RenderStateComponent() {
+    }
 
     /**
      * Replaces the whole render projection on the owning world thread.

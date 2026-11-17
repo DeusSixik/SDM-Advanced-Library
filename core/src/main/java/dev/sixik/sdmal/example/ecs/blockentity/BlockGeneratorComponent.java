@@ -26,7 +26,8 @@ public final class BlockGeneratorComponent
     /**
      * Creates an empty machine without requiring a world or BlockEntity during service discovery.
      */
-    public BlockGeneratorComponent() {}
+    public BlockGeneratorComponent() {
+    }
 
     /**
      * @param context owner-thread capture context
@@ -39,7 +40,7 @@ public final class BlockGeneratorComponent
 
     /**
      * @param snapshot independent copied charge
-     * @param context restricted worker context
+     * @param context  restricted worker context
      * @return next charge, capped at 1000 units
      */
     @Override
@@ -51,7 +52,7 @@ public final class BlockGeneratorComponent
      * Applies computation, marks chunk saving and sends updates once per 20 ticks or on reaching
      * capacity.
      *
-     * @param result independent computed charge
+     * @param result  independent computed charge
      * @param context owner-thread commit context
      */
     @Override
@@ -75,8 +76,9 @@ public final class BlockGeneratorComponent
     /**
      * Renderer input containing no mutable ECS/world references.
      *
-     * @param energy stored charge
+     * @param energy   stored charge
      * @param capacity maximum charge
      */
-    public record View(int energy, int capacity) {}
+    public record View(int energy, int capacity) {
+    }
 }

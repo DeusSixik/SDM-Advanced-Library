@@ -24,12 +24,13 @@ final class EcsNetworkStructures {
     /**
      * Prevents utility construction.
      */
-    private EcsNetworkStructures() {}
+    private EcsNetworkStructures() {
+    }
 
     /**
      * Resolves a structured binary type without consulting NBT adapters or tags.
      *
-     * @param type exact concrete type
+     * @param type    exact concrete type
      * @param builder finite binary-schema resolution context
      * @return native adapter
      */
@@ -101,7 +102,7 @@ final class EcsNetworkStructures {
     /**
      * Encodes binary keys/values independently; decoded duplicate keys are rejected.
      *
-     * @param key exact key format
+     * @param key   exact key format
      * @param value exact value format
      * @return insertion-order map format
      */
@@ -156,7 +157,7 @@ final class EcsNetworkStructures {
      * available. Every record argument is encoded; selecting a record field selects its complete
      * value.
      *
-     * @param type concrete record type
+     * @param type    concrete record type
      * @param builder current binary resolution context
      * @return record binary adapter invoking canonical constructor validation
      */

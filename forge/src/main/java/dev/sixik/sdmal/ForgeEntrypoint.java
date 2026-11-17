@@ -159,6 +159,7 @@ public final class ForgeEntrypoint {
         MinecraftForge.EVENT_BUS.addListener((ServerStartingEvent event) -> SDMAdvancedLibrary.LOGGER.info("HELLO from server starting"));
         //?}
         BLOCKS.register(bus);
+        dev.sixik.sdmal.content.FmlContent.initialize(bus);
         ITEMS.register(bus);
         BLOCK_ENTITIES.register(bus);
         //? if >=1.19.3

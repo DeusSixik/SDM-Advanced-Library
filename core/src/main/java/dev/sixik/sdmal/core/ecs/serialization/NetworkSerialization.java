@@ -5,6 +5,7 @@ import dev.sixik.sdmal.api.ecs.serialization.EcsNetworkSerializer;
 import dev.sixik.sdmal.api.ecs.serialization.TypeRef;
 import dev.sixik.sdmal.api.ecs.sync.FieldCodec;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.network.FriendlyByteBuf;
 
 import java.lang.reflect.Type;
@@ -28,13 +29,13 @@ public final class NetworkSerialization {
     /**
      * Successfully built immutable structural binary adapters.
      */
-    private static final Map<Type, EcsNetworkSerializer<?>> RESOLVED = new HashMap<>();
+    private static final Map<Type, EcsNetworkSerializer<?>> RESOLVED = new Object2ObjectOpenHashMap<>();
 
     /**
      * Per-field annotation adapter instances shared after successful validation.
      */
     private static final Map<Class<? extends EcsNetworkSerializer<?>>, EcsNetworkSerializer<?>>
-            OVERRIDES = new HashMap<>();
+            OVERRIDES = new Object2ObjectOpenHashMap<>();
 
     /**
      * ClassValue plans avoid a global registry lock on each component packet.
@@ -57,13 +58,14 @@ public final class NetworkSerialization {
     /**
      * Prevents utility construction.
      */
-    private NetworkSerialization() {}
+    private NetworkSerialization() {
+    }
 
     /**
      * Builds a packet's automatic field format using the same native adapters as ECS sync.
      *
      * @param type concrete class or record implementing Packet
-     * @param <T> packet type
+     * @param <T>  packet type
      * @return immutable format; callers cache it after first use
      */
     public static synchronized <T> EcsNetworkSerializer<T> packetCodec(Class<T> type) {
@@ -76,9 +78,9 @@ public final class NetworkSerialization {
     /**
      * Registers one exact concrete binary type without requiring NBT methods.
      *
-     * @param type non-generic concrete class
+     * @param type       non-generic concrete class
      * @param serializer stateless native binary adapter
-     * @param <T> value type
+     * @param <T>        value type
      * @throws IllegalStateException if this type is already registered/resolved
      */
     public static synchronized <T> void register(
@@ -89,9 +91,9 @@ public final class NetworkSerialization {
     /**
      * Registers one concrete generic binary type, preserving its complete type arguments.
      *
-     * @param type exact generic type token
+     * @param type       exact generic type token
      * @param serializer stateless native binary adapter
-     * @param <T> value type
+     * @param <T>        value type
      * @throws IllegalStateException if this exact type is already registered/resolved
      */
     public static synchronized <T> void register(
@@ -102,7 +104,7 @@ public final class NetworkSerialization {
     /**
      * Checks registration invariants before exposing a binary format.
      *
-     * @param type concrete registration type
+     * @param type       concrete registration type
      * @param serializer non-null adapter with stable schema name
      */
     private static void registerType(Type type, EcsNetworkSerializer<?> serializer) {
@@ -119,7 +121,7 @@ public final class NetworkSerialization {
      * Resolves a native non-null value format without an enclosing component frame.
      *
      * @param type concrete class
-     * @param <T> value type
+     * @param <T>  value type
      * @return shared binary adapter
      */
     public static synchronized <T> EcsNetworkSerializer<T> serializer(Class<T> type) {
@@ -130,7 +132,7 @@ public final class NetworkSerialization {
      * Resolves a concrete generic native binary format.
      *
      * @param type captured exact type
-     * @param <T> value type
+     * @param <T>  value type
      * @return shared non-null value adapter
      */
     public static synchronized <T> EcsNetworkSerializer<T> serializer(TypeRef<T> type) {
@@ -141,7 +143,7 @@ public final class NetworkSerialization {
      * Stages an entire adapter graph before freezing its dependencies.
      *
      * @param type exact value type
-     * @param <T> inferred API value type
+     * @param <T>  inferred API value type
      * @return checked adapter
      */
     @SuppressWarnings("unchecked")
@@ -198,7 +200,7 @@ public final class NetworkSerialization {
      * NBT.
      *
      * @param component source component; caller must protect its state
-     * @param buffer caller-owned destination buffer
+     * @param buffer    caller-owned destination buffer
      */
     public static void writeComponent(
             AnnotatedWorldObjectComponent component, FriendlyByteBuf buffer) {
@@ -211,7 +213,7 @@ public final class NetworkSerialization {
      * Reads and stages one bounded matching frame before applying selected fields.
      *
      * @param component target component; caller must protect its state
-     * @param buffer caller-owned packet; later frames remain unread
+     * @param buffer    caller-owned packet; later frames remain unread
      */
     public static void readComponent(
             AnnotatedWorldObjectComponent component, FriendlyByteBuf buffer) {
@@ -224,7 +226,7 @@ public final class NetworkSerialization {
      * Reuses only an existing FieldCodec's native binary methods; NBT methods are never called.
      *
      * @param codec existing wire codec with a stable schemaName
-     * @param <T> value type
+     * @param <T>   value type
      * @return network-only adapter retaining the codec's wire layout
      */
     public static <T> EcsNetworkSerializer<T> fromCodec(FieldCodec<T> codec) {

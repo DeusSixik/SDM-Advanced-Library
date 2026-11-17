@@ -7,7 +7,7 @@ import net.minecraft.network.FriendlyByteBuf;
 /**
  * Complete bounded, fingerprinted binary snapshot plan; packets never contain component NBT.
  *
- * @param members immutable key-sorted selected component fields
+ * @param members     immutable key-sorted selected component fields
  * @param fingerprint compatibility hash of the complete nested schema
  */
 record EcsNetworkSchema(EcsNetworkMember[] members, long fingerprint) {
@@ -26,7 +26,7 @@ record EcsNetworkSchema(EcsNetworkMember[] members, long fingerprint) {
      * failure.
      *
      * @param component source component, protected by its caller
-     * @param target output packet, not released
+     * @param target    output packet, not released
      */
     void write(Object component, FriendlyByteBuf target) {
         int start = target.writerIndex();
@@ -52,7 +52,7 @@ record EcsNetworkSchema(EcsNetworkMember[] members, long fingerprint) {
      * Stages a complete matching frame before applying fields; failed reads restore readerIndex.
      *
      * @param component target component, protected by its caller
-     * @param source source packet; data following this frame is left unread
+     * @param source    source packet; data following this frame is left unread
      */
     void read(Object component, FriendlyByteBuf source) {
         int start = source.readerIndex();

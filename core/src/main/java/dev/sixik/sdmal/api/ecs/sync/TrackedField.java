@@ -31,8 +31,8 @@ public final class TrackedField<Value> extends Field<Value> {
      * Creates a field with the given default. The default is copied once through {@link
      * FieldCodec#copy} so later external mutation of the argument cannot leak into the field.
      *
-     * @param name stable field name; must not be blank
-     * @param codec non-null codec defining persistence, copy and equality semantics
+     * @param name         stable field name; must not be blank
+     * @param codec        non-null codec defining persistence, copy and equality semantics
      * @param defaultValue fallback for missing data, possibly null
      */
     public TrackedField(String name, FieldCodec<Value> codec, Value defaultValue) {
@@ -88,7 +88,7 @@ public final class TrackedField<Value> extends Field<Value> {
      * and copy contract match {@link #snapshot()} without allocating a pair object.
      *
      * @param values exclusively leased value buffer
-     * @param index destination slot within the buffer
+     * @param index  destination slot within the buffer
      * @return revision corresponding to the copied value
      */
     long captureInto(Object[] values, int index) {
@@ -104,11 +104,12 @@ public final class TrackedField<Value> extends Field<Value> {
     /**
      * Immutable capture of one field version.
      *
-     * @param value defensively copied field value, possibly null
+     * @param value    defensively copied field value, possibly null
      * @param revision field revision at capture, greater than or equal to zero
-     * @param <Value> field value type
+     * @param <Value>  field value type
      */
-    public record Snapshot<Value>(Value value, long revision) {}
+    public record Snapshot<Value>(Value value, long revision) {
+    }
 
     /**
      * Installs {@code newValue}. Returns {@code true} when the value changed. The comparison runs

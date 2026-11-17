@@ -75,7 +75,7 @@ public interface EcsSystem<S, R> {
      * changes are buffered through context.enqueue and are published only on successful apply.
      *
      * @param snapshot exclusively owned input from prepare
-     * @param context deferred command API; live world access is forbidden during compute
+     * @param context  deferred command API; live world access is forbidden during compute
      * @return independently owned result, possibly null
      */
     R compute(S snapshot, WorldContext context);
@@ -83,7 +83,7 @@ public interface EcsSystem<S, R> {
     /**
      * Applies results on the owner thread in stable dependency-group order.
      *
-     * @param result computed result
+     * @param result  computed result
      * @param context owner-thread world access and deferred commands
      * @param manager world's object manager
      */

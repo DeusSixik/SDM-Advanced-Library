@@ -18,14 +18,15 @@ public final class ClientNetwork {
     /**
      * Prevents utility construction.
      */
-    private ClientNetwork() {}
+    private ClientNetwork() {
+    }
 
     /**
      * Drops queued work after disconnect or connection replacement.
      *
-     * @param frame owned received frame
+     * @param frame      owned received frame
      * @param connection receiving client connection
-     * @param executor receiving game executor
+     * @param executor   receiving game executor
      */
     public static void receive(byte[] frame, Connection connection, Executor executor) {
         NetworkRuntime.receive(

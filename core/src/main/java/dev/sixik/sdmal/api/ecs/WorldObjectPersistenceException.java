@@ -17,7 +17,7 @@ public class WorldObjectPersistenceException extends WorldObjectException {
      * Describes a failed component serializer while preserving its original failure.
      *
      * @param message diagnostic context
-     * @param cause original non-fatal failure
+     * @param cause   original non-fatal failure
      */
     public WorldObjectPersistenceException(String message, Throwable cause) {
         super(message, cause);

@@ -36,12 +36,13 @@ final class EcsStructuredSerializers {
     /**
      * Prevents utility construction.
      */
-    private EcsStructuredSerializers() {}
+    private EcsStructuredSerializers() {
+    }
 
     /**
      * Builds one structural adapter using exact generic argument resolution.
      *
-     * @param type concrete declared value type
+     * @param type    concrete declared value type
      * @param builder current finite-schema resolution context
      * @return structural value adapter
      * @throws EcsSerializationException for unsupported classes or recursive schemas
@@ -118,7 +119,7 @@ final class EcsStructuredSerializers {
     /**
      * Encodes keys as values, allowing UUID/record keys without string coercion or duplicate loss.
      *
-     * @param key concrete key serializer
+     * @param key   concrete key serializer
      * @param value concrete value serializer
      * @return insertion-order map adapter restoring mutable LinkedHashMaps
      */
@@ -172,7 +173,7 @@ final class EcsStructuredSerializers {
      * Builds private field handles and a canonical record constructor, preserving constructor
      * validation.
      *
-     * @param type concrete record type, possibly specialized with generic arguments
+     * @param type    concrete record type, possibly specialized with generic arguments
      * @param builder current resolution context
      * @return record adapter with all constructor arguments required in its saved data
      */

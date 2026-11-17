@@ -16,7 +16,8 @@ final class EcsTypes {
     /**
      * Prevents utility construction.
      */
-    private EcsTypes() {}
+    private EcsTypes() {
+    }
 
     /**
      * Validates a finite concrete type expression.
@@ -69,7 +70,7 @@ final class EcsTypes {
     /**
      * Substitutes bound variables in a field, record component or superclass signature.
      *
-     * @param type declared type expression
+     * @param type     declared type expression
      * @param bindings variables bound by the containing type
      * @return resolved type expression, possibly still unresolved when no binding exists
      */
@@ -119,7 +120,7 @@ final class EcsTypes {
     /**
      * Resolves a concrete value argument for either NBT or network adapter interfaces.
      *
-     * @param type specialized adapter implementation/parent
+     * @param type             specialized adapter implementation/parent
      * @param adapterInterface single-argument target serializer interface
      * @return resolved argument or null if the interface is absent/raw
      */
@@ -160,8 +161,8 @@ final class EcsTypes {
         /**
          * Captures a resolved parameterized signature.
          *
-         * @param raw raw class
-         * @param owner containing type, possibly null
+         * @param raw       raw class
+         * @param owner     containing type, possibly null
          * @param arguments actual arguments
          */
         private Applied(Type raw, Type owner, Type[] arguments) {

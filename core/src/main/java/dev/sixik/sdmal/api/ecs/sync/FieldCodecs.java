@@ -41,7 +41,8 @@ public final class FieldCodecs {
     /**
      * Creates a FieldCodecs with the supplied configuration.
      */
-    private FieldCodecs() {}
+    private FieldCodecs() {
+    }
 
     /**
      * Boolean codec.
@@ -154,7 +155,7 @@ public final class FieldCodecs {
                                 return NbtAccess.number(present).byteValue() == 0
                                         ? Optional.empty()
                                         : Optional.ofNullable(
-                                                element.fromNbtElement(wrapper.get("v"), null));
+                                        element.fromNbtElement(wrapper.get("v"), null));
                             }
                             return Optional.ofNullable(element.fromNbtElement(child, null));
                         })
@@ -316,9 +317,9 @@ public final class FieldCodecs {
      * key+value pairs. Copy is deep on both sides, equality is order-independent and element-wise.
      * Size caps mirror {@link #listOf}: 65536 entries max on decode.
      *
-     * @param <Key> field or callback value type
-     * @param <Value> field or callback value type
-     * @param keyCodec codec for map keys; NBT keys must encode to StringTag
+     * @param <Key>      field or callback value type
+     * @param <Value>    field or callback value type
+     * @param keyCodec   codec for map keys; NBT keys must encode to StringTag
      * @param valueCodec codec for map values, non-null
      * @return codec defining the declared value representation, never null
      */
@@ -440,10 +441,10 @@ public final class FieldCodecs {
     /**
      * Decodes compound entries through the declared key and value codecs.
      *
-     * @param <Key> field or callback value type
-     * @param <Value> field or callback value type
-     * @param child nested NBT compound containing encoded map entries
-     * @param keyCodec codec for map keys; NBT keys must encode to StringTag
+     * @param <Key>      field or callback value type
+     * @param <Value>    field or callback value type
+     * @param child      nested NBT compound containing encoded map entries
+     * @param keyCodec   codec for map keys; NBT keys must encode to StringTag
      * @param valueCodec codec for map values, non-null
      * @return new map of decoded entries, never null
      */
@@ -464,7 +465,7 @@ public final class FieldCodecs {
      * Enum codec by stable {@link Enum#name}. Unknown names on read fall back to {@code
      * defaultValue} instead of throwing, to tolerate content removals.
      *
-     * @param <E> field or callback value type
+     * @param <E>       field or callback value type
      * @param enumClass enum class whose constant names define the serialized values
      * @return codec defining the declared value representation, never null
      */
@@ -528,12 +529,12 @@ public final class FieldCodecs {
      * lambdas. The whole compound is one {@link TrackedField}, therefore the writer must emit a
      * fully consistent snapshot of its inputs.
      *
-     * @param <Value> field or callback value type
+     * @param <Value>    field or callback value type
      * @param schemaName stable codec identifier used in schema fingerprints
-     * @param writer function encoding a value in the selected representation
-     * @param reader function decoding a value from the selected representation
-     * @param copier defensive copying function; null selects identity copying
-     * @param equality value comparison function; null selects Objects.equals
+     * @param writer     function encoding a value in the selected representation
+     * @param reader     function decoding a value from the selected representation
+     * @param copier     defensive copying function; null selects identity copying
+     * @param equality   value comparison function; null selects Objects.equals
      * @return codec defining the declared value representation, never null
      */
     public static <Value> FieldCodec<Value> compoundOf(
@@ -588,7 +589,7 @@ public final class FieldCodecs {
         /**
          * Encodes one value using the declared representation.
          *
-         * @param nbt source or destination NBT compound, non-null
+         * @param nbt   source or destination NBT compound, non-null
          * @param value field value; null handling is defined by the codec
          */
         void write(CompoundTag nbt, Value value);
@@ -602,7 +603,7 @@ public final class FieldCodecs {
         /**
          * Decodes one value using the declared representation.
          *
-         * @param nbt source or destination NBT compound, non-null
+         * @param nbt          source or destination NBT compound, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded field value; null handling follows the codec contract
          */
@@ -613,8 +614,8 @@ public final class FieldCodecs {
      * Restores the generic value type established by the caller's codec.
      *
      * @param <Value> field or callback value type
-     * @param value field value; null handling is defined by the codec
-     * @param codec non-null codec defining persistence, copy and equality semantics
+     * @param value   field value; null handling is defined by the codec
+     * @param codec   non-null codec defining persistence, copy and equality semantics
      * @return same value with its declared generic type, possibly null
      */
     @SuppressWarnings("unchecked")
@@ -626,8 +627,8 @@ public final class FieldCodecs {
      * Writes a nested value into a newly allocated compound.
      *
      * @param <Value> field or callback value type
-     * @param value field value; null handling is defined by the codec
-     * @param writer function encoding a value in the selected representation
+     * @param value   field value; null handling is defined by the codec
+     * @param writer  function encoding a value in the selected representation
      * @return new compound populated by the supplied writer
      */
     private static <Value> CompoundTag compoundWriterToNbt(
@@ -651,8 +652,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -663,8 +664,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -689,7 +690,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param element nested value codec or NBT element as required by this method
+         * @param element      nested value codec or NBT element as required by this method
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -704,7 +705,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -746,8 +747,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -758,8 +759,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -784,7 +785,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param element nested value codec or NBT element as required by this method
+         * @param element      nested value codec or NBT element as required by this method
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -799,7 +800,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -841,8 +842,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -853,8 +854,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -879,7 +880,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param element nested value codec or NBT element as required by this method
+         * @param element      nested value codec or NBT element as required by this method
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -894,7 +895,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -936,8 +937,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -948,8 +949,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -974,7 +975,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param element nested value codec or NBT element as required by this method
+         * @param element      nested value codec or NBT element as required by this method
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -989,7 +990,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1031,8 +1032,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1043,8 +1044,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -1069,7 +1070,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param element nested value codec or NBT element as required by this method
+         * @param element      nested value codec or NBT element as required by this method
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -1084,7 +1085,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1126,8 +1127,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1138,8 +1139,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -1164,7 +1165,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param element nested value codec or NBT element as required by this method
+         * @param element      nested value codec or NBT element as required by this method
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -1179,7 +1180,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1221,8 +1222,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1233,8 +1234,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -1257,7 +1258,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param element nested value codec or NBT element as required by this method
+         * @param element      nested value codec or NBT element as required by this method
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -1272,7 +1273,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1314,8 +1315,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1328,8 +1329,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -1341,7 +1342,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1383,8 +1384,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         @Override
@@ -1395,8 +1396,8 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -1422,7 +1423,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param element nested value codec or NBT element as required by this method
+         * @param element      nested value codec or NBT element as required by this method
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded value, or defaultValue for missing/unsupported data
          */
@@ -1437,7 +1438,7 @@ public final class FieldCodecs {
         /**
          * {@inheritDoc}
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         @Override

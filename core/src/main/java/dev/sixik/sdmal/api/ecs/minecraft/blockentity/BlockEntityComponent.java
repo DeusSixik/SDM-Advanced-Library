@@ -31,7 +31,8 @@ public final class BlockEntityComponent extends AbstractWorldObjectComponent
     /**
      * Creates an unbound descriptor instance for service discovery and archive restoration.
      */
-    public BlockEntityComponent() {}
+    public BlockEntityComponent() {
+    }
 
     /**
      * Binds runtime state after archive restoration and before manager publication.

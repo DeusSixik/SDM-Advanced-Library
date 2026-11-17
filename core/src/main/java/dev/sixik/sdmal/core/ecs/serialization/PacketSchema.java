@@ -6,8 +6,10 @@ import dev.sixik.sdmal.api.ecs.serialization.EcsSerializationException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.RecordComponent;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 
@@ -18,15 +20,16 @@ final class PacketSchema {
     /**
      * Prevents utility construction.
      */
-    private PacketSchema() {}
+    private PacketSchema() {
+    }
 
     /**
      * Resolves every instance field once; ordinary classes require mutable fields and a no-arg
      * constructor.
      *
-     * @param type concrete packet type
+     * @param type    concrete packet type
      * @param builder shared binary adapter resolution transaction
-     * @param <T> packet type
+     * @param <T>     packet type
      * @return direct binary codec with a checked schema fingerprint
      */
     static <T> EcsNetworkSerializer<T> build(Class<T> type, EcsNetworkSchemaBuilder builder) {
@@ -64,9 +67,9 @@ final class PacketSchema {
             var lookup = MethodHandles.privateLookupIn(type, MethodHandles.lookup());
             Class<?>[] parameters =
                     type.isRecord()
-                            ? java.util.Arrays.stream(type.getRecordComponents())
-                                    .map(java.lang.reflect.RecordComponent::getType)
-                                    .toArray(Class<?>[]::new)
+                            ? Arrays.stream(type.getRecordComponents())
+                            .map(RecordComponent::getType)
+                            .toArray(Class<?>[]::new)
                             : new Class<?>[0];
             var constructor =
                     lookup.findConstructor(type, MethodType.methodType(void.class, parameters))

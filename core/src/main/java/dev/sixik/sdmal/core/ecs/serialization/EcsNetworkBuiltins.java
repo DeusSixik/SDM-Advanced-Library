@@ -24,7 +24,8 @@ final class EcsNetworkBuiltins {
     /**
      * Prevents utility construction.
      */
-    private EcsNetworkBuiltins() {}
+    private EcsNetworkBuiltins() {
+    }
 
     /**
      * @return independent exact-class catalog with immutable binary format names
@@ -153,7 +154,7 @@ final class EcsNetworkBuiltins {
      * @param schema stable format identifier
      * @param writer direct binary encoder
      * @param reader direct binary decoder
-     * @param <T> non-null value type
+     * @param <T>    non-null value type
      * @return immutable function adapter
      */
     static <T> EcsNetworkSerializer<T> of(

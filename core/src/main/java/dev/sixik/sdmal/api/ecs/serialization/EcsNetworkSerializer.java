@@ -15,7 +15,7 @@ public interface EcsNetworkSerializer<T> {
      * Writes a value without modifying it or releasing/clearing the caller's buffer.
      *
      * @param buffer destination buffer
-     * @param value non-null value protected by the caller's state discipline
+     * @param value  non-null value protected by the caller's state discipline
      */
     void write(FriendlyByteBuf buffer, T value);
 

@@ -18,7 +18,7 @@ public class SyncException extends RuntimeException {
      * Creates a SyncException with the supplied configuration.
      *
      * @param message diagnostic context of the failure
-     * @param cause original failure to preserve in the exception
+     * @param cause   original failure to preserve in the exception
      */
     public SyncException(String message, Throwable cause) {
         super(message, cause);

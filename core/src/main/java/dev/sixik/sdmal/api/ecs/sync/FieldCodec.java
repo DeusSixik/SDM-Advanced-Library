@@ -20,8 +20,8 @@ public interface FieldCodec<Value> {
     /**
      * Writes the field value into {@code nbt} under {@code key}.
      *
-     * @param nbt source or destination NBT compound, non-null
-     * @param key stable NBT field key, non-null
+     * @param nbt   source or destination NBT compound, non-null
+     * @param key   stable NBT field key, non-null
      * @param value field value; null handling is defined by the codec
      */
     void toNbt(CompoundTag nbt, String key, Value value);
@@ -30,8 +30,8 @@ public interface FieldCodec<Value> {
      * Reads the field value from {@code nbt}, or returns {@code defaultValue} when the key is
      * absent.
      *
-     * @param nbt source or destination NBT compound, non-null
-     * @param key stable NBT field key, non-null
+     * @param nbt          source or destination NBT compound, non-null
+     * @param key          stable NBT field key, non-null
      * @param defaultValue fallback for missing data, possibly null
      * @return decoded value, or defaultValue for missing/unsupported data
      */
@@ -58,7 +58,7 @@ public interface FieldCodec<Value> {
      * Reads the value from a standalone {@link Tag}. A {@code null} element yields {@code
      * defaultValue}.
      *
-     * @param element nested value codec or NBT element as required by this method
+     * @param element      nested value codec or NBT element as required by this method
      * @param defaultValue fallback for missing data, possibly null
      * @return decoded value, or defaultValue for missing/unsupported data
      */
@@ -74,7 +74,7 @@ public interface FieldCodec<Value> {
     /**
      * Writes the value into the network buffer.
      *
-     * @param buf network buffer; reader/writer indices advance on success
+     * @param buf   network buffer; reader/writer indices advance on success
      * @param value field value; null handling is defined by the codec
      */
     void toNetwork(FriendlyByteBuf buf, Value value);
@@ -101,7 +101,7 @@ public interface FieldCodec<Value> {
     /**
      * Compares two values with codec-specific rules.
      *
-     * @param first first value to compare, possibly null
+     * @param first  first value to compare, possibly null
      * @param second second value to compare, possibly null
      * @return true if codec equality considers both values equal
      */
@@ -420,8 +420,8 @@ public interface FieldCodec<Value> {
         /**
          * Encodes one value using the declared representation.
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt   source or destination NBT compound, non-null
+         * @param key   stable NBT field key, non-null
          * @param value field value; null handling is defined by the codec
          */
         void write(CompoundTag nbt, String key, Value value);
@@ -435,8 +435,8 @@ public interface FieldCodec<Value> {
         /**
          * Decodes one value using the declared representation.
          *
-         * @param nbt source or destination NBT compound, non-null
-         * @param key stable NBT field key, non-null
+         * @param nbt          source or destination NBT compound, non-null
+         * @param key          stable NBT field key, non-null
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded field value; null handling follows the codec contract
          */
@@ -465,7 +465,7 @@ public interface FieldCodec<Value> {
         /**
          * Decodes one value using the declared representation.
          *
-         * @param element nested value codec or NBT element as required by this method
+         * @param element      nested value codec or NBT element as required by this method
          * @param defaultValue fallback for missing data, possibly null
          * @return decoded field value; null handling follows the codec contract
          */
@@ -480,7 +480,7 @@ public interface FieldCodec<Value> {
         /**
          * Encodes one value using the declared representation.
          *
-         * @param buf network buffer; reader/writer indices advance on success
+         * @param buf   network buffer; reader/writer indices advance on success
          * @param value field value; null handling is defined by the codec
          */
         void write(FriendlyByteBuf buf, Value value);
@@ -522,7 +522,7 @@ public interface FieldCodec<Value> {
         /**
          * Compares values using codec-specific equality.
          *
-         * @param first first value to compare, possibly null
+         * @param first  first value to compare, possibly null
          * @param second second value to compare, possibly null
          * @return true if codec equality considers both values equal
          */

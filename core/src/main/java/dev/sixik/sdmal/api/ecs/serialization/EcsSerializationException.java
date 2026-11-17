@@ -19,7 +19,7 @@ public final class EcsSerializationException extends WorldObjectPersistenceExcep
      * Preserves a non-fatal adapter or access failure.
      *
      * @param message diagnostic path and reason
-     * @param cause original failure
+     * @param cause   original failure
      */
     public EcsSerializationException(String message, Throwable cause) {
         super(message, cause);

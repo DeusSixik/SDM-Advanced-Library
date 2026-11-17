@@ -31,7 +31,7 @@ public final class EcsAccess {
     /**
      * Copies access declarations and caches their annotation restrictions.
      *
-     * @param reads read-only resources
+     * @param reads  read-only resources
      * @param writes mutable resources
      */
     private EcsAccess(
@@ -71,7 +71,7 @@ public final class EcsAccess {
      * Copies and deduplicates additional classes during registration, outside tick loops.
      *
      * @param original existing resource classes
-     * @param extra additional resource classes
+     * @param extra    additional resource classes
      * @return independent deduplicated declaration list
      */
     private static List<Class<? extends WorldObjectComponent>> append(
@@ -99,7 +99,7 @@ public final class EcsAccess {
     /**
      * Checks declared resource type overlap.
      *
-     * @param left first resource set
+     * @param left  first resource set
      * @param right second resource set
      * @return true if resources can describe the same component instance
      */

@@ -50,12 +50,12 @@ public abstract class FieldedWorldObjectComponent extends AbstractWorldObjectCom
      * Declares a plain field (no locking, no revision). For single-threaded components. Must be
      * called from the constructor, before attach. Duplicate names are rejected.
      *
-     * @param <Value> field or callback value type
-     * @param name stable field name; must not be blank
-     * @param codec non-null codec defining persistence, copy and equality semantics
+     * @param <Value>      field or callback value type
+     * @param name         stable field name; must not be blank
+     * @param codec        non-null codec defining persistence, copy and equality semantics
      * @param defaultValue fallback for missing data, possibly null
      * @return registered field instance, never null
-     * @throws IllegalStateException if the schema is frozen or this component is attached
+     * @throws IllegalStateException    if the schema is frozen or this component is attached
      * @throws IllegalArgumentException if the field name is blank or already declared
      */
     protected final <Value> Field<Value> field(
@@ -67,12 +67,12 @@ public abstract class FieldedWorldObjectComponent extends AbstractWorldObjectCom
      * Declares a tracked field (per-field lock, monotonic revision). For synced multithreaded
      * components. Must be called from the constructor, before attach. Duplicate names are rejected.
      *
-     * @param <Value> field or callback value type
-     * @param name stable field name; must not be blank
-     * @param codec non-null codec defining persistence, copy and equality semantics
+     * @param <Value>      field or callback value type
+     * @param name         stable field name; must not be blank
+     * @param codec        non-null codec defining persistence, copy and equality semantics
      * @param defaultValue fallback for missing data, possibly null
      * @return registered field instance, never null
-     * @throws IllegalStateException if the schema is frozen or this component is attached
+     * @throws IllegalStateException    if the schema is frozen or this component is attached
      * @throws IllegalArgumentException if the field name is blank or already declared
      */
     protected final <Value> TrackedField<Value> tracked(
@@ -83,7 +83,7 @@ public abstract class FieldedWorldObjectComponent extends AbstractWorldObjectCom
     /**
      * Registers a field while the component schema is still mutable.
      *
-     * @param <F> field or callback value type
+     * @param <F>   field or callback value type
      * @param field new field declaration; names must be unique within the component
      * @return registered field instance, never null
      */
@@ -164,7 +164,8 @@ public abstract class FieldedWorldObjectComponent extends AbstractWorldObjectCom
      *
      * @param nbt source or destination NBT compound, non-null
      */
-    protected void writeExtraNbt(CompoundTag nbt) {}
+    protected void writeExtraNbt(CompoundTag nbt) {
+    }
 
     /**
      * Hook for state kept outside {@link Field}s. Called after fields in {@link #readNbt}. Default:
@@ -172,12 +173,13 @@ public abstract class FieldedWorldObjectComponent extends AbstractWorldObjectCom
      *
      * @param nbt source or destination NBT compound, non-null
      */
-    protected void readExtraNbt(CompoundTag nbt) {}
+    protected void readExtraNbt(CompoundTag nbt) {
+    }
 
     /**
      * Encodes a declared field under its stable persistence name.
      *
-     * @param nbt source or destination NBT compound, non-null
+     * @param nbt     source or destination NBT compound, non-null
      * @param tracked declared field whose codec owns the value type
      */
     private static void writeNbtValue(CompoundTag nbt, Field<?> tracked) {
@@ -188,7 +190,7 @@ public abstract class FieldedWorldObjectComponent extends AbstractWorldObjectCom
      * Encodes a declared field under its stable persistence name.
      *
      * @param <Value> field or callback value type
-     * @param nbt source or destination NBT compound, non-null
+     * @param nbt     source or destination NBT compound, non-null
      * @param tracked declared field whose codec owns the value type
      */
     private static <Value> void writeNbtValueCaptured(CompoundTag nbt, Field<Value> tracked) {
@@ -198,7 +200,7 @@ public abstract class FieldedWorldObjectComponent extends AbstractWorldObjectCom
     /**
      * Decodes a declared field while preserving its current value for missing keys.
      *
-     * @param nbt source or destination NBT compound, non-null
+     * @param nbt     source or destination NBT compound, non-null
      * @param tracked declared field whose codec owns the value type
      */
     private static void readNbtValue(CompoundTag nbt, Field<?> tracked) {
@@ -209,7 +211,7 @@ public abstract class FieldedWorldObjectComponent extends AbstractWorldObjectCom
      * Decodes a declared field while preserving its current value for missing keys.
      *
      * @param <Value> field or callback value type
-     * @param nbt source or destination NBT compound, non-null
+     * @param nbt     source or destination NBT compound, non-null
      * @param tracked declared field whose codec owns the value type
      */
     private static <Value> void readNbtValueCaptured(CompoundTag nbt, Field<Value> tracked) {

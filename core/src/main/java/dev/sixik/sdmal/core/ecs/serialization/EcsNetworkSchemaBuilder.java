@@ -59,8 +59,8 @@ final class EcsNetworkSchemaBuilder {
      * Captures registry maps while the caller holds their monitor.
      *
      * @param registered exact explicit formats
-     * @param resolved successful prior resolutions
-     * @param overrides cached annotation adapters
+     * @param resolved   successful prior resolutions
+     * @param overrides  cached annotation adapters
      */
     EcsNetworkSchemaBuilder(
             Map<Type, EcsNetworkSerializer<?>> registered,
@@ -74,7 +74,7 @@ final class EcsNetworkSchemaBuilder {
     /**
      * Publishes adapters after the complete requested schema has been validated.
      *
-     * @param target resolved adapter map
+     * @param target          resolved adapter map
      * @param targetOverrides annotation adapter map
      */
     void publish(
@@ -164,7 +164,7 @@ final class EcsNetworkSchemaBuilder {
      * constructor components are encoded; a persistence key is sufficient there.
      *
      * @param field selected component field or record backing field
-     * @param type concrete member value type
+     * @param type  concrete member value type
      * @return cached field/adapter plan
      */
     EcsNetworkMember member(Field field, Type type) {
@@ -174,8 +174,8 @@ final class EcsNetworkSchemaBuilder {
     /**
      * Resolves a field, allowing its Java name as the default key for packet payloads.
      *
-     * @param field instance field
-     * @param type resolved field type
+     * @param field       instance field
+     * @param type        resolved field type
      * @param implicitKey whether an unannotated Java name is permitted
      * @return immutable binary member plan
      */
@@ -216,7 +216,7 @@ final class EcsNetworkSchemaBuilder {
     /**
      * Instantiates and checks a native per-member override.
      *
-     * @param type exact member type
+     * @param type         exact member type
      * @param adapterClass no-argument native adapter class
      * @return checked adapter
      * @throws ReflectiveOperationException if its constructor cannot be called
@@ -243,7 +243,7 @@ final class EcsNetworkSchemaBuilder {
     /**
      * Freezes an adapter's stable wire name and validates all value boundaries.
      *
-     * @param type declared exact type
+     * @param type    declared exact type
      * @param adapter native format implementation
      * @return immutable checked wrapper
      */

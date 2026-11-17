@@ -8,6 +8,7 @@ import dev.sixik.sdmal.core.ecs.serialization.NetworkSerialization;
 
 import io.netty.buffer.Unpooled;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.network.FriendlyByteBuf;
 
 import org.jetbrains.annotations.ApiStatus;
@@ -44,12 +45,12 @@ public final class PacketRegistry {
     /**
      * Id lookup independent of mod iteration or compiler output order.
      */
-    private final Map<String, Entry> byId = new HashMap<>();
+    private final Map<String, Entry> byId = new Object2ObjectOpenHashMap<>();
 
     /**
      * Exact concrete send types; subclasses require their own annotation and index entry.
      */
-    private final Map<Class<?>, Entry> byClass = new HashMap<>();
+    private final Map<Class<?>, Entry> byClass = new Object2ObjectOpenHashMap<>();
 
     /**
      * Validates a complete set of discovered types without invoking packet constructors.
@@ -94,9 +95,9 @@ public final class PacketRegistry {
             while (resources.hasMoreElements()) {
                 var resource = resources.nextElement();
                 try (var reader =
-                        new BufferedReader(
-                                new InputStreamReader(
-                                        resource.openStream(), StandardCharsets.UTF_8))) {
+                             new BufferedReader(
+                                     new InputStreamReader(
+                                             resource.openStream(), StandardCharsets.UTF_8))) {
                     String name;
                     while ((name = reader.readLine()) != null) {
                         name = name.strip();
@@ -117,7 +118,7 @@ public final class PacketRegistry {
      * Snapshots one packet into a bounded binary frame; no NBT is involved.
      *
      * @param packet source message
-     * @param side expected receiving side
+     * @param side   expected receiving side
      * @return owned immutable-by-convention byte snapshot
      */
     public byte[] encode(Packet packet, Side side) {
@@ -139,7 +140,7 @@ public final class PacketRegistry {
      * Checks a send even when its recipient group is empty, without encoding unused payload data.
      *
      * @param packet exact indexed packet instance
-     * @param side required receiving side
+     * @param side   required receiving side
      * @throws IllegalStateException if the registration or direction is invalid
      */
     public void validateDirection(Packet packet, Side side) {
@@ -150,7 +151,7 @@ public final class PacketRegistry {
      * Resolves an exact send type and enforces its logical receiving direction.
      *
      * @param packet source instance
-     * @param side expected receiving side
+     * @param side   expected receiving side
      * @return registered packet entry
      * @throws IllegalStateException if the packet is unindexed or targets another side
      */
@@ -169,7 +170,7 @@ public final class PacketRegistry {
      * Decodes only registered, direction-correct, compatible messages and rejects trailing bytes.
      *
      * @param frame bounded received bytes
-     * @param side receiving side supplied by the loader
+     * @param side  receiving side supplied by the loader
      * @return fully decoded message
      */
     public Packet decode(byte[] frame, Side side) {
@@ -226,7 +227,7 @@ public final class PacketRegistry {
         /**
          * Captures annotation metadata.
          *
-         * @param id logical identifier
+         * @param id   logical identifier
          * @param side receiving side
          * @param type exact packet class
          */

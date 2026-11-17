@@ -38,7 +38,8 @@ final class EcsExecutionPolicy {
     /**
      * Prevents construction of this metadata helper.
      */
-    private EcsExecutionPolicy() {}
+    private EcsExecutionPolicy() {
+    }
 
     /**
      * Returns cached restrictions without reflecting during ticks.

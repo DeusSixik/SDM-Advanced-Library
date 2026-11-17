@@ -38,7 +38,8 @@ public final class NetworkRuntime {
     /**
      * Prevents utility construction.
      */
-    private NetworkRuntime() {}
+    private NetworkRuntime() {
+    }
 
     /**
      * Native play-channel operations; implementations must reject missing connections.
@@ -51,7 +52,7 @@ public final class NetworkRuntime {
 
         /**
          * @param player authenticated target player
-         * @param frame shared read-only CLIENT snapshot; must not be modified by the transport
+         * @param frame  shared read-only CLIENT snapshot; must not be modified by the transport
          */
         void toPlayer(ServerPlayer player, byte[] frame);
     }
@@ -105,7 +106,7 @@ public final class NetworkRuntime {
     /**
      * Validates a recipient array before encoding once and sharing the resulting read-only frame.
      *
-     * @param packet CLIENT message
+     * @param packet  CLIENT message
      * @param players stable array of server recipients
      */
     public static void sendToPlayers(Packet packet, Player[] players) {
@@ -125,7 +126,7 @@ public final class NetworkRuntime {
      * Shares one frame across a collection, using indexed loops for random-access player lists. No
      * recipient snapshot or per-player frame copy is created; callers keep membership stable.
      *
-     * @param packet CLIENT message
+     * @param packet  CLIENT message
      * @param players stable collection of server recipients
      */
     public static void sendToPlayers(Packet packet, Collection<? extends Player> players) {
@@ -147,7 +148,7 @@ public final class NetworkRuntime {
     /**
      * Routes server player lists without allocating iterator objects or temporary arrays.
      *
-     * @param packet CLIENT message
+     * @param packet  CLIENT message
      * @param players stable random-access list of recipients
      */
     private static void sendToIndexedPlayers(Packet packet, List<? extends Player> players) {
@@ -202,7 +203,7 @@ public final class NetworkRuntime {
      * Adds a bounded native payload length prefix.
      *
      * @param buffer destination native buffer
-     * @param frame owned logical frame
+     * @param frame  owned logical frame
      */
     public static void writeFrame(FriendlyByteBuf buffer, byte[] frame) {
         if (frame.length == 0 || frame.length > PacketRegistry.MAX_BYTES)
@@ -215,12 +216,12 @@ public final class NetworkRuntime {
      * work after disconnect; bad input never reaches handle. Handler failures are logged
      * separately.
      *
-     * @param frame bounded copied native payload
-     * @param side authoritative receiving side
-     * @param player connection-bound player supplier, null after disconnect or connection
-     *     replacement
+     * @param frame    bounded copied native payload
+     * @param side     authoritative receiving side
+     * @param player   connection-bound player supplier, null after disconnect or connection
+     *                 replacement
      * @param executor receiving game executor
-     * @param reject loader disconnect callback for malformed input
+     * @param reject   loader disconnect callback for malformed input
      */
     public static void receive(
             byte[] frame,
@@ -234,12 +235,12 @@ public final class NetworkRuntime {
     /**
      * Executes a receive against a particular registry; also used by transport-independent tests.
      *
-     * @param packets logical formats
-     * @param frame bounded copied bytes
-     * @param side receiving side
-     * @param player connection-bound player supplier
+     * @param packets  logical formats
+     * @param frame    bounded copied bytes
+     * @param side     receiving side
+     * @param player   connection-bound player supplier
      * @param executor game executor
-     * @param reject malformed input callback
+     * @param reject   malformed input callback
      */
     static void dispatch(
             PacketRegistry packets,

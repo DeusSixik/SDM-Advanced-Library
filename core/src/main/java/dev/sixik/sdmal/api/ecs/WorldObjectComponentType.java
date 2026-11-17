@@ -62,10 +62,10 @@ public final class WorldObjectComponentType<C extends WorldObjectComponent> {
     /**
      * Creates a WorldObjectComponentType with the supplied configuration.
      *
-     * @param id stable object UUID or registry identifier, non-null
-     * @param componentClass expected component class, non-null
+     * @param id              stable object UUID or registry identifier, non-null
+     * @param componentClass  expected component class, non-null
      * @param duplicatePolicy policy for an already attached component of this type, non-null
-     * @param factory supplier of new detached component instances, non-null
+     * @param factory         supplier of new detached component instances, non-null
      */
     public WorldObjectComponentType(
             String id,
@@ -122,7 +122,7 @@ public final class WorldObjectComponentType<C extends WorldObjectComponent> {
 
     /**
      * @return true when scheduled work accessing this component cannot be deferred for budget
-     *     reasons
+     * reasons
      */
     public boolean requiresCurrentTick() {
         return (executionFlags & EcsExecutionPolicy.CURRENT_TICK) != 0;

@@ -29,7 +29,7 @@ public interface SnapshotTickableComponent<S, R> extends WorldObjectComponent {
      * during computation.
      *
      * @param snapshot exclusively owned input from capture
-     * @param context deferred world commands and current tick sequence
+     * @param context  deferred world commands and current tick sequence
      * @return detached result, possibly null
      */
     R compute(S snapshot, WorldContext context);
@@ -39,7 +39,7 @@ public interface SnapshotTickableComponent<S, R> extends WorldObjectComponent {
      * and awake. Unpublished commands from a failed/stale component are discarded; partial field
      * mutations are not rolled back.
      *
-     * @param result completed result
+     * @param result  completed result
      * @param context owner-thread context and deferred world commands
      */
     void apply(R result, WorldContext context);
@@ -72,7 +72,7 @@ public interface SnapshotTickableComponent<S, R> extends WorldObjectComponent {
 
     /**
      * @return predecessor system ids; constant across all instances of this concrete component
-     *     class
+     * class
      */
     default List<String> tickAfter() {
         return List.of();

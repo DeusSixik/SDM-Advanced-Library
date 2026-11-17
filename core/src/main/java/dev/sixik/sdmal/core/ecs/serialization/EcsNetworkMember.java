@@ -9,13 +9,13 @@ import java.lang.invoke.VarHandle;
 /**
  * Cached native binary member plan, independent of any NBT schema.
  *
- * @param key stable wire key
- * @param path Java field path for diagnostics
- * @param access cached field handle
- * @param serializer native binary adapter
- * @param nullable whether the declared type is a reference
+ * @param key            stable wire key
+ * @param path           Java field path for diagnostics
+ * @param access         cached field handle
+ * @param serializer     native binary adapter
+ * @param nullable       whether the declared type is a reference
  * @param volatileAccess whether Java volatile semantics are required
- * @param primitiveKind built-in primitive format code, or zero for boxed/custom adapters
+ * @param primitiveKind  built-in primitive format code, or zero for boxed/custom adapters
  */
 record EcsNetworkMember(
         String key,
@@ -68,54 +68,46 @@ record EcsNetworkMember(
     /**
      * Captures and encodes one field using the caller's state lock.
      *
-     * @param owner source instance
+     * @param owner  source instance
      * @param buffer destination buffer
      */
     void write(Object owner, FriendlyByteBuf buffer) {
         try {
             switch (primitiveKind) {
-                case BOOLEAN ->
-                        buffer.writeByte(
-                                (volatileAccess
-                                                ? (boolean) access.getVolatile(owner)
-                                                : (boolean) access.get(owner))
-                                        ? 1
-                                        : 0);
-                case BYTE ->
-                        buffer.writeByte(
-                                volatileAccess
-                                        ? (byte) access.getVolatile(owner)
-                                        : (byte) access.get(owner));
-                case SHORT ->
-                        buffer.writeShort(
-                                volatileAccess
-                                        ? (short) access.getVolatile(owner)
-                                        : (short) access.get(owner));
-                case CHAR ->
-                        buffer.writeChar(
-                                volatileAccess
-                                        ? (char) access.getVolatile(owner)
-                                        : (char) access.get(owner));
-                case INT ->
-                        buffer.writeInt(
-                                volatileAccess
-                                        ? (int) access.getVolatile(owner)
-                                        : (int) access.get(owner));
-                case LONG ->
-                        buffer.writeLong(
-                                volatileAccess
-                                        ? (long) access.getVolatile(owner)
-                                        : (long) access.get(owner));
-                case FLOAT ->
-                        buffer.writeFloat(
-                                volatileAccess
-                                        ? (float) access.getVolatile(owner)
-                                        : (float) access.get(owner));
-                case DOUBLE ->
-                        buffer.writeDouble(
-                                volatileAccess
-                                        ? (double) access.getVolatile(owner)
-                                        : (double) access.get(owner));
+                case BOOLEAN -> buffer.writeByte(
+                        (volatileAccess
+                                ? (boolean) access.getVolatile(owner)
+                                : (boolean) access.get(owner))
+                                ? 1
+                                : 0);
+                case BYTE -> buffer.writeByte(
+                        volatileAccess
+                                ? (byte) access.getVolatile(owner)
+                                : (byte) access.get(owner));
+                case SHORT -> buffer.writeShort(
+                        volatileAccess
+                                ? (short) access.getVolatile(owner)
+                                : (short) access.get(owner));
+                case CHAR -> buffer.writeChar(
+                        volatileAccess
+                                ? (char) access.getVolatile(owner)
+                                : (char) access.get(owner));
+                case INT -> buffer.writeInt(
+                        volatileAccess
+                                ? (int) access.getVolatile(owner)
+                                : (int) access.get(owner));
+                case LONG -> buffer.writeLong(
+                        volatileAccess
+                                ? (long) access.getVolatile(owner)
+                                : (long) access.get(owner));
+                case FLOAT -> buffer.writeFloat(
+                        volatileAccess
+                                ? (float) access.getVolatile(owner)
+                                : (float) access.get(owner));
+                case DOUBLE -> buffer.writeDouble(
+                        volatileAccess
+                                ? (double) access.getVolatile(owner)
+                                : (double) access.get(owner));
                 default -> {
                     Object value = volatileAccess ? access.getVolatile(owner) : access.get(owner);
                     EcsNetworkValues.write(serializer, buffer, value, nullable);
@@ -129,6 +121,7 @@ record EcsNetworkMember(
     /**
      * Selects a primitive format only for immutable built-in registrations without a field override.
      * Native writes match EcsNetworkBuiltins exactly; reference fields keep null handling and adapters.
+     *
      * @param type declared Java field type
      * @return compact built-in format code, or zero for a reference type
      */

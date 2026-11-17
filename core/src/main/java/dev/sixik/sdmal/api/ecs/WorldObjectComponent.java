@@ -29,12 +29,14 @@ public interface WorldObjectComponent {
     /**
      * Called once, after the component becomes visible to readers.
      */
-    default void onAttached() {}
+    default void onAttached() {
+    }
 
     /**
      * Called once, after the component has been detached and hidden from new readers.
      */
-    default void onDetached() {}
+    default void onDetached() {
+    }
 
     /**
      * Owning object, or {@link Optional#empty} while detached.

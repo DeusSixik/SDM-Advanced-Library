@@ -138,7 +138,7 @@ public abstract class SyncedWorldObjectComponent extends FieldedWorldObjectCompo
      * true} when at least one field was written. Trackers advance only to the exact revisions
      * encoded, after all values have been written successfully. Concurrent changes remain pending.
      *
-     * @param buf network buffer; reader/writer indices advance on success
+     * @param buf     network buffer; reader/writer indices advance on success
      * @param tracker per-viewer revision bookkeeping, confined to the calling thread
      * @return true if at least one changed field was encoded; false leaves the buffer untouched
      */
@@ -180,7 +180,7 @@ public abstract class SyncedWorldObjectComponent extends FieldedWorldObjectCompo
      * tracker.known(index)} are skipped but still consumed from the buffer, so out-of-order
      * redelivery cannot roll state back. Unknown indexes throw {@link SyncException}.
      *
-     * @param buf network buffer; reader/writer indices advance on success
+     * @param buf     network buffer; reader/writer indices advance on success
      * @param tracker per-viewer revision bookkeeping, confined to the calling thread
      */
     public final void readDelta(FriendlyByteBuf buf, DeltaTracker tracker) {
@@ -284,7 +284,8 @@ public abstract class SyncedWorldObjectComponent extends FieldedWorldObjectCompo
         /**
          * Creates an empty tracker; grows on first use.
          */
-        public DeltaTracker() {}
+        public DeltaTracker() {
+        }
 
         /**
          * Grows capacity to at least {@code fieldCount}, filling new slots with {@code -1}.
@@ -322,7 +323,7 @@ public abstract class SyncedWorldObjectComponent extends FieldedWorldObjectCompo
         /**
          * Records the sender revision for field {@code index}.
          *
-         * @param index zero-based field index
+         * @param index    zero-based field index
          * @param revision non-negative sender revision
          */
         public void mark(int index, long revision) {
@@ -392,9 +393,9 @@ public abstract class SyncedWorldObjectComponent extends FieldedWorldObjectCompo
     /**
      * Encodes a defensively copied value captured from the supplied field.
      *
-     * @param buf destination buffer
-     * @param field field defining the value codec
-     * @param value independent staged value, possibly null
+     * @param buf     destination buffer
+     * @param field   field defining the value codec
+     * @param value   independent staged value, possibly null
      * @param <Value> codec value type
      */
     @SuppressWarnings("unchecked")
@@ -453,8 +454,8 @@ public abstract class SyncedWorldObjectComponent extends FieldedWorldObjectCompo
     /**
      * Applies a decoded value using the field's declared codec type.
      *
-     * @param field destination field, non-null
-     * @param value value decoded by this field's codec, possibly null
+     * @param field   destination field, non-null
+     * @param value   value decoded by this field's codec, possibly null
      * @param <Value> field value type
      */
     @SuppressWarnings("unchecked")

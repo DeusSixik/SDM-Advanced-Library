@@ -35,7 +35,7 @@ public interface Packet {
      *
      * @param player connected ServerPlayer recipient
      * @throws IllegalArgumentException if player is not server-side
-     * @throws IllegalStateException if the packet direction or registration is invalid
+     * @throws IllegalStateException    if the packet direction or registration is invalid
      */
     default void send(Player player) {
         NetworkRuntime.sendToPlayer(this, player);
@@ -47,7 +47,7 @@ public interface Packet {
      * stable.
      *
      * @param server running Minecraft server
-     * @throws NullPointerException if server is null
+     * @throws NullPointerException  if server is null
      * @throws IllegalStateException if the packet direction or registration is invalid
      */
     default void send(MinecraftServer server) {
@@ -60,9 +60,9 @@ public interface Packet {
      * during send.
      *
      * @param players server-side recipients; may be empty
-     * @throws NullPointerException if the array is null
+     * @throws NullPointerException     if the array is null
      * @throws IllegalArgumentException if an entry is null or is not a ServerPlayer
-     * @throws IllegalStateException if the packet direction or registration is invalid
+     * @throws IllegalStateException    if the packet direction or registration is invalid
      */
     default void send(Player[] players) {
         NetworkRuntime.sendToPlayers(this, players);
@@ -73,9 +73,9 @@ public interface Packet {
      * collections of ServerPlayer as well as Player. Do not modify the collection during send.
      *
      * @param players server-side recipients; may be empty and may contain repeated recipients
-     * @throws NullPointerException if the collection is null
+     * @throws NullPointerException     if the collection is null
      * @throws IllegalArgumentException if an entry is null or is not a ServerPlayer
-     * @throws IllegalStateException if the packet direction or registration is invalid
+     * @throws IllegalStateException    if the packet direction or registration is invalid
      */
     default void send(Collection<? extends Player> players) {
         NetworkRuntime.sendToPlayers(this, players);

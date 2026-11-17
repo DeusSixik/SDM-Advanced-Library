@@ -17,14 +17,15 @@ final class EcsNetworkValues {
     /**
      * Prevents utility construction.
      */
-    private EcsNetworkValues() {}
+    private EcsNetworkValues() {
+    }
 
     /**
      * Writes primitives directly and reference values with an explicit zero/one presence byte.
      *
-     * @param adapter non-null value encoder
-     * @param buffer destination packet
-     * @param value boxed primitive or nullable reference
+     * @param adapter  non-null value encoder
+     * @param buffer   destination packet
+     * @param value    boxed primitive or nullable reference
      * @param nullable whether the declared type is a reference
      */
     @SuppressWarnings("unchecked")
@@ -42,8 +43,8 @@ final class EcsNetworkValues {
     /**
      * Reads a strict presence flag for reference types, leaving primitive formats unwrapped.
      *
-     * @param adapter non-null value decoder
-     * @param buffer bounded source packet
+     * @param adapter  non-null value decoder
+     * @param buffer   bounded source packet
      * @param nullable whether the declared type is a reference
      * @return reconstructed value, possibly null for a reference
      */
@@ -74,7 +75,7 @@ final class EcsNetworkValues {
     /**
      * Checks lengths and a minimum remaining payload before allocating a collection or array.
      *
-     * @param buffer bounded source buffer
+     * @param buffer       bounded source buffer
      * @param minimumBytes minimum encoded bytes per element, positive
      * @return validated element count
      */

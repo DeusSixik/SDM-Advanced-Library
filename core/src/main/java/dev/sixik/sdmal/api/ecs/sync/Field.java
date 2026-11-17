@@ -38,8 +38,8 @@ public class Field<Value> {
      * Creates a field with the given default. The default is copied once through {@link
      * FieldCodec#copy} so later external mutation of the argument cannot leak into the field.
      *
-     * @param name stable field name; must not be blank
-     * @param codec non-null codec defining persistence, copy and equality semantics
+     * @param name         stable field name; must not be blank
+     * @param codec        non-null codec defining persistence, copy and equality semantics
      * @param defaultValue fallback for missing data, possibly null
      */
     public Field(String name, FieldCodec<Value> codec, Value defaultValue) {

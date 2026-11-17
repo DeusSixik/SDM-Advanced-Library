@@ -15,33 +15,37 @@ public interface WorldObjectListener {
     /**
      * A component became visible to readers.
      *
-     * @param owner world object whose membership changed
+     * @param owner     world object whose membership changed
      * @param component component instance, non-null
      */
-    default void onComponentAdded(WorldObject owner, WorldObjectComponent component) {}
+    default void onComponentAdded(WorldObject owner, WorldObjectComponent component) {
+    }
 
     /**
      * A component was hidden from new readers.
      *
-     * @param owner world object whose membership changed
+     * @param owner     world object whose membership changed
      * @param component component instance, non-null
      */
-    default void onComponentRemoved(WorldObject owner, WorldObjectComponent component) {}
+    default void onComponentRemoved(WorldObject owner, WorldObjectComponent component) {
+    }
 
     /**
      * Component order changed (priority insert, reorder, swap).
      *
      * @param owner world object whose membership changed
      */
-    default void onOrderChanged(WorldObject owner) {}
+    default void onOrderChanged(WorldObject owner) {
+    }
 
     /**
      * A component tick threw; ticking of the remaining components continues.
      *
-     * @param owner world object whose membership changed
+     * @param owner     world object whose membership changed
      * @param component component instance, non-null
-     * @param cause original failure to preserve in the exception
+     * @param cause     original failure to preserve in the exception
      */
     default void onComponentError(
-            WorldObject owner, WorldObjectComponent component, Throwable cause) {}
+            WorldObject owner, WorldObjectComponent component, Throwable cause) {
+    }
 }

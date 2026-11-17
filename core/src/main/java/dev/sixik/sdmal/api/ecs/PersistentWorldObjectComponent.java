@@ -34,7 +34,7 @@ public interface PersistentWorldObjectComponent extends WorldObjectComponent {
      * versions are never passed here. Override when incrementing dataVersion.
      *
      * @param savedVersion non-negative older schema version
-     * @param nbt independent copy of the previous payload, non-null
+     * @param nbt          independent copy of the previous payload, non-null
      * @return current-version payload, non-null
      * @throws WorldObjectPersistenceException if no migration is implemented
      */

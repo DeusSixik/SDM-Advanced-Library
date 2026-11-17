@@ -13,7 +13,7 @@ import java.util.function.Function;
  *
  * @param writer encoder producing exclusively owned tag graphs
  * @param reader decoder observing tags without changing or retaining them
- * @param <T> represented value type
+ * @param <T>    represented value type
  */
 record OwnedNbtSerializer<T>(Function<T, Tag> writer, Function<Tag, T> reader)
         implements EcsSerializer<T> {

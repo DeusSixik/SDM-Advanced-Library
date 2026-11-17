@@ -51,8 +51,8 @@ final class WorldObjectArchive {
     /**
      * Retains an independent archive template.
      *
-     * @param template owned root tag
-     * @param originals owned object records in archive order
+     * @param template   owned root tag
+     * @param originals  owned object records in archive order
      * @param unresolved UUIDs reserved by opaque objects
      */
     private WorldObjectArchive(
@@ -79,23 +79,25 @@ final class WorldObjectArchive {
     /**
      * Staged object plus scheduling data which must be installed after manager ownership.
      *
-     * @param object fully decoded object without attachment callbacks
+     * @param object   fully decoded object without attachment callbacks
      * @param interval positive tick interval
-     * @param delay positive remaining dispatch delay
+     * @param delay    positive remaining dispatch delay
      * @param sleeping saved activity state
      */
-    record Restored(WorldObject object, int interval, int delay, boolean sleeping) {}
+    record Restored(WorldObject object, int interval, int delay, boolean sleeping) {
+    }
 
     /**
      * Complete decoded archive; no manager has been changed yet.
      *
-     * @param tick saved manager sequence
-     * @param objects decoded objects in registration order
-     * @param archive retained opaque/template metadata
+     * @param tick     saved manager sequence
+     * @param objects  decoded objects in registration order
+     * @param archive  retained opaque/template metadata
      * @param warnings diagnostics for objects retained without activation
      */
     record Decoded(
-            long tick, List<Restored> objects, WorldObjectArchive archive, List<String> warnings) {}
+            long tick, List<Restored> objects, WorldObjectArchive archive, List<String> warnings) {
+    }
 
     /**
      * Validates and stages an archive without changing the target manager. Unknown/failing
@@ -148,7 +150,7 @@ final class WorldObjectArchive {
     /**
      * Recreates one complete object before publishing any ownership callbacks.
      *
-     * @param id validated UUID
+     * @param id     validated UUID
      * @param record owned object record
      * @return staged component container and scheduling metadata
      * @throws WorldObjectPersistenceException if this object's schema cannot be recreated
@@ -180,7 +182,7 @@ final class WorldObjectArchive {
             int count = counts.merge(typeId, 1, Integer::sum);
             if (count > 1
                     && type.duplicatePolicy()
-                            != WorldObjectComponentType.DuplicatePolicy.ALLOW_MULTIPLE)
+                    != WorldObjectComponentType.DuplicatePolicy.ALLOW_MULTIPLE)
                 throw new WorldObjectPersistenceException(
                         "Duplicate non-repeatable component " + typeId);
             long slot = sequence(component, "slot", Long.MAX_VALUE - 1);
@@ -232,10 +234,10 @@ final class WorldObjectArchive {
      * Captures current durable objects and preserves opaque records and unknown extension fields.
      *
      * @param objects stable manager membership snapshot
-     * @param tick current manager sequence
+     * @param tick    current manager sequence
      * @return independent format-one archive
      * @throws WorldObjectPersistenceException if a durable component cannot be reconstructed by its
-     *     registry type
+     *                                         registry type
      */
     CompoundTag encode(List<WorldObject> objects, long tick) {
         CompoundTag root = template.copy();
@@ -264,7 +266,7 @@ final class WorldObjectArchive {
      * Captures an externally persisted object regardless of its exclusion from the world archive.
      *
      * @param object live externally owned object
-     * @param tick current manager sequence
+     * @param tick   current manager sequence
      * @return independent single-object archive preserving opaque extension fields
      */
     CompoundTag encodeHosted(WorldObject object, long tick) {
@@ -281,12 +283,12 @@ final class WorldObjectArchive {
     /**
      * Captures one object while retaining unrecognized component payload keys.
      *
-     * @param object durable live object
-     * @param tick manager sequence
+     * @param object   durable live object
+     * @param tick     manager sequence
      * @param original saved template or empty compound
      * @return independent object record
      * @throws WorldObjectPersistenceException if a component is untyped or its type is not
-     *     registered
+     *                                         registered
      */
     private static CompoundTag encodeObject(WorldObject object, long tick, CompoundTag original) {
         CompoundTag record = original.copy();

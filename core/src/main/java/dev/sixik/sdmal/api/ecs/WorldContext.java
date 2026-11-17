@@ -148,7 +148,7 @@ public final class WorldContext {
      *
      * @return bound live world
      * @throws IllegalStateException on workers, during compute, after close, or for an unbound
-     *     standalone manager
+     *                               standalone manager
      */
     public Level level() {
         manager.checkThread();
@@ -196,10 +196,10 @@ public final class WorldContext {
      * deadline. Capture independently owned or immutable inputs; the callback runs later in the
      * world thread.
      *
-     * @param target destination phase
+     * @param target  destination phase
      * @param command world mutation receiving the live Level only during execution
      * @throws RejectedExecutionException if closed or the shared command capacity is exhausted
-     * @throws IllegalStateException if required work targets a passed phase
+     * @throws IllegalStateException      if required work targets a passed phase
      */
     public void enqueue(TickPhase target, Consumer<Level> command) {
         Objects.requireNonNull(command, "command");
@@ -210,10 +210,10 @@ public final class WorldContext {
      * Defers an owner-thread action without requiring a Minecraft world, including standalone
      * simulations.
      *
-     * @param target destination phase
+     * @param target  destination phase
      * @param command owner-thread operation
      * @throws RejectedExecutionException if closed or full
-     * @throws IllegalStateException if required work targets a passed phase
+     * @throws IllegalStateException      if required work targets a passed phase
      */
     public void enqueue(TickPhase target, Runnable command) {
         enqueue(target, command, false);
@@ -223,8 +223,8 @@ public final class WorldContext {
      * Defers an action guarded by the exact live object instance, rejecting stale results after
      * UUID reuse.
      *
-     * @param target destination phase
-     * @param object expected live object, not just its UUID
+     * @param target  destination phase
+     * @param object  expected live object, not just its UUID
      * @param command operation performed only while the same object remains registered
      */
     public void enqueue(TickPhase target, WorldObject object, Runnable command) {
@@ -242,7 +242,7 @@ public final class WorldContext {
      * Defers an explicitly required owner-thread action; between ticks it is required in the next
      * tick.
      *
-     * @param target destination phase
+     * @param target  destination phase
      * @param command required action
      * @throws IllegalStateException if the current tick has already passed the requested boundary
      */
@@ -253,8 +253,8 @@ public final class WorldContext {
     /**
      * Validates a phase deadline and reserves capacity before publishing or buffering a command.
      *
-     * @param target destination phase
-     * @param action operation to execute
+     * @param target   destination phase
+     * @param action   operation to execute
      * @param required explicit current-tick requirement, combined with inherited restrictions
      */
     private void enqueue(TickPhase target, Runnable action, boolean required) {
@@ -268,7 +268,7 @@ public final class WorldContext {
             boolean passed =
                     active
                             && (target.ordinal() <= completed
-                                    || (phase == target && (!open || flushing)));
+                            || (phase == target && (!open || flushing)));
             if (required && passed)
                 throw new IllegalStateException("Required command targets passed phase " + target);
             if (reserved >= COMMAND_CAPACITY)
@@ -314,7 +314,7 @@ public final class WorldContext {
      * Appends an allocated, unlinked slot to one phase FIFO under the context lock.
      *
      * @param phase target phase ordinal in [0,2]
-     * @param slot allocated slot whose next link is -1
+     * @param slot  allocated slot whose next link is -1
      */
     private void appendQueue(int phase, int slot) {
         if (queueTails[phase] < 0) queueHeads[phase] = slot;

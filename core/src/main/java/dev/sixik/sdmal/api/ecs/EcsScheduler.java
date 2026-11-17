@@ -36,7 +36,7 @@ public final class EcsScheduler {
     /**
      * Topological execution groups, rebuilt only after system registration changes.
      */
-    private Node[][][] phases = new Node[][][] {new Node[0][], new Node[0][], new Node[0][]};
+    private Node[][][] phases = new Node[][][]{new Node[0][], new Node[0][], new Node[0][]};
 
     /**
      * All nodes in topological phase order, used for required predecessor propagation.
@@ -117,7 +117,7 @@ public final class EcsScheduler {
      *
      * @param system snapshot system, non-null
      * @throws IllegalArgumentException if the id is blank or already used
-     * @throws IllegalStateException if called while ticking, closed, or from a worker
+     * @throws IllegalStateException    if called while ticking, closed, or from a worker
      */
     public void register(EcsSystem<?, ?> system) {
         checkMutable();
@@ -221,7 +221,7 @@ public final class EcsScheduler {
             node.required =
                     node.due
                             && (!node.deferrable
-                                    || (node.flags & EcsExecutionPolicy.CURRENT_TICK) != 0);
+                            || (node.flags & EcsExecutionPolicy.CURRENT_TICK) != 0);
         }
         refreshPolicies();
         promoteRequired();
@@ -356,7 +356,7 @@ public final class EcsScheduler {
     /**
      * Selects eligible systems and captures owner-thread inputs before any worker submission.
      *
-     * @param group independent systems in stable commit order
+     * @param group  independent systems in stable commit order
      * @param errors existing recoverable failures, possibly null
      * @return accumulated failures
      */
@@ -486,7 +486,7 @@ public final class EcsScheduler {
     /**
      * Commits successful systems in stable order and discards failed or unloaded command buffers.
      *
-     * @param group independent systems in stable commit order
+     * @param group  independent systems in stable commit order
      * @param errors existing recoverable failures, possibly null
      * @return accumulated failures
      */
@@ -563,7 +563,7 @@ public final class EcsScheduler {
     /**
      * Counts each unadmitted due predecessor at most once for a candidate.
      *
-     * @param node candidate or prerequisite
+     * @param node  candidate or prerequisite
      * @param phase current phase
      * @param visit unique traversal stamp
      * @param limit remaining optional slots
@@ -588,7 +588,7 @@ public final class EcsScheduler {
     /**
      * Marks an admitted optional system and all its current-phase due prerequisites.
      *
-     * @param node selected system
+     * @param node  selected system
      * @param phase current phase
      */
     private void admitParents(Node node, TickPhase phase) {
@@ -600,7 +600,7 @@ public final class EcsScheduler {
     /**
      * Adds a recoverable failure without allocating an aggregate on successful ticks.
      *
-     * @param errors existing aggregate or null
+     * @param errors  existing aggregate or null
      * @param failure current failure
      * @return aggregate containing this failure
      */
@@ -620,7 +620,7 @@ public final class EcsScheduler {
             componentSystems.clear();
             automaticGroups = new ComponentTickSystem[0];
             ordered = new Node[0];
-            phases = new Node[][][] {new Node[0][], new Node[0][], new Node[0][]};
+            phases = new Node[][][]{new Node[0][], new Node[0][], new Node[0][]};
         }
     }
 
@@ -731,7 +731,7 @@ public final class EcsScheduler {
             componentSystems.clear();
             automaticGroups = new ComponentTickSystem[0];
             ordered = new Node[0];
-            phases = new Node[][][] {new Node[0][], new Node[0][], new Node[0][]};
+            phases = new Node[][][]{new Node[0][], new Node[0][], new Node[0][]};
         }
     }
 

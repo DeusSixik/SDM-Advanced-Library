@@ -62,8 +62,8 @@ final class EcsSchemaBuilder {
      * Captures stable registry maps while the caller holds the registry monitor.
      *
      * @param registered explicit/built-in adapters
-     * @param resolved successful prior resolutions
-     * @param overrides successful prior annotation adapter instances
+     * @param resolved   successful prior resolutions
+     * @param overrides  successful prior annotation adapter instances
      */
     EcsSchemaBuilder(
             Map<Type, EcsSerializer<?>> registered,
@@ -77,7 +77,7 @@ final class EcsSchemaBuilder {
     /**
      * Commits completed plans only after validation of the entire root succeeds.
      *
-     * @param target global resolved adapter map
+     * @param target          global resolved adapter map
      * @param targetOverrides global annotation adapter map
      */
     void publish(
@@ -159,7 +159,7 @@ final class EcsSchemaBuilder {
      * Creates a cached private-field handle and resolves its exact serializer or explicit override.
      *
      * @param field annotated component field or record backing field
-     * @param type resolved generic value type
+     * @param type  resolved generic value type
      * @return immutable access plan
      */
     EcsMember member(Field field, Type type) {
@@ -188,7 +188,7 @@ final class EcsSchemaBuilder {
      * Instantiates a stateless no-argument field override and validates its declared generic value
      * type.
      *
-     * @param type member's concrete type
+     * @param type         member's concrete type
      * @param adapterClass explicit serializer implementation
      * @return checked adapter shared across uses of this adapter class
      * @throws ReflectiveOperationException if its no-argument constructor cannot be invoked
@@ -219,7 +219,7 @@ final class EcsSchemaBuilder {
      * Checks custom adapters' value/tag contracts at every boundary, including nested generic
      * elements.
      *
-     * @param type exact declared value type
+     * @param type    exact declared value type
      * @param adapter resolved unchecked adapter
      * @return checked adapter
      */

@@ -48,6 +48,7 @@ public final class FabricEntrypoint implements ModInitializer {
      */
     @Override public void onInitialize() {
         dev.sixik.sdmal.network.FabricNetwork.initialize();
+        dev.sixik.sdmal.content.FabricContent.initialize();
         //? if >=1.19.3 {
         var blockRegistry = BuiltInRegistries.BLOCK;
         var itemRegistry = BuiltInRegistries.ITEM;

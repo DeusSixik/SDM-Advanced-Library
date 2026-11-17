@@ -12,11 +12,11 @@ import java.lang.reflect.Type;
 /**
  * Immutable field access plan, built once during schema validation.
  *
- * @param key stable non-blank NBT key
- * @param path declaring Java class/member for diagnostics
- * @param access cached private field handle
- * @param type fully resolved declared type
- * @param serializer non-null value adapter
+ * @param key            stable non-blank NBT key
+ * @param path           declaring Java class/member for diagnostics
+ * @param access         cached private field handle
+ * @param type           fully resolved declared type
+ * @param serializer     non-null value adapter
  * @param volatileAccess whether Java's volatile field access semantics must be preserved
  */
 record EcsMember(

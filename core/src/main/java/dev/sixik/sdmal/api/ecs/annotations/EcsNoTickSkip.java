@@ -13,4 +13,5 @@ import java.lang.annotation.Target;
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface EcsNoTickSkip {}
+public @interface EcsNoTickSkip {
+}

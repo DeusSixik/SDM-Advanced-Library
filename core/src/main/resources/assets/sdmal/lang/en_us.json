@@ -21,5 +21,11 @@
   "message.sdmal.ecs_multiblock.assembly.out_of_bounds": "The structure does not fit inside the world bounds.",
   "message.sdmal.ecs_multiblock.assembly.blocked": "Assembly space is occupied. Clear the required positions first.",
   "message.sdmal.ecs_multiblock.assembly.denied": "You cannot build the structure here.",
-  "message.sdmal.ecs_multiblock.assembly.interrupted": "Assembly was interrupted. Clear any obstacles and try again."
+  "message.sdmal.ecs_multiblock.assembly.interrupted": "Assembly was interrupted. Clear any obstacles and try again.",
+  "itemGroup.sdmal.annotated_content": "SDMAL: Automatic Content",
+  "item.sdmal.annotated_token": "Annotated Token",
+  "item.sdmal.annotated_hidden_item": "Annotated Hidden Item",
+  "block.sdmal.annotated_block": "Annotated Block",
+  "block.sdmal.annotated_machine": "Annotated ECS Machine",
+  "block.sdmal.annotated_default_machine": "Automatic Block Entity"
 }

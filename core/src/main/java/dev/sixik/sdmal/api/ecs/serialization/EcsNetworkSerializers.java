@@ -11,14 +11,15 @@ public final class EcsNetworkSerializers {
     /**
      * Prevents utility construction.
      */
-    private EcsNetworkSerializers() {}
+    private EcsNetworkSerializers() {
+    }
 
     /**
      * Registers a binary adapter for an exact non-generic type.
      *
-     * @param type concrete value class
+     * @param type       concrete value class
      * @param serializer stateless binary adapter
-     * @param <T> value type
+     * @param <T>        value type
      * @throws IllegalStateException if the type was already registered or resolved
      */
     public static <T> void register(Class<T> type, EcsNetworkSerializer<T> serializer) {
@@ -28,9 +29,9 @@ public final class EcsNetworkSerializers {
     /**
      * Registers a binary adapter for an exact generic type.
      *
-     * @param type concrete generic type token
+     * @param type       concrete generic type token
      * @param serializer stateless binary adapter
-     * @param <T> value type
+     * @param <T>        value type
      * @throws IllegalStateException if the type was already registered or resolved
      */
     public static <T> void register(TypeRef<T> type, EcsNetworkSerializer<T> serializer) {
@@ -41,7 +42,7 @@ public final class EcsNetworkSerializers {
      * Resolves a shared binary adapter for a non-generic value.
      *
      * @param type exact value class
-     * @param <T> value type
+     * @param <T>  value type
      * @return cached adapter, never null
      * @throws EcsSerializationException if the type has no supported finite schema
      */
@@ -53,7 +54,7 @@ public final class EcsNetworkSerializers {
      * Resolves a shared binary adapter for a generic value.
      *
      * @param type concrete generic type token
-     * @param <T> value type
+     * @param <T>  value type
      * @return cached adapter, never null
      * @throws EcsSerializationException if the type has no supported finite schema
      */
@@ -65,7 +66,7 @@ public final class EcsNetworkSerializers {
      * Reuses an existing field codec's direct buffer operations.
      *
      * @param codec stateless codec for non-null values
-     * @param <T> value type
+     * @param <T>   value type
      * @return binary adapter with the codec's copy semantics
      */
     public static <T> EcsNetworkSerializer<T> fromCodec(FieldCodec<T> codec) {

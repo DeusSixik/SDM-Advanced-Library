@@ -119,6 +119,7 @@ public final class NeoForgeEntrypoint {
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
     //?}
         BLOCKS.register(bus);
+        dev.sixik.sdmal.content.FmlContent.initialize(bus);
         ITEMS.register(bus);
         BLOCK_ENTITIES.register(bus);
         TABS.register(bus);

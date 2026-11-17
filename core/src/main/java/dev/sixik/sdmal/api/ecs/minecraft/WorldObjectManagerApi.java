@@ -28,7 +28,8 @@ public final class WorldObjectManagerApi {
     /**
      * Prevents utility instantiation.
      */
-    private WorldObjectManagerApi() {}
+    private WorldObjectManagerApi() {
+    }
 
     /**
      * Returns or creates one manager for this world instance.
@@ -68,7 +69,7 @@ public final class WorldObjectManagerApi {
      * Resolves a manager by dimension and side when exactly one live world matches.
      *
      * @param dimensionKey dimension key, non-null
-     * @param isClient true for a client world, false for a server world
+     * @param isClient     true for a client world, false for a server world
      * @return uniquely matching live manager
      * @throws IllegalStateException if no manager or multiple world instances match
      */
@@ -97,8 +98,8 @@ public final class WorldObjectManagerApi {
      *
      * @param level unloaded world, non-null
      * @return true if a manager was registered
-     * @throws IllegalStateException if called outside the world's owner thread; registration is
-     *     retained
+     * @throws IllegalStateException                        if called outside the world's owner thread; registration is
+     *                                                      retained
      * @throws dev.sixik.sdmal.api.ecs.WorldObjectException after cleanup if a detach callback fails
      */
     public static boolean unregisterWorld(Level level) {

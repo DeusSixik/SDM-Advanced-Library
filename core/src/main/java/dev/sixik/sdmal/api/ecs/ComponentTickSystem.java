@@ -94,7 +94,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
     /**
      * Freezes metadata from the first concrete instance seen in this manager.
      *
-     * @param manager owner-thread manager
+     * @param manager   owner-thread manager
      * @param component first snapshot component instance of this type
      */
     @SuppressWarnings("unchecked")
@@ -116,8 +116,8 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
      * generations.
      *
      * @param object current object
-     * @param entry exact attached component/sequence pair
-     * @param epoch scheduler synchronization stamp
+     * @param entry  exact attached component/sequence pair
+     * @param epoch  scheduler synchronization stamp
      */
     void observe(WorldObject object, WorldObject.ComponentEntry entry, long epoch) {
         Binding binding = byComponent.get(entry.component());
@@ -287,7 +287,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
      * Joins all submitted chunks or computes serially when component metadata requires the world
      * thread.
      *
-     * @param input this reusable batch
+     * @param input   this reusable batch
      * @param context context bound by the outer scheduler
      * @return completed batch for stable owner-thread commit
      */
@@ -329,7 +329,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
      * Computes a disjoint range with one private command buffer per instance.
      *
      * @param first inclusive prepared index
-     * @param last exclusive prepared index
+     * @param last  exclusive prepared index
      */
     private void computeRange(int first, int last) {
         for (int i = first; i < last; i++) {
@@ -351,7 +351,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
     /**
      * Applies each successful live result and publishes only that instance's command buffer.
      *
-     * @param result completed internal batch
+     * @param result  completed internal batch
      * @param context owner-thread context
      * @param manager owning manager
      * @throws WorldObjectException after every healthy result is attempted, if any instance failed
@@ -460,7 +460,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
          * Captures exact attachment identity once.
          *
          * @param object current object
-         * @param entry exact component entry
+         * @param entry  exact component entry
          */
         @SuppressWarnings("unchecked")
         Binding(WorldObject object, WorldObject.ComponentEntry entry) {

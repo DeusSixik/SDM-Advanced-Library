@@ -7,15 +7,16 @@ final class EcsFailures {
     /**
      * Prevents construction of the failure policy.
      */
-    private EcsFailures() {}
+    private EcsFailures() {
+    }
 
     /**
      * Propagates fatal failures instead of aggregating them and continuing simulation.
      *
      * @param failure caught failure, non-null
      * @throws VirtualMachineError if the VM cannot safely continue
-     * @throws ThreadDeath if this thread is being terminated
-     * @throws LinkageError if class linkage is broken
+     * @throws ThreadDeath         if this thread is being terminated
+     * @throws LinkageError        if class linkage is broken
      */
     static void rethrowFatal(Throwable failure) {
         if (failure instanceof VirtualMachineError error) throw error;

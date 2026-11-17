@@ -16,13 +16,14 @@ final class EcsValues {
     /**
      * Prevents utility construction.
      */
-    private EcsValues() {}
+    private EcsValues() {
+    }
 
     /**
      * Encodes a nullable value; adapter payload keys cannot collide with the outer envelope.
      *
      * @param serializer resolved non-null value adapter
-     * @param value nullable field/element value
+     * @param value      nullable field/element value
      * @return owned compound containing a byte presence flag and optional value
      */
     @SuppressWarnings("unchecked")
@@ -43,7 +44,7 @@ final class EcsValues {
      * Decodes a nullable envelope without exposing caller-owned NBT to adapters.
      *
      * @param serializer resolved non-null value adapter
-     * @param tag required envelope
+     * @param tag        required envelope
      * @return reconstructed value or null for an explicit absent value
      * @throws EcsSerializationException for malformed presence flags or adapter null results
      */

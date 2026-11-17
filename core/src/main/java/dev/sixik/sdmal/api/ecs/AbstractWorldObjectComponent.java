@@ -66,7 +66,7 @@ public abstract class AbstractWorldObjectComponent implements WorldObjectCompone
     /**
      * Runs {@code action} under the read lock and returns its result.
      *
-     * @param <T> field or callback value type
+     * @param <T>    field or callback value type
      * @param action operation to execute under the documented lock or iteration contract
      * @return value returned by the supplied action, possibly null
      */
@@ -96,7 +96,7 @@ public abstract class AbstractWorldObjectComponent implements WorldObjectCompone
     /**
      * Runs {@code action} under the write lock and returns its result.
      *
-     * @param <T> field or callback value type
+     * @param <T>    field or callback value type
      * @param action operation to execute under the documented lock or iteration contract
      * @return value returned by the supplied action, possibly null
      */

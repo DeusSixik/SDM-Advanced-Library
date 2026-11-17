@@ -1,2 +1,3 @@
 dev.sixik.sdmal.processor.EcsComponentProcessor
 dev.sixik.sdmal.processor.NetworkPacketProcessor
+dev.sixik.sdmal.processor.ContentProcessor

@@ -21,5 +21,11 @@
   "message.sdmal.ecs_multiblock.assembly.out_of_bounds": "Структура не помещается в границы мира.",
   "message.sdmal.ecs_multiblock.assembly.blocked": "Место для сборки занято. Освободите нужные позиции.",
   "message.sdmal.ecs_multiblock.assembly.denied": "Здесь нельзя построить структуру.",
-  "message.sdmal.ecs_multiblock.assembly.interrupted": "Сборка прервана. Устраните препятствия и повторите попытку."
+  "message.sdmal.ecs_multiblock.assembly.interrupted": "Сборка прервана. Устраните препятствия и повторите попытку.",
+  "itemGroup.sdmal.annotated_content": "SDMAL: Автоматический контент",
+  "item.sdmal.annotated_token": "Предмет с аннотацией",
+  "item.sdmal.annotated_hidden_item": "Предмет без вкладки",
+  "block.sdmal.annotated_block": "Блок с аннотацией",
+  "block.sdmal.annotated_machine": "ECS-машина с аннотацией",
+  "block.sdmal.annotated_default_machine": "Автоматическая блок-сущность"
 }

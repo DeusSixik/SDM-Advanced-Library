@@ -27,7 +27,8 @@ final class EcsBuiltinSerializers {
     /**
      * Prevents utility construction.
      */
-    private EcsBuiltinSerializers() {}
+    private EcsBuiltinSerializers() {
+    }
 
     /**
      * @return independent catalog of immutable built-in scalar adapter registrations
@@ -114,9 +115,9 @@ final class EcsBuiltinSerializers {
     /**
      * Creates a strict NBT-tag adapter around a compatible existing codec.
      *
-     * @param codec existing NBT/network codec
+     * @param codec   existing NBT/network codec
      * @param tagType expected on-disk tag class
-     * @param <T> value type
+     * @param <T>     value type
      * @return NBT-only adapter
      */
     private static <T> EcsSerializer<T> codec(FieldCodec<T> codec, Class<? extends Tag> tagType) {
@@ -135,7 +136,7 @@ final class EcsBuiltinSerializers {
      *
      * @param writer independently owned tag encoder
      * @param reader read-only tag decoder
-     * @param <T> represented value type
+     * @param <T>    represented value type
      * @return adapter whose redundant boundary copy may be omitted
      */
     static <T> EcsSerializer<T> owned(Function<T, Tag> writer, Function<Tag, T> reader) {
@@ -147,7 +148,7 @@ final class EcsBuiltinSerializers {
      *
      * @param writer NBT encoder
      * @param reader NBT decoder
-     * @param <T> value type
+     * @param <T>    value type
      * @return stateless function adapter
      */
     static <T> EcsSerializer<T> of(Function<T, Tag> writer, Function<Tag, T> reader) {
