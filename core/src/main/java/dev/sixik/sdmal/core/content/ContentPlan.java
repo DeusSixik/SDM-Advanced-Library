@@ -52,9 +52,10 @@ final class ContentPlan {
                 throw new IllegalArgumentException(
                         "Content must be a public concrete, non-generic class: " + type.getName());
             var kind = ContentKind.of(type);
-            if (kind == ContentKind.TAB && !annotation.tab().isEmpty())
+            if ((kind == ContentKind.TAB || kind == ContentKind.ENTITY || kind == ContentKind.MENU)
+                    && !annotation.tab().isEmpty())
                 throw new IllegalArgumentException(
-                        "ContentTab cannot itself belong to another tab: " + type.getName());
+                        "Only item-producing content can belong to a creative tab: " + type.getName());
             var group = groups.computeIfAbsent(annotation.id(), Group::new);
             var declaration = new Declaration(type, annotation.tab(), annotation.ordinal());
             var previous = group.declarations.putIfAbsent(kind, declaration);

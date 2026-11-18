@@ -16,6 +16,7 @@ public final class FabricClientEntrypoint implements ClientModInitializer {
      */
     @Override
     public void onInitializeClient() {
+        dev.sixik.sdmal.content.FabricClientContent.initialize();
         dev.sixik.sdmal.network.FabricClientNetwork.initialize();
         ClientSetup.initialize();
     }

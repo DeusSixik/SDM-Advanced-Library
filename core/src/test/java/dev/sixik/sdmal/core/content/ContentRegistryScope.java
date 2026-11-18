@@ -46,7 +46,7 @@ final class ContentRegistryScope implements AutoCloseable {
         Field intrusive;
         try { intrusive = mapped.getDeclaredField("unregisteredIntrusiveHolders"); }
         catch (NoSuchFieldException legacy) { intrusive = mapped.getDeclaredField("intrusiveHolderCache"); }
-        for (var name : List.of("BLOCK", "ITEM")) {
+        for (var name : List.of("BLOCK", "ITEM", "ENTITY_TYPE")) {
             var registry = registries.getField(name).get(null);
             replace(frozen, registry, false);
             replace(intrusive, registry, new IdentityHashMap<>());

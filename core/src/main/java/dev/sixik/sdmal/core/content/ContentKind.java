@@ -5,6 +5,8 @@ import dev.sixik.sdmal.api.content.ContentTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 
 /**
  * Native registry category inferred from a declared Java type.
@@ -25,7 +27,15 @@ enum ContentKind {
     /**
      * Version-independent creative tab customization.
      */
-    TAB;
+    TAB,
+    /**
+     * World entity type, separate from native block entities.
+     */
+    ENTITY,
+    /**
+     * Server/client container menu type.
+     */
+    MENU;
 
     /**
      * @param type annotated Java class
@@ -37,8 +47,10 @@ enum ContentKind {
         if (Block.class.isAssignableFrom(type)) return BLOCK;
         if (BlockEntity.class.isAssignableFrom(type)) return BLOCK_ENTITY;
         if (ContentTab.class.isAssignableFrom(type)) return TAB;
+        if (Entity.class.isAssignableFrom(type)) return ENTITY;
+        if (AbstractContainerMenu.class.isAssignableFrom(type)) return MENU;
         throw new IllegalArgumentException(
-                "@RegisterContent requires Item, Block, BlockEntity or ContentTab: "
+                "@RegisterContent requires Item, Block, BlockEntity, Entity, AbstractContainerMenu or ContentTab: "
                         + type.getName());
     }
 }

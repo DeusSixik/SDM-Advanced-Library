@@ -3,6 +3,7 @@ package dev.sixik.sdmal;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.client.event.EntityRenderersEvent;
 //? if >=26.1 {
 /*import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
  *///?} else {
@@ -30,6 +31,17 @@ public final class ForgeClientEvents {
      */
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(dev.sixik.sdmal.content.FmlClientContent::screens);
         ClientSetup.initialize();
+    }
+
+    /**
+     * Installs indexed world entity renderers during the native renderer lifecycle.
+     *
+     * @param event client renderer registration event
+     */
+    @SubscribeEvent
+    public static void onRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        dev.sixik.sdmal.content.FmlClientContent.renderers(event);
     }
 }

@@ -2,6 +2,7 @@ package dev.sixik.sdmal.core.content;
 
 import dev.sixik.sdmal.api.content.ContentTab;
 import dev.sixik.sdmal.api.content.RegisteredEntityBlock;
+import dev.sixik.sdmal.api.content.annotations.EntitySettings;
 import java.lang.invoke.MethodHandle;
 import java.util.Collection;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import it.unimi.dsi.fastutil.objects.ObjectAVLTreeSet;
 import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import net.minecraft.core.BlockPos;
@@ -23,6 +25,14 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.ApiStatus;
 
 /**
@@ -30,6 +40,18 @@ import org.jetbrains.annotations.ApiStatus;
  */
 @ApiStatus.Internal
 public final class ContentRegistration {
+    /**
+     * Native client menu factory without boxed window identifiers or loader-specific buffer types.
+     */
+    @FunctionalInterface
+    public interface MenuFactory {
+        /**
+         * @param windowId native synchronization id
+         * @param inventory local player inventory
+         * @return newly constructed menu
+         */
+        AbstractContainerMenu create(int windowId, Inventory inventory);
+    }
     /**
      * Loader-owned native registry operations.
      */
@@ -49,6 +71,27 @@ public final class ContentRegistration {
          * @param factory deferred type constructor
          */
         void blockEntity(String id, Supplier<BlockEntityType<?>> factory);
+        /**
+         * @param id world entity type id
+         * @param factory deferred native type constructor
+         */
+        default void entity(String id, Supplier<EntityType<?>> factory) {
+            throw new UnsupportedOperationException("Backend does not support EntityType");
+        }
+        /**
+         * @param id container menu type id
+         * @param factory deferred native type constructor
+         */
+        default void menu(String id, Supplier<MenuType<?>> factory) {
+            throw new UnsupportedOperationException("Backend does not support MenuType");
+        }
+        /**
+         * @param factory cached menu constructor bridge
+         * @return unregistered native menu type using the loader's public extension API
+         */
+        default MenuType<?> createMenuType(MenuFactory factory) {
+            throw new UnsupportedOperationException("Backend does not support MenuType factories");
+        }
         /**
          * @param id creative tab id
          * @param factory deferred native tab constructor
@@ -154,6 +197,36 @@ public final class ContentRegistration {
                 entry.entityType = type;
                 return type;
             });
+            if (entry.worldEntityConstructor != null) backend.entity(id, () -> {
+                NativeContent.requireVacant(ContentKind.ENTITY, id);
+                entry.worldEntityType = NativeContent.entityType(id, entry::createWorldEntity, entry.entitySettings);
+                return entry.worldEntityType;
+            });
+            if (entry.menuConstructor != null) backend.menu(id, () -> {
+                NativeContent.requireVacant(ContentKind.MENU, id);
+                entry.menuType = backend.createMenuType(entry::createMenu);
+                return entry.menuType;
+            });
+        }
+    }
+
+    /**
+     * Supplies validated living-entity attributes during the loader's attribute registration phase.
+     *
+     * @param output native attribute registration operation
+     */
+    @SuppressWarnings("unchecked")
+    public void appendEntityAttributes(BiConsumer<EntityType<? extends LivingEntity>, AttributeSupplier> output) {
+        for (var entry : entries.values()) {
+            if (entry.attributeFactory == null) {
+                continue;
+            }
+            try {
+                var builder = (AttributeSupplier.Builder) entry.attributeFactory.invokeExact();
+                output.accept((EntityType<? extends LivingEntity>) entityType(entry.group.id), builder.build());
+            } catch (Throwable failure) {
+                throw ContentConstructors.failure(entry.group.id, failure);
+            }
         }
     }
     /**
@@ -221,6 +294,57 @@ public final class ContentRegistration {
      * @return constructed type after its registry event
      */
     public BlockEntityType<?> blockEntityType(String id) { return bound(entry(id).entityType, "BlockEntityType", id); }
+    /**
+     * @param id registered world entity id
+     * @return bound native world entity type
+     */
+    public EntityType<?> entityType(String id) {
+        return bound(entry(id).worldEntityType, "EntityType", id);
+    }
+    /**
+     * @param id registered container menu id
+     * @return bound native menu type
+     */
+    public MenuType<?> menuType(String id) {
+        return bound(entry(id).menuType, "MenuType", id);
+    }
+    /**
+     * Resolves the declared menu class without constructing it or loading client classes.
+     *
+     * @param id screen's matching menu id
+     * @return concrete menu implementation
+     */
+    public Class<? extends AbstractContainerMenu> menuClass(String id) {
+        var declaration = entry(id).group.get(ContentKind.MENU);
+        if (declaration == null) {
+            throw new IllegalArgumentException("No annotated menu for screen id " + id);
+        }
+        return declaration.type().asSubclass(AbstractContainerMenu.class);
+    }
+    /**
+     * Resolves the declared world entity class for client renderer validation.
+     *
+     * @param id renderer's matching entity id
+     * @return concrete world entity class
+     */
+    public Class<? extends Entity> entityClass(String id) {
+        var declaration = entry(id).group.get(ContentKind.ENTITY);
+        if (declaration == null) {
+            throw new IllegalArgumentException("No annotated entity for renderer id " + id);
+        }
+        return declaration.type().asSubclass(Entity.class);
+    }
+    /**
+     * Constructs a menu for a server MenuProvider or a client open-menu packet.
+     *
+     * @param id registered menu id
+     * @param windowId native container synchronization id
+     * @param inventory player's inventory
+     * @return newly constructed matching menu
+     */
+    public AbstractContainerMenu newMenu(String id, int windowId, Inventory inventory) {
+        return entry(id).createMenu(windowId, Objects.requireNonNull(inventory, "inventory"));
+    }
     /**
      * @param id native tab id
      * @return registered/created referenced tab
@@ -339,6 +463,22 @@ public final class ContentRegistration {
          */
         private final MethodHandle tabConstructor;
         /**
+         * Cached EntityType/Level world entity constructor, or null.
+         */
+        private final MethodHandle worldEntityConstructor;
+        /**
+         * Cached MenuType/window id/inventory constructor, or null.
+         */
+        private final MethodHandle menuConstructor;
+        /**
+         * Conventional living-entity attributes builder, or null for nonliving content.
+         */
+        private final MethodHandle attributeFactory;
+        /**
+         * Validated optional native world entity configuration.
+         */
+        private final EntitySettings entitySettings;
+        /**
          * Bound native block after block registration.
          */
         private Block block;
@@ -351,6 +491,14 @@ public final class ContentRegistration {
          */
         private BlockEntityType<?> entityType;
         /**
+         * Bound world entity type after the native registry event.
+         */
+        private EntityType<?> worldEntityType;
+        /**
+         * Bound menu type used by both server and client factories.
+         */
+        private MenuType<?> menuType;
+        /**
          * @param group validated metadata
          */
         private Entry(ContentPlan.Group group) {
@@ -359,6 +507,12 @@ public final class ContentRegistration {
             itemConstructor = ContentConstructors.resolve(group, ContentKind.ITEM);
             entityConstructor = ContentConstructors.resolve(group, ContentKind.BLOCK_ENTITY);
             tabConstructor = ContentConstructors.resolve(group, ContentKind.TAB);
+            worldEntityConstructor = ContentConstructors.resolve(group, ContentKind.ENTITY);
+            menuConstructor = ContentConstructors.resolve(group, ContentKind.MENU);
+            var worldEntity = group.get(ContentKind.ENTITY);
+            attributeFactory = worldEntity == null ? null : ContentConstructors.attributes(worldEntity.type());
+            entitySettings = worldEntity == null ? null : worldEntity.type().getDeclaredAnnotation(EntitySettings.class);
+            NativeContent.validateEntitySettings(entitySettings);
         }
         /**
          * @param position world coordinate
@@ -369,6 +523,37 @@ public final class ContentRegistration {
             if (entityType == null) throw new IllegalStateException("Block entity type is not registered: " + group.id);
             try { return (BlockEntity) entityConstructor.invokeExact((BlockEntityType) entityType, position, state); }
             catch (Throwable failure) { throw ContentConstructors.failure(group.id, failure); }
+        }
+        /**
+         * Invokes the cached world entity constructor when Minecraft spawns or loads an instance.
+         *
+         * @param type exact registered native type
+         * @param level world receiving the instance
+         * @return newly created world entity
+         */
+        private Entity createWorldEntity(EntityType<Entity> type, Level level) {
+            try {
+                return (Entity) worldEntityConstructor.invokeExact((EntityType) type, level);
+            } catch (Throwable failure) {
+                throw ContentConstructors.failure(group.id, failure);
+            }
+        }
+        /**
+         * Invokes either supported menu constructor through the same injected factory shape.
+         *
+         * @param windowId native synchronization id
+         * @param inventory player's inventory
+         * @return newly constructed menu
+         */
+        private AbstractContainerMenu createMenu(int windowId, Inventory inventory) {
+            if (menuType == null) {
+                throw new IllegalStateException("Menu type is not registered: " + group.id);
+            }
+            try {
+                return (AbstractContainerMenu) menuConstructor.invokeExact((MenuType) menuType, windowId, inventory);
+            } catch (Throwable failure) {
+                throw ContentConstructors.failure(group.id, failure);
+            }
         }
     }
 }

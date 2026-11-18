@@ -27,5 +27,7 @@
   "item.sdmal.annotated_hidden_item": "Annotated Hidden Item",
   "block.sdmal.annotated_block": "Annotated Block",
   "block.sdmal.annotated_machine": "Annotated ECS Machine",
-  "block.sdmal.annotated_default_machine": "Automatic Block Entity"
+  "block.sdmal.annotated_default_machine": "Automatic Block Entity",
+  "menu.sdmal.annotated_menu": "Automatic Menu Example",
+  "entity.sdmal.annotated_entity": "Annotated Entity"
 }

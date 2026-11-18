@@ -27,5 +27,7 @@
   "item.sdmal.annotated_hidden_item": "Предмет без вкладки",
   "block.sdmal.annotated_block": "Блок с аннотацией",
   "block.sdmal.annotated_machine": "ECS-машина с аннотацией",
-  "block.sdmal.annotated_default_machine": "Автоматическая блок-сущность"
+  "block.sdmal.annotated_default_machine": "Автоматическая блок-сущность",
+  "menu.sdmal.annotated_menu": "Пример автоматического меню",
+  "entity.sdmal.annotated_entity": "Автоматическая сущность"
 }

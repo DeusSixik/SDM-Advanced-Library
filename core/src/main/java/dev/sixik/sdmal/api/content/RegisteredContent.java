@@ -7,6 +7,11 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
 
 /**
  * Resolves automatically registered content after its native registry event. No generated Java
@@ -74,5 +79,43 @@ public final class RegisteredContent {
      */
     public static CreativeModeTab tab(String id) {
         return ContentRuntime.registration().tab(id);
+    }
+
+    /**
+     * @param type annotated world entity class
+     * @param <T> exact entity implementation
+     * @return registered native world entity type
+     */
+    @SuppressWarnings("unchecked")
+    public static <T extends Entity> EntityType<T> entityType(Class<T> type) {
+        var registration = ContentRuntime.registration();
+        registration.entityClass(registration.id(type));
+        return (EntityType<T>) registration.entityType(registration.id(type));
+    }
+
+    /**
+     * @param type annotated container menu class
+     * @param <T> exact menu implementation
+     * @return registered native menu type
+     */
+    @SuppressWarnings("unchecked")
+    public static <T extends AbstractContainerMenu> MenuType<T> menuType(Class<T> type) {
+        var registration = ContentRuntime.registration();
+        registration.menuClass(registration.id(type));
+        return (MenuType<T>) registration.menuType(registration.id(type));
+    }
+
+    /**
+     * Creates a menu using the same constructor as the client's registered MenuType.
+     *
+     * @param type annotated menu implementation
+     * @param windowId native window synchronization id
+     * @param inventory player inventory
+     * @param <T> exact menu class
+     * @return new menu for a native MenuProvider
+     */
+    public static <T extends AbstractContainerMenu> T menu(Class<T> type, int windowId, Inventory inventory) {
+        var registration = ContentRuntime.registration();
+        return type.cast(registration.newMenu(registration.id(type), windowId, inventory));
     }
 }

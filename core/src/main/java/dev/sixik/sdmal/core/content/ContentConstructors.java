@@ -8,6 +8,14 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.level.Level;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -40,6 +48,8 @@ final class ContentConstructors {
                                 : constructor(type, Item.class, Item.Properties.class);
                 case TAB -> constructor(type, dev.sixik.sdmal.api.content.ContentTab.class);
                 case BLOCK_ENTITY -> entity(type);
+                case ENTITY -> constructor(type, Entity.class, EntityType.class, Level.class);
+                case MENU -> menu(type);
             };
         } catch (ReflectiveOperationException failure) {
             throw new IllegalArgumentException(
@@ -83,6 +93,41 @@ final class ContentConstructors {
                     constructor(type, BlockEntity.class, BlockPos.class, BlockState.class),
                     0,
                     BlockEntityType.class);
+        }
+    }
+
+    /**
+     * Adapts either menu constructor to one injected native-type factory shape.
+     *
+     * @param type concrete menu implementation
+     * @return factory accepting MenuType, window id, and player inventory
+     * @throws ReflectiveOperationException if neither public constructor exists
+     */
+    private static MethodHandle menu(Class<?> type) throws ReflectiveOperationException {
+        try {
+            return constructor(type, AbstractContainerMenu.class, MenuType.class, int.class, Inventory.class);
+        } catch (NoSuchMethodException conventional) {
+            return MethodHandles.dropArguments(
+                    constructor(type, AbstractContainerMenu.class, int.class, Inventory.class), 0, MenuType.class);
+        }
+    }
+
+    /**
+     * Requires the conventional attributes builder for a living entity, including inherited methods.
+     *
+     * @param type concrete world entity class
+     * @return static createAttributes handle, or null for a nonliving entity
+     */
+    static MethodHandle attributes(Class<?> type) {
+        if (!LivingEntity.class.isAssignableFrom(type)) {
+            return null;
+        }
+        try {
+            return MethodHandles.publicLookup().findStatic(type, "createAttributes",
+                    MethodType.methodType(AttributeSupplier.Builder.class));
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalArgumentException("Living content requires public static AttributeSupplier.Builder"
+                    + " createAttributes(): " + type.getName(), failure);
         }
     }
 

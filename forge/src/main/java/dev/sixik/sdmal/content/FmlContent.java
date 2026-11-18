@@ -15,6 +15,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.registries.DeferredRegister;
 //? if forge && >=26.1 {
 /*import net.minecraftforge.eventbus.api.bus.BusGroup;
@@ -48,6 +51,14 @@ public final class FmlContent implements ContentRegistration.Backend {
      * Deferred block entity type registries by namespace.
      */
     private final Map<String, DeferredRegister<BlockEntityType<?>>> entities = new Object2ObjectOpenHashMap<>();
+    /**
+     * Deferred world entity type registries by namespace.
+     */
+    private final Map<String, DeferredRegister<EntityType<?>>> worldEntities = new Object2ObjectOpenHashMap<>();
+    /**
+     * Deferred native menu type registries by namespace.
+     */
+    private final Map<String, DeferredRegister<MenuType<?>>> menus = new Object2ObjectOpenHashMap<>();
     //? if >=1.19.3 {
     /**
      * Deferred creative tab registries by namespace.
@@ -72,6 +83,13 @@ public final class FmlContent implements ContentRegistration.Backend {
         for (var registry : backend.blocks.values()) registry.register(bus);
         for (var registry : backend.items.values()) registry.register(bus);
         for (var registry : backend.entities.values()) registry.register(bus);
+        for (var registry : backend.worldEntities.values()) registry.register(bus);
+        for (var registry : backend.menus.values()) registry.register(bus);
+        //? if forge && >=26.1 {
+        /*EntityAttributeCreationEvent.BUS.addListener(event -> registration.appendEntityAttributes(event::put));
+        *///?} else {
+        bus.addListener((EntityAttributeCreationEvent event) -> registration.appendEntityAttributes(event::put));
+        //?}
         //? if >=1.19.3 {
         for (var registry : backend.tabs.values()) registry.register(bus);
         //? if forge && >=26.1 {
@@ -142,6 +160,47 @@ public final class FmlContent implements ContentRegistration.Backend {
                 /*Registry.BLOCK_ENTITY_TYPE_REGISTRY,
                 *///?}
                 namespace)).register(key.getPath(), factory);
+    }
+    /**
+     * @param id world entity id
+     * @param factory deferred native type constructor
+     */
+    @Override
+    public void entity(String id, Supplier<EntityType<?>> factory) {
+        var key = key(id);
+        worldEntities.computeIfAbsent(key.getNamespace(), namespace -> DeferredRegister.create(
+                //? if >=1.19.3 {
+                Registries.ENTITY_TYPE,
+                //?} else {
+                /*Registry.ENTITY_TYPE_REGISTRY,
+                *///?}
+                namespace)).register(key.getPath(), factory);
+    }
+    /**
+     * @param id menu type id
+     * @param factory deferred native type constructor
+     */
+    @Override
+    public void menu(String id, Supplier<MenuType<?>> factory) {
+        var key = key(id);
+        menus.computeIfAbsent(key.getNamespace(), namespace -> DeferredRegister.create(
+                //? if >=1.19.3 {
+                Registries.MENU,
+                //?} else {
+                /*Registry.MENU_REGISTRY,
+                *///?}
+                namespace)).register(key.getPath(), factory);
+    }
+    /**
+     * Uses the loader's public menu extension instead of private vanilla supplier types.
+     *
+     * @param factory cached primitive-id menu factory
+     * @return unregistered native menu type
+     */
+    @Override
+    public MenuType<?> createMenuType(ContentRegistration.MenuFactory factory) {
+        return net.minecraftforge.common.extensions.IForgeMenuType.create((windowId, inventory, data) ->
+                factory.create(windowId, inventory));
     }
     /**
      * @param id tab id

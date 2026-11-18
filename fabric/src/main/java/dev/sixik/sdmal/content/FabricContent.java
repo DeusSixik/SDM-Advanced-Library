@@ -13,6 +13,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.inventory.MenuType;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 //? if >=1.19.3 {
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -38,6 +41,7 @@ public final class FabricContent implements ContentRegistration.Backend {
      */
     public static void initialize() {
         var registration = ContentRuntime.install(new FabricContent());
+        registration.appendEntityAttributes(FabricDefaultAttributeRegistry::register);
         //? if >=1.19.3 {
         for (var id : registration.referencedTabs()) {
             if (registration.ownsTab(id)) continue;
@@ -83,6 +87,43 @@ public final class FabricContent implements ContentRegistration.Backend {
         //?} else {
         /*Registry.register(Registry.BLOCK_ENTITY_TYPE, key(id), factory.get());
         *///?}
+    }
+    /**
+     * @param id world entity id
+     * @param factory native type factory
+     */
+    @Override
+    public void entity(String id, Supplier<EntityType<?>> factory) {
+        //? if >=1.19.3 {
+        Registry.register(BuiltInRegistries.ENTITY_TYPE, key(id), factory.get());
+        //?} else {
+        /*Registry.register(Registry.ENTITY_TYPE, key(id), factory.get());
+        *///?}
+    }
+    /**
+     * @param id menu type id
+     * @param factory native menu type factory
+     */
+    @Override
+    public void menu(String id, Supplier<MenuType<?>> factory) {
+        //? if >=1.19.3 {
+        Registry.register(BuiltInRegistries.MENU, key(id), factory.get());
+        //?} else {
+        /*Registry.register(Registry.MENU, key(id), factory.get());
+        *///?}
+    }
+    /**
+     * Uses Fabric's access-widened MenuType constructor.
+     *
+     * @param factory cached primitive-id menu factory
+     * @return unregistered menu type
+     */
+    @Override
+    public MenuType<?> createMenuType(ContentRegistration.MenuFactory factory) {
+        return new MenuType<>(factory::create
+                //? if >=1.19.3
+                , net.minecraft.world.flag.FeatureFlags.DEFAULT_FLAGS
+        );
     }
     /**
      * @param id creative tab id

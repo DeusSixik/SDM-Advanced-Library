@@ -88,6 +88,144 @@ class ContentProcessorTest {
                 "package net.minecraft.world.level.block.entity; public class BlockEntity { public"
                     + " BlockEntity(BlockEntityType<?> t, net.minecraft.core.BlockPos p,"
                     + " net.minecraft.world.level.block.state.BlockState s) {} }");
+        source("net.minecraft.world.level.Level", "package net.minecraft.world.level; public class Level {}");
+        source("net.minecraft.world.entity.EntityType", "package net.minecraft.world.entity; public class EntityType<T> {}");
+        source("net.minecraft.world.entity.Entity", "package net.minecraft.world.entity; public class Entity { public Entity(EntityType<?> t, net.minecraft.world.level.Level l) {} }");
+        source("net.minecraft.world.entity.LivingEntity", "package net.minecraft.world.entity; public class LivingEntity extends Entity { public LivingEntity(EntityType<?> t, net.minecraft.world.level.Level l) { super(t,l); } }");
+        source("net.minecraft.world.entity.ai.attributes.AttributeSupplier", "package net.minecraft.world.entity.ai.attributes; public class AttributeSupplier { public static class Builder {} }");
+        source("net.minecraft.world.entity.player.Inventory", "package net.minecraft.world.entity.player; public class Inventory {}");
+        source("net.minecraft.world.inventory.MenuType", "package net.minecraft.world.inventory; public class MenuType<T> {}");
+        source("net.minecraft.world.inventory.AbstractContainerMenu", "package net.minecraft.world.inventory; public class AbstractContainerMenu { public AbstractContainerMenu(MenuType<?> t, int id) {} }");
+        source("net.minecraft.network.chat.Component", "package net.minecraft.network.chat; public class Component {}");
+        source("net.minecraft.client.gui.screens.Screen", "package net.minecraft.client.gui.screens; public class Screen { public Screen(net.minecraft.network.chat.Component title) {} }");
+        source("net.minecraft.client.gui.screens.inventory.AbstractContainerScreen", "package net.minecraft.client.gui.screens.inventory; public class AbstractContainerScreen<T extends net.minecraft.world.inventory.AbstractContainerMenu> { public AbstractContainerScreen(T m, net.minecraft.world.entity.player.Inventory i, net.minecraft.network.chat.Component c) {} }");
+        source("net.minecraft.client.renderer.entity.EntityRendererProvider", "package net.minecraft.client.renderer.entity; public interface EntityRendererProvider { public class Context {} }");
+        source("net.minecraft.client.renderer.entity.EntityRenderer", "package net.minecraft.client.renderer.entity; public class EntityRenderer<T extends net.minecraft.world.entity.Entity> { public EntityRenderer(EntityRendererProvider.Context c) {} }");
+    }
+
+    /**
+     * Menu/entity declarations remain common while their screen/renderer classes are client-only.
+     *
+     * @throws IOException if fixture source/index IO fails
+     */
+    @Test
+    void compile_entityMenuScreenAndRenderer_separatesPhysicalSides() throws IOException {
+        source("consumer.WorldEntity", unit("consumer:entity", "", "public class WorldEntity extends Entity { public WorldEntity(EntityType<?> t, Level l) { super(t,l); } }"));
+        source("consumer.Menu", unit("consumer:menu", "", "public class Menu extends AbstractContainerMenu { public Menu(MenuType<?> t, int id, Inventory i) { super(t,id); } }"));
+        source("consumer.Screen", unit("consumer:menu", "", "public class Screen extends AbstractContainerScreen<Menu> { public Screen(Menu m, Inventory i, Component c) { super(m,i,c); } }"));
+        source("consumer.Renderer", unit("consumer:entity", "", "public class Renderer extends EntityRenderer<WorldEntity> { public Renderer(EntityRendererProvider.Context c) { super(c); } }"));
+        assertTrue(compile(), messages());
+        assertEquals("consumer.Menu\nconsumer.WorldEntity\n", Files.readString(index()));
+        assertEquals("consumer.Renderer\nconsumer.Screen\n", Files.readString(clientIndex()));
+    }
+
+    /**
+     * A screen may inherit its resolved menu parameter through a generic intermediate base.
+     *
+     * @throws IOException if fixture IO fails
+     */
+    @Test
+    void compile_inheritedGenericScreen_resolvesConcreteConstructor() throws IOException {
+        source("consumer.Menu", imports() + "public class Menu extends AbstractContainerMenu { public Menu(int id, Inventory i) { super(null,id); } }");
+        source("consumer.BaseScreen", imports() + "public class BaseScreen<T extends AbstractContainerMenu> extends AbstractContainerScreen<T> { public BaseScreen(T m, Inventory i, Component c) { super(m,i,c); } }");
+        source("consumer.Screen", unit("consumer:menu", "", "public class Screen extends BaseScreen<Menu> { public Screen(Menu m, Inventory i, Component c) { super(m,i,c); } }"));
+        assertTrue(compile(), messages());
+        assertEquals("consumer.Screen\n", Files.readString(clientIndex()));
+        assertEquals("", Files.readString(index()));
+    }
+
+    /**
+     * A conventional menu constructor can obtain its own type instead of receiving an injected one.
+     *
+     * @throws IOException if fixture IO fails
+     */
+    @Test
+    void compile_menuWithoutInjectedType_acceptsInventoryConstructor() throws IOException {
+        source("consumer.Menu", unit("consumer:menu", "", "public class Menu extends AbstractContainerMenu { public Menu(int id, Inventory i) { super(null,id); } }"));
+        assertTrue(compile(), messages());
+    }
+
+    /**
+     * Living content requires the native public static builder contract.
+     *
+     * @throws IOException if fixture IO fails
+     */
+    @Test
+    void compile_livingEntityWithoutAttributes_rejects() throws IOException {
+        source("consumer.Living", unit("consumer:living", "", "public class Living extends LivingEntity { public Living(EntityType<?> t, Level l) { super(t,l); } }"));
+        assertFalse(compile());
+        assertTrue(messages().contains("createAttributes"), messages());
+    }
+
+    /**
+     * Attributes inherited from an application's entity base remain discoverable.
+     *
+     * @throws IOException if fixture IO fails
+     */
+    @Test
+    void compile_livingEntityInheritedAttributes_accepts() throws IOException {
+        source("consumer.LivingBase", imports() + "public class LivingBase extends LivingEntity { public LivingBase(EntityType<?> t, Level l) { super(t,l); } public static net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder createAttributes() { return null; } }");
+        source("consumer.Living", unit("consumer:living", "", "public class Living extends LivingBase { public Living(EntityType<?> t, Level l) { super(t,l); } }"));
+        assertTrue(compile(), messages());
+    }
+
+    /**
+     * Invalid constructor shapes are rejected before loader registry events.
+     *
+     * @param declaration source class
+     * @throws IOException if fixture IO fails
+     */
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "public class Bad extends Entity { public Bad(Level l) { super(null,l); } }",
+            "public class Bad extends AbstractContainerMenu { public Bad(int id) { super(null,id); } }",
+            "public class Bad extends AbstractContainerScreen<AbstractContainerMenu> { public Bad(AbstractContainerMenu m) { super(m,null,null); } }",
+            "public class Bad extends EntityRenderer<Entity> { public Bad() { super(null); } }"
+    })
+    void compile_newKindsInvalidConstructors_rejects(String declaration) throws IOException {
+        source("consumer.Bad", unit("consumer:bad", "", declaration));
+        assertFalse(compile());
+        assertTrue(messages().contains("Unsupported public content constructor"), messages());
+    }
+
+    /**
+     * Removing the last client annotation clears its separate output resource.
+     *
+     * @throws IOException if fixture IO fails
+     */
+    @Test
+    void compile_lastClientAnnotationRemoved_clearsClientIndex() throws IOException {
+        source("consumer.Renderer", unit("consumer:entity", "", "public class Renderer extends EntityRenderer<Entity> { public Renderer(EntityRendererProvider.Context c) { super(c); } }"));
+        assertTrue(compile(), messages());
+        source("consumer.Renderer", "package consumer; public class Renderer {}");
+        assertTrue(compile(), messages());
+        assertEquals("", Files.readString(clientIndex()));
+    }
+
+    /**
+     * Standalone UI screens are indexed only on the physical client.
+     *
+     * @throws IOException if fixture IO fails
+     */
+    @Test
+    void compile_standaloneScreensWithTitleAndNoargs_writesClientFactoriesOnly() throws IOException {
+        source("consumer.Overlay", unit("consumer:overlay", "", "public class Overlay extends net.minecraft.client.gui.screens.Screen { public Overlay(Component title) { super(title); } }"));
+        source("consumer.Settings", unit("consumer:settings", "", "public class Settings extends net.minecraft.client.gui.screens.Screen { public Settings() { super(null); } }"));
+        assertTrue(compile(), messages());
+        assertEquals("", Files.readString(index()));
+        assertEquals("consumer.Overlay\nconsumer.Settings\n", Files.readString(clientIndex()));
+    }
+
+    /**
+     * Client declarations are not inventory items and cannot request creative membership.
+     *
+     * @throws IOException if fixture IO fails
+     */
+    @Test
+    void compile_clientScreenWithTab_rejects() throws IOException {
+        source("consumer.Overlay", unit("consumer:overlay", "consumer:tab", "public class Overlay extends net.minecraft.client.gui.screens.Screen { public Overlay(Component title) { super(title); } }"));
+        assertFalse(compile());
+        assertTrue(messages().contains("cannot belong"), messages());
     }
 
     /**
@@ -298,7 +436,11 @@ class ContentProcessorTest {
                 + ".annotations.*; import net.minecraft.world.item.*; import"
                 + " net.minecraft.world.level.block.*; import"
                 + " net.minecraft.world.level.block.entity.*; import"
-                + " net.minecraft.world.level.block.state.*; import net.minecraft.core.*; ";
+                + " net.minecraft.world.level.block.state.*; import net.minecraft.core.*; "
+                + "import net.minecraft.world.entity.*; import net.minecraft.world.entity.player.*;"
+                + "import net.minecraft.world.inventory.*; import net.minecraft.world.level.*;"
+                + "import net.minecraft.network.chat.*; import net.minecraft.client.gui.screens.inventory.*;"
+                + "import net.minecraft.client.renderer.entity.*;";
     }
 
     /**
@@ -317,6 +459,13 @@ class ContentProcessorTest {
      */
     private Path index() {
         return directory.resolve("classes/META-INF/sdmal/content");
+    }
+
+    /**
+     * @return physical-client-only compiler resource path
+     */
+    private Path clientIndex() {
+        return directory.resolve("classes/META-INF/sdmal/content-client");
     }
 
     /**

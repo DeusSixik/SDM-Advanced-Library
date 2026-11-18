@@ -6,8 +6,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Registers a concrete Item, Block, BlockEntity or ContentTab from the compiler-produced index. A
- * block entity gets a default block and block item unless explicit classes share its id.
+ * Registers Item, Block, BlockEntity, Entity, AbstractContainerMenu, or ContentTab from the
+ * compiler-produced common index. AbstractContainerScreen and EntityRenderer declarations go
+ * exclusively into a client index and bind to the menu/entity with the same id. Plain Screen
+ * subclasses register a client-only factory accessible through RegisteredScreens. A block entity
+ * gets a default block and block item unless explicit classes share its id.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

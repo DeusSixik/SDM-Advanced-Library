@@ -14,6 +14,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import dev.sixik.sdmal.api.content.annotations.EntitySettings;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 //? if >=1.19.3
 import net.minecraft.world.level.material.MapColor;
 
@@ -74,6 +78,8 @@ final class NativeContent {
             case ITEM -> BuiltInRegistries.ITEM.containsKey(key);
             case BLOCK_ENTITY -> BuiltInRegistries.BLOCK_ENTITY_TYPE.containsKey(key);
             case TAB -> BuiltInRegistries.CREATIVE_MODE_TAB.containsKey(key);
+            case ENTITY -> BuiltInRegistries.ENTITY_TYPE.containsKey(key);
+            case MENU -> BuiltInRegistries.MENU.containsKey(key);
         };
         //?} else {
         /*boolean occupied = switch (kind) {
@@ -81,8 +87,49 @@ final class NativeContent {
             case ITEM -> Registry.ITEM.containsKey(key);
             case BLOCK_ENTITY -> Registry.BLOCK_ENTITY_TYPE.containsKey(key);
             case TAB -> false;
+            case ENTITY -> Registry.ENTITY_TYPE.containsKey(key);
+            case MENU -> Registry.MENU.containsKey(key);
         };
         *///?}
         if (occupied) throw new IllegalStateException("Native " + kind + " id is already registered: " + id);
+    }
+
+    /**
+     * Validates optional type settings before any registry factory runs.
+     *
+     * @param settings declared settings, or null for defaults
+     */
+    static void validateEntitySettings(EntitySettings settings) {
+        if (settings == null) {
+            return;
+        }
+        if (!Float.isFinite(settings.width()) || settings.width() <= 0
+                || !Float.isFinite(settings.height()) || settings.height() <= 0
+                || settings.trackingRange() < 0 || settings.updateInterval() <= 0) {
+            throw new IllegalArgumentException("Entity dimensions must be finite and positive; tracking range >= 0, interval > 0");
+        }
+    }
+
+    /**
+     * Creates the native type with a cached constructor factory and optional settings.
+     *
+     * @param id registry identity
+     * @param factory native world entity factory
+     * @param settings optional dimensions and tracking settings
+     * @return unregistered entity type
+     */
+    static EntityType<?> entityType(String id, EntityType.EntityFactory<Entity> factory, EntitySettings settings) {
+        var builder = EntityType.Builder.of(factory, settings == null ? MobCategory.MISC : settings.category())
+                .sized(settings == null ? 0.6f : settings.width(), settings == null ? 1.8f : settings.height())
+                .clientTrackingRange(settings == null ? 5 : settings.trackingRange())
+                .updateInterval(settings == null ? 3 : settings.updateInterval());
+        if (settings != null && settings.fireImmune()) {
+            builder.fireImmune();
+        }
+        //? if >=1.21.2 {
+        /*return builder.build(ResourceKey.create(Registries.ENTITY_TYPE, id(id)));
+        *///?} else {
+        return builder.build(id);
+        //?}
     }
 }
