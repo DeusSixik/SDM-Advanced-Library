@@ -7,7 +7,9 @@ import dev.sixik.sdmal.core.ecs.serialization.NetworkSerialization;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

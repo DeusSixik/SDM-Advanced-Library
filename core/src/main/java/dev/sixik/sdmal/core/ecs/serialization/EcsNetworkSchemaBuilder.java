@@ -1,6 +1,8 @@
 package dev.sixik.sdmal.core.ecs.serialization;
 
 import dev.sixik.sdmal.api.ecs.Component;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.ComponentType;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
 import dev.sixik.sdmal.api.ecs.annotations.EcsSync;
 import dev.sixik.sdmal.api.ecs.annotations.EcsUseNetworkAdapter;
@@ -103,13 +105,70 @@ final class EcsNetworkSchemaBuilder {
                     "Recursive or excessively deep ECS wire schema: " + type);
         try {
             var adapter = registered.get(type);
-            if (adapter == null) adapter = EcsNetworkStructures.build(type, this);
+            if (adapter == null) {
+                Class<?> raw = EcsTypes.raw(type);
+                adapter = Component.class.isAssignableFrom(raw)
+                        ? componentValue(raw)
+                        : EcsNetworkStructures.build(type, this);
+            }
             var result = checked(type, adapter);
             pending.put(type, result);
             return result;
         } finally {
             visiting.remove(type);
         }
+    }
+
+    /**
+     * Resolves a packet field containing a concrete, registered component. The component's own
+     * framed codec selects only its EcsSync fields; the registry factory reconstructs the detached
+     * instance on the receiving side.
+     *
+     * @param raw concrete component class declared by the packet field
+     * @return component value adapter tied to its stable registry id and wire schema
+     */
+    private EcsNetworkSerializer<?> componentValue(Class<?> raw) {
+        if (raw.isInterface() || Modifier.isAbstract(raw.getModifiers()))
+            throw new EcsSerializationException(
+                    "Packet component fields require a concrete component type: " + raw.getName());
+        ComponentType<?> descriptor = registeredComponent(raw);
+        long fingerprint = NetworkSerialization.schemaFingerprint(descriptor.componentClass());
+        String schema = "ecs-component/" + descriptor.id() + "/" + Long.toUnsignedString(fingerprint, 16);
+        return EcsNetworkBuiltins.of(
+                schema,
+                (buffer, value) -> {
+                    if (value.getClass() != raw)
+                        throw new EcsSerializationException(
+                                "Expected exact packet component type " + raw.getName());
+                    ((Component) value).writeNetwork(buffer);
+                },
+                buffer -> {
+                    ComponentType<?> current = ComponentRegistry.instance()
+                            .get(descriptor.id())
+                            .filter(candidate -> candidate.componentClass() == raw)
+                            .orElseThrow(() -> new EcsSerializationException(
+                                    "Packet component is not registered: " + descriptor.id()));
+                    Component component = current.createDefault();
+                    if (component.getClass() != raw || component.isAttached())
+                        throw new EcsSerializationException(
+                                "Component factory must return a fresh " + raw.getName());
+                    component.readNetwork(buffer);
+                    return component;
+                });
+    }
+
+    /**
+     * Looks up a component descriptor by its exact concrete class.
+     *
+     * @param raw concrete component class
+     * @return registered descriptor
+     */
+    @SuppressWarnings("unchecked")
+    private static ComponentType<?> registeredComponent(Class<?> raw) {
+        Class<? extends Component> componentClass = (Class<? extends Component>) raw;
+        return ComponentRegistry.instance().get(componentClass)
+                .orElseThrow(() -> new EcsSerializationException(
+                        "Packet component type is not registered: " + raw.getName()));
     }
 
     /**
