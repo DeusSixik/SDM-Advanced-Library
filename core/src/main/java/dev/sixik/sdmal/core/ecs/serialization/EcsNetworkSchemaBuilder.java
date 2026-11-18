@@ -193,7 +193,9 @@ final class EcsNetworkSchemaBuilder {
                 throw new EcsSerializationException("Explicit stable network key is required");
             EcsTypes.requireConcrete(type);
             var override = field.getAnnotation(EcsUseNetworkAdapter.class);
-            var serializer = override == null ? resolve(type) : override(type, override.value());
+            var serializer = override == null
+                    ? implicitKey && type == byte[].class ? PacketBytes.FORMAT : resolve(type)
+                    : override(type, override.value());
             var lookup =
                     MethodHandles.privateLookupIn(
                             field.getDeclaringClass(), MethodHandles.lookup());

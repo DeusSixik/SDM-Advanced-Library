@@ -211,10 +211,10 @@ class PacketRegistryTest {
         var registry = registry(Empty.class, Bytes.class);
         assertThrows(
                 IllegalArgumentException.class,
-                () -> registry.decode(new byte[PacketRegistry.MAX_BYTES + 1], Side.SERVER));
+                () -> registry.decode(new byte[PacketRegistry.MAX_LOGICAL_BYTES + 1], Side.SERVER));
         assertThrows(
                 RuntimeException.class,
-                () -> registry.encode(new Bytes(new byte[PacketRegistry.MAX_BYTES]), Side.SERVER));
+                () -> registry.encode(new Bytes(new byte[PacketRegistry.MAX_LOGICAL_BYTES]), Side.SERVER));
         var frame = registry.encode(new Empty(), Side.SERVER);
         assertThrows(
                 IllegalArgumentException.class,

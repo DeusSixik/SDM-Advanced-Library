@@ -1,0 +1,6 @@
+dev.sixik.sdmal.core.network.AsyncRequestRuntimeTest$AcknowledgementRequest
+dev.sixik.sdmal.core.network.AsyncRequestRuntimeTest$DeferredRequest
+dev.sixik.sdmal.core.network.AsyncRequestRuntimeTest$FailureRequest
+dev.sixik.sdmal.core.network.AsyncRequestRuntimeTest$LargeRequest
+dev.sixik.sdmal.core.network.AsyncRequestRuntimeTest$ShortDeferredRequest
+dev.sixik.sdmal.core.network.AsyncRequestRuntimeTest$TimeoutRequest

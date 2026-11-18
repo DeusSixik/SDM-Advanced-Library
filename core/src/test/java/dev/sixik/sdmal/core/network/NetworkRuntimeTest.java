@@ -57,7 +57,7 @@ class NetworkRuntimeTest {
     static void initialize() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        NetworkRuntime.install(
+        NetworkTestTransport.bind(
                 new NetworkRuntime.Transport() {
                     /**
                      * @param frame encoded serverbound snapshot

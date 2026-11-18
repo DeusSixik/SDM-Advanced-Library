@@ -76,6 +76,40 @@ public final class NetworkSerialization {
     }
 
     /**
+     * Resolves an async result: explicit/built-in value codecs take precedence; records and ordinary
+     * data classes use automatic packet fields. Every format includes a compatibility fingerprint.
+     *
+     * @param type exact non-void result class
+     * @return immutable result format
+     */
+    public static synchronized EcsNetworkSerializer<?> responseCodec(Class<?> type) {
+        if (!REGISTERED.containsKey(EcsTypes.boxed(type)) && !type.isEnum()) return packetCodec(type);
+        @SuppressWarnings("unchecked")
+        EcsNetworkSerializer<Object> value = type == byte[].class
+                ? (EcsNetworkSerializer<Object>) (EcsNetworkSerializer<?>) PacketBytes.FORMAT : resolve(type);
+        long fingerprint = EcsWireSchema.fingerprint(value.schemaName());
+        return EcsNetworkBuiltins.of(value.schemaName(), (buffer, result) -> {
+            buffer.writeLong(fingerprint);
+            value.write(buffer, result);
+        }, buffer -> {
+            if (buffer.readLong() != fingerprint)
+                throw new IllegalArgumentException("Incompatible async result schema");
+            return value.read(buffer);
+        });
+    }
+
+    /**
+     * Resolves a concrete inherited generic interface value, without instantiating the implementation.
+     *
+     * @param type     implementation class
+     * @param contract single-value generic interface
+     * @return fully resolved value type, or null if the contract is absent
+     */
+    public static Type interfaceValue(Class<?> type, Class<?> contract) {
+        return EcsTypes.adapterValue(type, contract);
+    }
+
+    /**
      * Registers one exact concrete binary type without requiring NBT methods.
      *
      * @param type       non-generic concrete class

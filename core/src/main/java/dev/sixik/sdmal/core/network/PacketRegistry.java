@@ -33,9 +33,13 @@ public final class PacketRegistry {
     public static final String INDEX = "META-INF/sdmal/network-packets";
 
     /**
-     * Maximum complete logical frame, below the legacy 32767-byte C2S payload limit.
+     * Maximum native frame, below the legacy 32767-byte C2S payload limit.
      */
     public static final int MAX_BYTES = 30 * 1024;
+    /**
+     * Maximum assembled logical packet before fragmentation; bounds allocations from hostile peers.
+     */
+    public static final int MAX_LOGICAL_BYTES = 32 * 1024 * 1024;
 
     /**
      * Framing version independent of individual field schemas.
@@ -123,7 +127,7 @@ public final class PacketRegistry {
      */
     public byte[] encode(Packet packet, Side side) {
         var entry = requireEntry(packet, side);
-        var buffer = new FriendlyByteBuf(Unpooled.buffer(256, MAX_BYTES));
+        var buffer = new FriendlyByteBuf(Unpooled.buffer(256, MAX_LOGICAL_BYTES));
         try {
             buffer.writeByte(VERSION);
             buffer.writeUtf(entry.id, 256);
@@ -174,7 +178,7 @@ public final class PacketRegistry {
      * @return fully decoded message
      */
     public Packet decode(byte[] frame, Side side) {
-        if (frame.length == 0 || frame.length > MAX_BYTES)
+        if (frame.length == 0 || frame.length > MAX_LOGICAL_BYTES)
             throw new IllegalArgumentException("Invalid packet frame size: " + frame.length);
         var buffer = new FriendlyByteBuf(Unpooled.wrappedBuffer(frame));
         try {

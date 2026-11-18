@@ -14,6 +14,11 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
  * Modern NeoForge payload registration and native play transport.
  */
 public final class NeoForgeNetwork implements NetworkRuntime.Transport {
+    /** @return local client connection; unavailable in a dedicated-server process */
+    @Override public NetworkRuntime.ClientConnection serverConnection() {
+        if (!client) throw new IllegalStateException("No local NeoForge client connection");
+        return dev.sixik.sdmal.core.network.ClientNetwork.serverConnection();
+    }
     /**
      * Whether this process has a physical client, captured without loading client classes.
      */
@@ -53,7 +58,7 @@ public final class NeoForgeNetwork implements NetworkRuntime.Transport {
                                     side,
                                     () -> connection.isConnected() ? context.player() : null,
                                     context::enqueueWork,
-                                    reason -> context.disconnect(Component.literal(reason)));
+                                    reason -> context.disconnect(Component.literal(reason)), connection);
                         });
     }
 

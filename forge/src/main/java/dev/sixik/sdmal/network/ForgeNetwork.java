@@ -21,6 +21,12 @@ import net.minecraftforge.network.NetworkEvent;
  * Forge native envelope transport, registered once during common setup.
  */
 public final class ForgeNetwork implements NetworkRuntime.Transport {
+    /** @return local client connection; unavailable in a dedicated-server process */
+    @Override public NetworkRuntime.ClientConnection serverConnection() {
+        if (!net.minecraftforge.fml.loading.FMLEnvironment.dist.isClient())
+            throw new IllegalStateException("No local Forge client connection");
+        return ClientNetwork.serverConnection();
+    }
     /**
      * Native channel; logical ids are carried inside each frame.
      */

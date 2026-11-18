@@ -23,33 +23,47 @@ import javax.tools.StandardLocation;
  */
 @SupportedAnnotationTypes("*")
 public final class EcsComponentProcessor extends AbstractProcessor {
-    /** Fully qualified annotation name resolved from the consumer's compilation classpath. */
+    /**
+     * Fully qualified annotation name resolved from the consumer's compilation classpath.
+     */
     private static final String ANNOTATION = "dev.sixik.sdmal.api.ecs.annotations.EcsComponent";
-    /** Service interface implemented by every automatically registered component. */
+    /**
+     * Service interface implemented by every automatically registered component.
+     */
     private static final String SERVICE = "dev.sixik.sdmal.api.ecs.WorldObjectComponent";
-    /** Sorted provider names with originating types, accumulated across processing rounds. */
+    /**
+     * Sorted provider names with originating types, accumulated across processing rounds.
+     */
     private final Map<String, TypeElement> components = new TreeMap<>();
-    /** Stable ids already used within this compilation, for duplicate diagnostics. */
+    /**
+     * Stable ids already used within this compilation, for duplicate diagnostics.
+     */
     private final Map<String, TypeElement> ids = new TreeMap<>();
-    /** Whether a validation error prevents publishing a partial service index. */
+    /**
+     * Whether a validation error prevents publishing a partial service index.
+     */
     private boolean invalid;
 
     /**
      * Supports the compiler invoking the processor, without limiting consumers to Java 17 syntax.
+     *
      * @return latest source version supported by the running JDK
      */
-    @Override public SourceVersion getSupportedSourceVersion() {
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
         return SourceVersion.latestSupported();
     }
 
     /**
      * Collects annotated types and writes one deterministic service descriptor after the final round.
      * Other processors, including Mixin's processor, remain free to process all annotations.
+     *
      * @param annotations annotations visible in the current round
-     * @param round current compilation round and its annotated elements
+     * @param round       current compilation round and its annotated elements
      * @return false because annotations are observed without claiming them
      */
-    @Override public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment round) {
+    @Override
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment round) {
         TypeElement annotation = processingEnv.getElementUtils().getTypeElement(ANNOTATION);
         if (annotation == null) return false;
         if (round.processingOver()) {
@@ -62,6 +76,7 @@ public final class EcsComponentProcessor extends AbstractProcessor {
 
     /**
      * Validates service visibility, component inheritance, constructor and stable identifier.
+     *
      * @param element annotated declaration from the compiler, never null
      */
     private void collect(Element element) {
@@ -88,8 +103,8 @@ public final class EcsComponentProcessor extends AbstractProcessor {
             return;
         }
         boolean constructor = ElementFilter.constructorsIn(type.getEnclosedElements()).stream()
-            .anyMatch(candidate -> candidate.getParameters().isEmpty()
-                && candidate.getModifiers().contains(Modifier.PUBLIC));
+                .anyMatch(candidate -> candidate.getParameters().isEmpty()
+                        && candidate.getModifiers().contains(Modifier.PUBLIC));
         if (!constructor) {
             error(type, "ServiceLoader requires a public no-argument constructor on @EcsComponent");
             return;
@@ -109,6 +124,7 @@ public final class EcsComponentProcessor extends AbstractProcessor {
 
     /**
      * Reads annotation metadata without loading the consumer's annotation or Minecraft classes.
+     *
      * @param type annotated component type
      * @return configured id, or an empty string for an incompatible annotation declaration
      */
@@ -122,11 +138,13 @@ public final class EcsComponentProcessor extends AbstractProcessor {
         return "";
     }
 
-    /** Writes binary class names to CLASS_OUTPUT; no Java sources or runtime bridge classes are generated. */
+    /**
+     * Writes binary class names to CLASS_OUTPUT; no Java sources or runtime bridge classes are generated.
+     */
     private void writeIndex() {
         try {
             var resource = processingEnv.getFiler().createResource(StandardLocation.CLASS_OUTPUT, "",
-                "META-INF/services/" + SERVICE, components.values().toArray(Element[]::new));
+                    "META-INF/services/" + SERVICE, components.values().toArray(Element[]::new));
             try (var writer = resource.openWriter()) {
                 for (String component : components.keySet()) writer.write(component + "\n");
             }
@@ -137,6 +155,7 @@ public final class EcsComponentProcessor extends AbstractProcessor {
 
     /**
      * Emits a compilation error and suppresses publication of an incomplete descriptor.
+     *
      * @param element offending source element, or null for a file-system failure
      * @param message diagnostic explaining the required correction
      */

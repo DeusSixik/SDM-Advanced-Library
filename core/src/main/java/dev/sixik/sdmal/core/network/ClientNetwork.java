@@ -22,6 +22,20 @@ public final class ClientNetwork {
     }
 
     /**
+     * @return captured current client connection for request correlation, without loading this class on a server
+     */
+    public static NetworkRuntime.ClientConnection serverConnection() {
+        var client = Minecraft.getInstance();
+        var listener = client.getConnection();
+        if (listener == null) throw new IllegalStateException("No active client play connection");
+        var connection = listener.getConnection();
+        return new NetworkRuntime.ClientConnection(connection, () -> {
+            var current = client.getConnection();
+            return connection.isConnected() && current != null && current.getConnection() == connection;
+        });
+    }
+
+    /**
      * Drops queued work after disconnect or connection replacement.
      *
      * @param frame      owned received frame
@@ -41,6 +55,6 @@ public final class ClientNetwork {
                     return client.player;
                 },
                 executor,
-                reason -> connection.disconnect(Component.literal(reason)));
+                reason -> connection.disconnect(Component.literal(reason)), connection);
     }
 }

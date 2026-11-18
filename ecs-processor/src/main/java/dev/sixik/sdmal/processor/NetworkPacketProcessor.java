@@ -60,7 +60,7 @@ public final class NetworkPacketProcessor extends AbstractProcessor {
      * Observes packet declarations and writes even an empty index when the final packet is removed.
      *
      * @param annotations annotations in this round
-     * @param round compiler round
+     * @param round       compiler round
      * @return false so other processors can inspect the same declarations
      */
     @Override
@@ -83,7 +83,7 @@ public final class NetworkPacketProcessor extends AbstractProcessor {
     private void collect(Element element) {
         if (!(element instanceof TypeElement type)
                 || (element.getKind() != ElementKind.CLASS
-                        && element.getKind() != ElementKind.RECORD)
+                && element.getKind() != ElementKind.RECORD)
                 || element.getModifiers().contains(Modifier.ABSTRACT)) {
             error(
                     element,
@@ -101,8 +101,8 @@ public final class NetworkPacketProcessor extends AbstractProcessor {
             return;
         }
         for (Element enclosing = type;
-                enclosing instanceof TypeElement;
-                enclosing = enclosing.getEnclosingElement()) {
+             enclosing instanceof TypeElement;
+             enclosing = enclosing.getEnclosingElement()) {
             if (!enclosing.getModifiers().contains(Modifier.PUBLIC)) {
                 error(type, "Indexed packets and enclosing classes must be public");
                 return;

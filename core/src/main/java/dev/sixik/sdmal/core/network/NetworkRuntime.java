@@ -19,12 +19,21 @@ import java.util.RandomAccess;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.BooleanSupplier;
 
 /**
  * Loader bridge; application code uses Packet and PacketContext.
  */
 @ApiStatus.Internal
 public final class NetworkRuntime {
+    /**
+     * Direct native frame limit, including fragmentation headers.
+     */
+    public static final int MAX_FRAME_BYTES = PacketRegistry.MAX_BYTES;
+    /**
+     * Maximum logical message assembled before decoding.
+     */
+    public static final int MAX_LOGICAL_BYTES = PacketRegistry.MAX_LOGICAL_BYTES;
     /**
      * Installed native loader transport, visible to sending threads after initialization.
      */
@@ -55,6 +64,29 @@ public final class NetworkRuntime {
          * @param frame  shared read-only CLIENT snapshot; must not be modified by the transport
          */
         void toPlayer(ServerPlayer player, byte[] frame);
+
+        /**
+         * @return current local client's connection binding; unavailable on a dedicated server
+         */
+        default ClientConnection serverConnection() {
+            throw new IllegalStateException("No local client play connection");
+        }
+    }
+
+    /**
+     * Captured client connection identity and a liveness check that also rejects reconnection.
+     *
+     * @param identity  native Connection instance
+     * @param connected true only while this exact connection remains active
+     */
+    public record ClientConnection(Object identity, BooleanSupplier connected) {
+        /**
+         * @param identity native connection @param connected exact-connection liveness check
+         */
+        public ClientConnection {
+            Objects.requireNonNull(identity, "identity");
+            Objects.requireNonNull(connected, "connected");
+        }
     }
 
     /**
@@ -66,6 +98,7 @@ public final class NetworkRuntime {
         if (transport != null)
             throw new IllegalStateException("Network transport already installed");
         registry = PacketRegistry.discover(NetworkRuntime.class.getClassLoader());
+        AsyncRequestRuntime.install(NetworkRuntime.class.getClassLoader());
         transport = Objects.requireNonNull(nativeTransport, "nativeTransport");
         SDMAdvancedLibrary.LOGGER.info("Indexed {} automatic network packets", registry.size());
     }
@@ -76,8 +109,8 @@ public final class NetworkRuntime {
      * @param packet SERVER message
      */
     public static void sendToServer(Packet packet) {
-        var nativeTransport = requireTransport();
-        nativeTransport.toServer(registry.encode(packet, Side.SERVER));
+        requireTransport();
+        sendRawToServer(registry.encode(packet, Side.SERVER));
     }
 
     /**
@@ -88,8 +121,49 @@ public final class NetworkRuntime {
      */
     public static void sendToPlayer(Packet packet, Player player) {
         var recipient = requireRecipient(player);
+        requireTransport();
+        sendRawToPlayer(recipient, registry.encode(packet, Side.CLIENT));
+    }
+
+    /**
+     * Sends an already encoded logical frame, fragmenting it when the loader frame limit is exceeded.
+     */
+    static void sendRawToServer(byte[] frame) {
         var nativeTransport = requireTransport();
-        nativeTransport.toPlayer(recipient, registry.encode(packet, Side.CLIENT));
+        NetworkFragmentation.send(frame, nativeTransport::toServer);
+    }
+
+    /**
+     * Sends an already encoded logical frame to one recipient, fragmenting it when required.
+     */
+    static void sendRawToPlayer(ServerPlayer player, byte[] frame) {
+        var nativeTransport = requireTransport();
+        NetworkFragmentation.send(frame, part -> nativeTransport.toPlayer(player, part));
+    }
+
+    /**
+     * @return connection-bound client endpoint for a new C2S request
+     */
+    static NetworkPeer serverPeer() {
+        var nativeTransport = requireTransport();
+        var connection = nativeTransport.serverConnection();
+        return new NetworkPeer(Side.CLIENT, connection.identity(), connection.connected(),
+                frame -> NetworkFragmentation.send(frame, nativeTransport::toServer));
+    }
+
+    /**
+     * @param player connected recipient @return connection-bound server endpoint for a new S2C request
+     */
+    static NetworkPeer playerPeer(ServerPlayer player) {
+        var nativeTransport = requireTransport();
+        var listener = Objects.requireNonNull(player.connection, "Player has no play connection");
+        return new NetworkPeer(Side.SERVER, listener, () -> {
+            //? if >=1.20 {
+            return player.connection == listener && listener.isAcceptingMessages();
+            //?} else {
+            /*return player.connection == listener && listener.connection.isConnected();
+             *///?}
+        }, frame -> NetworkFragmentation.send(frame, part -> nativeTransport.toPlayer(player, part)));
     }
 
     /**
@@ -118,8 +192,10 @@ public final class NetworkRuntime {
             return;
         }
         var frame = registry.encode(packet, Side.CLIENT);
-        for (int index = 0; index < players.length; index++)
-            nativeTransport.toPlayer((ServerPlayer) players[index], frame);
+        for (int index = 0; index < players.length; index++) {
+            var recipient = (ServerPlayer) players[index];
+            sendEncoded(nativeTransport, recipient, frame);
+        }
     }
 
     /**
@@ -142,7 +218,7 @@ public final class NetworkRuntime {
             return;
         }
         var frame = registry.encode(packet, Side.CLIENT);
-        for (var player : players) nativeTransport.toPlayer((ServerPlayer) player, frame);
+        for (var player : players) sendEncoded(nativeTransport, (ServerPlayer) player, frame);
     }
 
     /**
@@ -160,8 +236,21 @@ public final class NetworkRuntime {
             return;
         }
         var frame = registry.encode(packet, Side.CLIENT);
-        for (int index = 0; index < count; index++)
-            nativeTransport.toPlayer((ServerPlayer) players.get(index), frame);
+        for (int index = 0; index < count; index++) {
+            var recipient = (ServerPlayer) players.get(index);
+            sendEncoded(nativeTransport, recipient, frame);
+        }
+    }
+
+    /**
+     * @param nativeTransport installed native sender @param player recipient @param frame shared encoded message
+     */
+    private static void sendEncoded(Transport nativeTransport, ServerPlayer player, byte[] frame) {
+        if (frame.length <= MAX_FRAME_BYTES) {
+            nativeTransport.toPlayer(player, frame);
+            return;
+        }
+        NetworkFragmentation.send(frame, part -> nativeTransport.toPlayer(player, part));
     }
 
     /**
@@ -193,7 +282,7 @@ public final class NetworkRuntime {
      * @return bounded logical frame
      */
     public static byte[] readFrame(FriendlyByteBuf buffer) {
-        var frame = buffer.readByteArray(PacketRegistry.MAX_BYTES);
+        var frame = buffer.readByteArray(MAX_FRAME_BYTES);
         if (buffer.isReadable())
             throw new IllegalArgumentException("Trailing bytes in native SDMAL payload");
         return frame;
@@ -206,7 +295,7 @@ public final class NetworkRuntime {
      * @param frame  owned logical frame
      */
     public static void writeFrame(FriendlyByteBuf buffer, byte[] frame) {
-        if (frame.length == 0 || frame.length > PacketRegistry.MAX_BYTES)
+        if (frame.length == 0 || frame.length > MAX_FRAME_BYTES)
             throw new IllegalArgumentException("Invalid frame size");
         buffer.writeByteArray(frame);
     }
@@ -233,6 +322,21 @@ public final class NetworkRuntime {
     }
 
     /**
+     * Supplies a captured client Connection so asynchronous replies cannot target a replacement connection.
+     *
+     * @param frame            native frame
+     * @param side             receiving side
+     * @param player           connection-bound player lookup
+     * @param executor         game executor
+     * @param reject           malformed input callback
+     * @param clientConnection native receiving connection; server endpoints use their player listener
+     */
+    public static void receive(byte[] frame, Side side, Supplier<Player> player, Executor executor,
+                               Consumer<String> reject, Object clientConnection) {
+        dispatch(registry, frame, side, player, executor, reject, clientConnection);
+    }
+
+    /**
      * Executes a receive against a particular registry; also used by transport-independent tests.
      *
      * @param packets  logical formats
@@ -249,13 +353,59 @@ public final class NetworkRuntime {
             Supplier<Player> player,
             Executor executor,
             Consumer<String> reject) {
+        dispatch(packets, frame, side, player, executor, reject, null);
+    }
+
+    /**
+     * @param packets          discovered packet metadata
+     * @param frame            native frame
+     * @param side             receiving side
+     * @param player           connection-bound player lookup
+     * @param executor         game executor
+     * @param reject           malformed input callback
+     * @param clientConnection captured client connection or null for ordinary test dispatch
+     */
+    static void dispatch(PacketRegistry packets, byte[] frame, Side side, Supplier<Player> player,
+                         Executor executor, Consumer<String> reject, Object clientConnection) {
         executor.execute(
                 () -> {
                     var recipient = player.get();
                     if (recipient == null) return;
+                    byte[] assembled;
+                    try {
+                        Object identity = side == Side.SERVER && recipient instanceof ServerPlayer serverPlayer
+                                ? serverPlayer.connection : clientConnection == null ? recipient : clientConnection;
+                        if (identity == null) identity = recipient;
+                        final Object capturedIdentity = identity;
+                        NetworkPeer peer = new NetworkPeer(side, identity, () -> {
+                            var current = player.get();
+                            return current != null && (side != Side.SERVER || ((ServerPlayer) current).connection == capturedIdentity);
+                        }, bytes -> {
+                            var current = player.get();
+                            if (current == null) throw new IllegalStateException("Play connection closed");
+                            if (side == Side.SERVER) sendRawToPlayer((ServerPlayer) current, bytes);
+                            else {
+                                var binding = requireTransport().serverConnection();
+                                if (binding.identity() != capturedIdentity || !binding.connected().getAsBoolean())
+                                    throw new IllegalStateException("Client play connection changed");
+                                sendRawToServer(bytes);
+                            }
+                        });
+                        assembled = NetworkFragmentation.accept(frame, peer);
+                        if (assembled == null) return;
+                        if (AsyncEnvelope.is(assembled)) {
+                            AsyncRequestRuntime.receive(assembled, peer, recipient, executor, reject);
+                            return;
+                        }
+                    } catch (RuntimeException failure) {
+                        SDMAdvancedLibrary.LOGGER.warn(
+                                "Rejected SDMAL packet on {}: {}", side, failure.getMessage());
+                        reject.accept("Invalid or incompatible SDMAL packet");
+                        return;
+                    }
                     Packet packet;
                     try {
-                        packet = packets.decode(frame, side);
+                        packet = packets.decode(assembled, side);
                     } catch (RuntimeException failure) {
                         SDMAdvancedLibrary.LOGGER.warn(
                                 "Rejected SDMAL packet on {}: {}", side, failure.getMessage());

@@ -18,6 +18,11 @@ import net.minecraft.server.level.ServerPlayer;
  * Fabric native play transport for automatically indexed messages.
  */
 public final class FabricNetwork implements NetworkRuntime.Transport {
+    /** @return exact local client connection; invoked only for client-originated requests */
+    @Override public NetworkRuntime.ClientConnection serverConnection() {
+        if (clientSender == null) throw new IllegalStateException("No local Fabric client transport");
+        return dev.sixik.sdmal.core.network.ClientNetwork.serverConnection();
+    }
     /**
      * Client sender installed only by the client initializer.
      */

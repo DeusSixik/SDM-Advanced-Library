@@ -66,7 +66,7 @@ public final class ContentProcessor extends AbstractProcessor {
      * Collects declarations without claiming annotations used by other processors.
      *
      * @param annotations annotations in the current round
-     * @param round compiler processing round
+     * @param round       compiler processing round
      * @return false to permit other processors
      */
     @Override
@@ -96,8 +96,8 @@ public final class ContentProcessor extends AbstractProcessor {
             return;
         }
         for (Element enclosing = type;
-                enclosing instanceof TypeElement;
-                enclosing = enclosing.getEnclosingElement()) {
+             enclosing instanceof TypeElement;
+             enclosing = enclosing.getEnclosingElement()) {
             if (!enclosing.getModifiers().contains(Modifier.PUBLIC)) {
                 error(type, "Content and enclosing classes must be public");
                 return;
@@ -123,7 +123,7 @@ public final class ContentProcessor extends AbstractProcessor {
             error(
                     type,
                     "Content id/tab must be lowercase namespaced identifiers of at most 256"
-                        + " characters");
+                            + " characters");
             return;
         }
         if (kind == 3 && !tab.isEmpty()) {
@@ -133,36 +133,33 @@ public final class ContentProcessor extends AbstractProcessor {
         var properties = "net.minecraft.world.item.Item.Properties";
         boolean validConstructor =
                 switch (kind) {
-                    case 0 ->
-                            inherits(type, "net.minecraft.world.item.BlockItem")
-                                    ? hasConstructor(
-                                            type,
-                                            "net.minecraft.world.level.block.Block",
-                                            properties)
-                                    : hasConstructor(type, properties);
-                    case 1 ->
-                            hasConstructor(
-                                    type,
-                                    "net.minecraft.world.level.block.state.BlockBehaviour.Properties");
-                    case 2 ->
-                            hasConstructor(
-                                            type,
-                                            "net.minecraft.world.level.block.entity.BlockEntityType",
-                                            "net.minecraft.core.BlockPos",
-                                            "net.minecraft.world.level.block.state.BlockState")
-                                    || hasConstructor(
-                                            type,
-                                            "net.minecraft.core.BlockPos",
-                                            "net.minecraft.world.level.block.state.BlockState");
+                    case 0 -> inherits(type, "net.minecraft.world.item.BlockItem")
+                            ? hasConstructor(
+                            type,
+                            "net.minecraft.world.level.block.Block",
+                            properties)
+                            : hasConstructor(type, properties);
+                    case 1 -> hasConstructor(
+                            type,
+                            "net.minecraft.world.level.block.state.BlockBehaviour.Properties");
+                    case 2 -> hasConstructor(
+                            type,
+                            "net.minecraft.world.level.block.entity.BlockEntityType",
+                            "net.minecraft.core.BlockPos",
+                            "net.minecraft.world.level.block.state.BlockState")
+                            || hasConstructor(
+                            type,
+                            "net.minecraft.core.BlockPos",
+                            "net.minecraft.world.level.block.state.BlockState");
                     default -> hasConstructor(type);
                 };
         if (!validConstructor) {
             error(
                     type,
                     "Unsupported public content constructor: use Item.Properties,"
-                        + " BlockBehaviour.Properties, (Block, Item.Properties) for BlockItem,"
-                        + " (BlockEntityType, BlockPos, BlockState) for BlockEntity, or noargs for"
-                        + " ContentTab");
+                            + " BlockBehaviour.Properties, (Block, Item.Properties) for BlockItem,"
+                            + " (BlockEntityType, BlockPos, BlockState) for BlockEntity, or noargs for"
+                            + " ContentTab");
             return;
         }
         var previous = ids.putIfAbsent(kind + ":" + id, type);
@@ -182,23 +179,23 @@ public final class ContentProcessor extends AbstractProcessor {
      * @param type tested class
      * @param base base type name
      * @return whether type implements/extends
-     *     base
+     * base
      */
     private boolean inherits(TypeElement type, String base) {
         var parent = processingEnv.getElementUtils().getTypeElement(base);
         return parent != null
                 && processingEnv
-                        .getTypeUtils()
-                        .isAssignable(
-                                processingEnv.getTypeUtils().erasure(type.asType()),
-                                processingEnv.getTypeUtils().erasure(parent.asType()));
+                .getTypeUtils()
+                .isAssignable(
+                        processingEnv.getTypeUtils().erasure(type.asType()),
+                        processingEnv.getTypeUtils().erasure(parent.asType()));
     }
 
     /**
-     * @param type concrete class
+     * @param type       concrete class
      * @param parameters exact erased parameter names
      * @return whether a
-     *     matching public constructor exists
+     * matching public constructor exists
      */
     private boolean hasConstructor(TypeElement type, String... parameters) {
         for (var constructor : ElementFilter.constructorsIn(type.getEnclosedElements())) {
@@ -221,10 +218,10 @@ public final class ContentProcessor extends AbstractProcessor {
     }
 
     /**
-     * @param type annotated class
+     * @param type   annotated class
      * @param member annotation attribute
      * @return textual annotation
-     *     value
+     * value
      */
     private String value(TypeElement type, String member) {
         for (var annotation : type.getAnnotationMirrors()) {
