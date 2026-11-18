@@ -1,11 +1,11 @@
 package dev.sixik.sdmal.impl.mixin.client.ecs;
 
 import dev.sixik.sdmal.SDMAdvancedLibrary;
-import dev.sixik.sdmal.api.ecs.WorldObjectException;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
-import dev.sixik.sdmal.api.ecs.minecraft.LevelObjectManager;
-import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
-import dev.sixik.sdmal.impl.ecs.WorldObjectTicker;
+import dev.sixik.sdmal.api.ecs.EcsObjectException;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsAccess;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsManagers;
+import dev.sixik.sdmal.impl.ecs.EcsObjectTicker;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,7 +27,7 @@ public final class Mixin$ECS$ClientLevel$tick {
         boolean running = true;
         //? if >=1.20.3
         //running = level.tickRateManager().runsNormally();
-        WorldObjectTicker.begin(LevelObjectManager.getManager(level), running);
+        EcsObjectTicker.begin(LevelEcsAccess.getManager(level), running);
     }
 
     /**
@@ -38,14 +38,14 @@ public final class Mixin$ECS$ClientLevel$tick {
     @Inject(method = "tickEntities", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/client/multiplayer/ClientLevel;tickBlockEntities()V"))
     private void sdm$normalTick(CallbackInfo ci) {
-        WorldObjectTicker.normal(LevelObjectManager.getManager((Level) (Object) this));
+        EcsObjectTicker.normal(LevelEcsAccess.getManager((Level) (Object) this));
     }
     //?}
 
     /**
      * Runs ECS objects after vanilla has processed this client world.
      *
-     * <p>Failures are logged after {@link WorldObjectManager} has attempted every
+     * <p>Failures are logged after {@link EcsObjectManager} has attempted every
      * object. A faulty ECS component therefore does not abort the Minecraft tick.
      *
      * @param ci callback state supplied by Mixin
@@ -56,7 +56,7 @@ public final class Mixin$ECS$ClientLevel$tick {
         boolean running = true;
         //? if >=1.20.3
         //running = level.tickRateManager().runsNormally();
-        WorldObjectTicker.tick(LevelObjectManager.getManager(level), running);
+        EcsObjectTicker.tick(LevelEcsAccess.getManager(level), running);
     }
 
     /**
@@ -69,8 +69,8 @@ public final class Mixin$ECS$ClientLevel$tick {
     @Inject(method = "disconnect", at = @At("TAIL"))
     private void sdm$disconnect(CallbackInfo ci) {
         try {
-            WorldObjectManagerApi.unregisterWorld((Level) (Object) this);
-        } catch (WorldObjectException failure) {
+            LevelEcsManagers.unregisterWorld((Level) (Object) this);
+        } catch (EcsObjectException failure) {
             SDMAdvancedLibrary.LOGGER.error("ECS client-world cleanup failed", failure);
         }
     }

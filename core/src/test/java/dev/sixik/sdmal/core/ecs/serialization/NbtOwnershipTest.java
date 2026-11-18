@@ -2,7 +2,7 @@ package dev.sixik.sdmal.core.ecs.serialization;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.Component;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
 import dev.sixik.sdmal.api.ecs.serialization.EcsSerializer;
 import dev.sixik.sdmal.api.ecs.serialization.EcsSerializers;
@@ -137,7 +137,7 @@ class NbtOwnershipTest {
     /**
      * Structural list adapter wrapping a custom element adapter.
      */
-    private static final class Container extends AnnotatedWorldObjectComponent {
+    private static final class Container extends Component {
         /**
          * Nullable nested values; default is an empty immutable list.
          */

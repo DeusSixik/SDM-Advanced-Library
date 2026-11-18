@@ -2,10 +2,10 @@ package dev.sixik.sdmal.core.ecs.serialization;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentType;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.Component;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.ComponentType;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
 import dev.sixik.sdmal.api.ecs.annotations.EcsData;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
 import dev.sixik.sdmal.api.ecs.annotations.EcsUseAdapter;
@@ -247,7 +247,7 @@ class EcsSerializersTest {
     @ParameterizedTest
     @MethodSource("invalidComponents")
     void schema_invalidMembers_reportsClassAndRejects(
-            Class<? extends AnnotatedWorldObjectComponent> type) {
+            Class<? extends Component> type) {
         var failure =
                 assertThrows(
                         EcsSerializationException.class,
@@ -258,7 +258,7 @@ class EcsSerializersTest {
     /**
      * @return distinct invalid field/schema declarations
      */
-    private static List<Class<? extends AnnotatedWorldObjectComponent>> invalidComponents() {
+    private static List<Class<? extends Component>> invalidComponents() {
         return List.of(
                 StaticField.class,
                 FinalField.class,
@@ -414,17 +414,17 @@ class EcsSerializersTest {
     @Test
     void worldArchive_annotationsIntegrateWithMigrationAndQuarantine() {
         String id = "test:annotated_" + UUID.randomUUID();
-        var registry = WorldObjectComponentRegistry.instance();
+        var registry = ComponentRegistry.instance();
         var type =
                 registry.register(
-                        new WorldObjectComponentType<>(
+                        new ComponentType<>(
                                 id,
                                 MigratingComponent.class,
-                                WorldObjectComponentType.DuplicatePolicy.REJECT,
+                                ComponentType.DuplicatePolicy.REJECT,
                                 MigratingComponent::new));
-        try (var source = new WorldObjectManager();
-                var restored = new WorldObjectManager();
-                var rejected = new WorldObjectManager()) {
+        try (var source = new EcsObjectManager();
+                var restored = new EcsObjectManager();
+                var rejected = new EcsObjectManager()) {
             var object = source.create();
             var component = object.attach(new MigratingComponent(), type);
             component.energy = 7;
@@ -460,13 +460,13 @@ class EcsSerializersTest {
      */
     @Test
     void registry_invalidAnnotatedComponent_rejectsBeforeInstallation() {
-        var registry = WorldObjectComponentRegistry.instance();
+        var registry = ComponentRegistry.instance();
         String id = "test:invalid_" + UUID.randomUUID();
         var type =
-                new WorldObjectComponentType<>(
+                new ComponentType<>(
                         id,
                         ObjectField.class,
-                        WorldObjectComponentType.DuplicatePolicy.REJECT,
+                        ComponentType.DuplicatePolicy.REJECT,
                         ObjectField::new);
         assertThrows(EcsSerializationException.class, () -> registry.register(type));
         assertTrue(registry.get(id).isEmpty());
@@ -480,7 +480,7 @@ class EcsSerializersTest {
      */
     @Test
     void component_attachedOutsideOwnerThread_rejectsPersistence() throws Exception {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var component = manager.create().attach(new PlainComponent());
             var executor = Executors.newSingleThreadExecutor();
             try {
@@ -516,7 +516,7 @@ class EcsSerializersTest {
     /**
      * Primitive/private component fixture with constructor defaults and an unpersisted cache.
      */
-    private static final class PlainComponent extends AnnotatedWorldObjectComponent {
+    private static final class PlainComponent extends Component {
         /**
          * Remaining energy, initially 100 units.
          */
@@ -573,7 +573,7 @@ class EcsSerializersTest {
     /**
      * Nested generic collection fixture.
      */
-    private static final class GenericComponent extends AnnotatedWorldObjectComponent {
+    private static final class GenericComponent extends Component {
         /**
          * Nullable record elements.
          */
@@ -604,7 +604,7 @@ class EcsSerializersTest {
      *
      * @param <T> specialized by a concrete component subclass
      */
-    private abstract static class GenericBase<T> extends AnnotatedWorldObjectComponent {
+    private abstract static class GenericBase<T> extends Component {
         /**
          * Private value whose generic type is resolved from the concrete subclass.
          */
@@ -708,7 +708,7 @@ class EcsSerializersTest {
     /**
      * Global adapter and field-local override fixture.
      */
-    private static final class CustomComponent extends AnnotatedWorldObjectComponent {
+    private static final class CustomComponent extends Component {
         /**
          * Globally registered representation.
          */
@@ -772,7 +772,7 @@ class EcsSerializersTest {
     /**
      * Retryable initialization failure fixture.
      */
-    private static final class LateComponent extends AnnotatedWorldObjectComponent {
+    private static final class LateComponent extends Component {
         /**
          * Value requiring a later registration.
          */
@@ -793,7 +793,7 @@ class EcsSerializersTest {
     /**
      * Mutable NBT payload fixture.
      */
-    private static final class TagComponent extends AnnotatedWorldObjectComponent {
+    private static final class TagComponent extends Component {
         /**
          * Owned nested mutable compound.
          */
@@ -804,7 +804,7 @@ class EcsSerializersTest {
     /**
      * Component exercising the existing component-version migration contract.
      */
-    private static final class MigratingComponent extends AnnotatedWorldObjectComponent {
+    private static final class MigratingComponent extends Component {
         /**
          * Current energy amount in arbitrary units.
          */
@@ -888,7 +888,7 @@ class EcsSerializersTest {
     /**
      * Invalid static state is not per-component.
      */
-    private static final class StaticField extends AnnotatedWorldObjectComponent {
+    private static final class StaticField extends Component {
         /**
          * Invalid static member.
          */
@@ -899,7 +899,7 @@ class EcsSerializersTest {
     /**
      * Final component fields cannot be restored.
      */
-    private static final class FinalField extends AnnotatedWorldObjectComponent {
+    private static final class FinalField extends Component {
         /**
          * Invalid final member.
          */
@@ -910,7 +910,7 @@ class EcsSerializersTest {
     /**
      * Transient and persist annotations conflict.
      */
-    private static final class TransientField extends AnnotatedWorldObjectComponent {
+    private static final class TransientField extends Component {
         /**
          * Invalid transient member.
          */
@@ -921,7 +921,7 @@ class EcsSerializersTest {
     /**
      * Blank keys are not a stable schema.
      */
-    private static final class BlankKey extends AnnotatedWorldObjectComponent {
+    private static final class BlankKey extends Component {
         /**
          * Invalid empty key.
          */
@@ -932,7 +932,7 @@ class EcsSerializersTest {
     /**
      * Two fields may not share one persisted key.
      */
-    private static final class DuplicateKey extends AnnotatedWorldObjectComponent {
+    private static final class DuplicateKey extends Component {
         /**
          * First conflicting field.
          */
@@ -949,7 +949,7 @@ class EcsSerializersTest {
     /**
      * Adapter selection requires persistence opt-in.
      */
-    private static final class MissingPersist extends AnnotatedWorldObjectComponent {
+    private static final class MissingPersist extends Component {
         /**
          * Invalid annotation combination.
          */
@@ -960,7 +960,7 @@ class EcsSerializersTest {
     /**
      * Raw collections erase their element schema.
      */
-    private static final class RawList extends AnnotatedWorldObjectComponent {
+    private static final class RawList extends Component {
         /**
          * Invalid raw generic member.
          */
@@ -972,7 +972,7 @@ class EcsSerializersTest {
     /**
      * Wildcards cannot define a concrete on-disk representation.
      */
-    private static final class WildcardList extends AnnotatedWorldObjectComponent {
+    private static final class WildcardList extends Component {
         /**
          * Invalid wildcard element.
          */
@@ -983,7 +983,7 @@ class EcsSerializersTest {
     /**
      * Unrestricted Object graphs have no known value representation.
      */
-    private static final class ObjectField extends AnnotatedWorldObjectComponent {
+    private static final class ObjectField extends Component {
         /**
          * Unsupported arbitrary object.
          */
@@ -994,7 +994,7 @@ class EcsSerializersTest {
     /**
      * An override must match the exact member type.
      */
-    private static final class WrongOverride extends AnnotatedWorldObjectComponent {
+    private static final class WrongOverride extends Component {
         /**
          * Foreign adapter cannot encode an integer.
          */
@@ -1014,7 +1014,7 @@ class EcsSerializersTest {
     /**
      * Recursive graph fixture.
      */
-    private static final class RecursiveComponent extends AnnotatedWorldObjectComponent {
+    private static final class RecursiveComponent extends Component {
         /**
          * Unsupported automatic recursive schema.
          */
@@ -1033,7 +1033,7 @@ class EcsSerializersTest {
     /**
      * Incomplete record schema fixture.
      */
-    private static final class UnannotatedRecordComponent extends AnnotatedWorldObjectComponent {
+    private static final class UnannotatedRecordComponent extends Component {
         /**
          * Record missing an explicit stable key.
          */

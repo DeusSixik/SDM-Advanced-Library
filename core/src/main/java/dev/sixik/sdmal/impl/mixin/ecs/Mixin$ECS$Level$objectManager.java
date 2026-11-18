@@ -1,10 +1,10 @@
 package dev.sixik.sdmal.impl.mixin.ecs;
 
 import dev.sixik.sdmal.SDMAdvancedLibrary;
-import dev.sixik.sdmal.api.ecs.WorldObjectException;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
-import dev.sixik.sdmal.api.ecs.minecraft.LevelObjectManager;
-import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
+import dev.sixik.sdmal.api.ecs.EcsObjectException;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsAccess;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsManagers;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -14,11 +14,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** Associates each Minecraft world with its own ECS manager. */
 @Mixin(Level.class)
-public class Mixin$ECS$Level$objectManager implements LevelObjectManager {
+public class Mixin$ECS$Level$objectManager implements LevelEcsAccess {
 
     /** Manager registered after construction; null before the constructor callback. */
     @Unique
-    private WorldObjectManager sdm$manager;
+    private EcsObjectManager sdm$manager;
 
     /**
      * Registers this world after the base constructor has initialized it.
@@ -26,7 +26,7 @@ public class Mixin$ECS$Level$objectManager implements LevelObjectManager {
      */
     @Inject(method = "<init>", at = @At("RETURN"))
     public void sdm$init(CallbackInfo ci) {
-        sdm$manager = WorldObjectManagerApi.registerWorld((Level) (Object) this);
+        sdm$manager = LevelEcsManagers.registerWorld((Level) (Object) this);
 
         SDMAdvancedLibrary.LOGGER.info("World object manager initialized");
     }
@@ -36,7 +36,7 @@ public class Mixin$ECS$Level$objectManager implements LevelObjectManager {
      * @return manager, non-null after the constructor callback
      */
     @Override
-    public WorldObjectManager getManager() {
+    public EcsObjectManager getManager() {
         return sdm$manager;
     }
 
@@ -51,8 +51,8 @@ public class Mixin$ECS$Level$objectManager implements LevelObjectManager {
         }
 
         try {
-            WorldObjectManagerApi.unregisterWorld((Level) (Object) this);
-        } catch (WorldObjectException failure) {
+            LevelEcsManagers.unregisterWorld((Level) (Object) this);
+        } catch (EcsObjectException failure) {
             SDMAdvancedLibrary.LOGGER.error("ECS world cleanup failed", failure);
         }
     }

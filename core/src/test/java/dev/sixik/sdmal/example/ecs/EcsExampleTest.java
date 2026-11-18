@@ -1,7 +1,7 @@
 package dev.sixik.sdmal.example.ecs;
 
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
 import io.netty.buffer.Unpooled;
 import java.util.UUID;
 import net.minecraft.SharedConstants;
@@ -19,24 +19,24 @@ class EcsExampleTest {
     @BeforeAll static void bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap(); }
 
     /** Removes only the example type explicitly registered by each case. */
-    @AfterEach void cleanup() { WorldObjectComponentRegistry.instance().unregister("sdmal_example:generator"); }
+    @AfterEach void cleanup() { ComponentRegistry.instance().unregister("sdmal_example:generator"); }
 
     /** Service discovery is repeatable and runs before durable objects are created. */
     @Test void example_serviceDiscovery_registersBeforeCreatingObject() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             assertThrows(IllegalStateException.class, () -> EcsExample.createGenerator(manager));
             assertEquals(0, manager.size());
-            WorldObjectComponentRegistry.instance().registerServices();
-            WorldObjectComponentRegistry.instance().registerServices();
+            ComponentRegistry.instance().registerServices();
+            ComponentRegistry.instance().registerServices();
             assertEquals(1, EcsExample.createGenerator(manager).size());
         }
     }
 
     /** The archive restores the UUID, record, owner and scheduling while unsaved fields keep constructor defaults. */
     @Test void example_worldArchive_restoresOnlyAnnotatedState() {
-        WorldObjectComponentRegistry.instance().registerServices();
+        ComponentRegistry.instance().registerServices();
         UUID owner = UUID.randomUUID();
-        try (var source = new WorldObjectManager(); var restored = new WorldObjectManager()) {
+        try (var source = new EcsObjectManager(); var restored = new EcsObjectManager()) {
             var object = EcsExample.createGenerator(source);
             var generator = object.getSingle(EcsExample.generatorType()).orElseThrow();
             generator.setOwnerId(owner);
@@ -57,8 +57,8 @@ class EcsExampleTest {
 
     /** Independent snapshot bytes can be dispatched later and change only the mirror's network-selected fields. */
     @Test void example_binarySnapshot_updatesSleepingMirrorWithoutSendingServerOnlyState() {
-        WorldObjectComponentRegistry.instance().registerServices();
-        try (var server = new WorldObjectManager(); var client = new WorldObjectManager()) {
+        ComponentRegistry.instance().registerServices();
+        try (var server = new EcsObjectManager(); var client = new EcsObjectManager()) {
             var object = EcsExample.createGenerator(server);
             var source = object.getSingle(EcsExample.generatorType()).orElseThrow();
             source.setOwnerId(UUID.randomUUID());
@@ -73,7 +73,7 @@ class EcsExampleTest {
                 output.readBytes(snapshot);
             } finally { output.release(); }
 
-            var mirrorObject = new dev.sixik.sdmal.api.ecs.WorldObject(object.id());
+            var mirrorObject = new dev.sixik.sdmal.api.ecs.EcsObject(object.id());
             mirrorObject.setPersistent(false);
             mirrorObject.sleep();
             client.add(mirrorObject);
@@ -94,8 +94,8 @@ class EcsExampleTest {
 
     /** The example's interval, running switch and record validation remain consistent during ordinary ticks. */
     @Test void example_ticksEveryTwentyStepsAndStops_atCapacityOrWhenDisabled() {
-        WorldObjectComponentRegistry.instance().registerServices();
-        try (var manager = new WorldObjectManager()) {
+        ComponentRegistry.instance().registerServices();
+        try (var manager = new EcsObjectManager()) {
             var generator = EcsExample.createGenerator(manager).getSingle(EcsExample.generatorType()).orElseThrow();
             for (int index = 0; index < 2001; index++) manager.tickAll();
             assertEquals(new GeneratorComponent.Battery(100, 100), generator.battery());

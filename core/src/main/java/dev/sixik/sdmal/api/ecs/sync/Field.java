@@ -6,7 +6,7 @@ import java.util.function.UnaryOperator;
 /**
  * A single named value with codec-based copy and equality. No locking, no revision.
  *
- * <p>Базовое поле для однопоточных компонентов ({@code SingleThreadedWorldObjectComponent}): прямой
+ * <p>Базовое поле для однопоточных компонентов ({@code NetworkComponent}): прямой
  * доступ к значению, ноль накладных расходов на синхронизацию. Равенство через {@link
  * FieldCodec#areEqual}, defensive copy через {@link FieldCodec#copy} — та же семантика снапшотов,
  * что и у {@link TrackedField}, но без ревизий и дельт.

@@ -4,11 +4,11 @@ import dev.sixik.sdmal.api.content.ContentTab;
 import dev.sixik.sdmal.api.content.RegisteredEntityBlock;
 import java.lang.invoke.MethodHandle;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.TreeSet;
+import it.unimi.dsi.fastutil.objects.ObjectAVLTreeSet;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -79,27 +79,27 @@ public final class ContentRegistration {
     /**
      * Prepared factories and progressively bound native instances.
      */
-    private final Map<String, Entry> entries = new java.util.TreeMap<>();
+    private final Map<String, Entry> entries = new it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap<>();
     /**
      * Native block identity to its associated block entity factory.
      */
-    private final Map<Block, Entry> byBlock = new IdentityHashMap<>();
+    private final Map<Block, Entry> byBlock = new Reference2ObjectOpenHashMap<>();
     /**
      * Item identity to its ordered creative presentation.
      */
-    private final Map<Item, String> itemTabs = new IdentityHashMap<>();
+    private final Map<Item, String> itemTabs = new Reference2ObjectOpenHashMap<>();
     /**
      * Native tabs, including existing referenced vanilla tabs.
      */
-    private final Map<String, CreativeModeTab> tabs = new HashMap<>();
+    private final Map<String, CreativeModeTab> tabs = new Object2ObjectOpenHashMap<>();
     /**
      * Customization objects for owned tabs, absent for default tabs.
      */
-    private final Map<String, ContentTab> tabConfigurations = new HashMap<>();
+    private final Map<String, ContentTab> tabConfigurations = new Object2ObjectOpenHashMap<>();
     /**
      * Native tabs created by this registration, as opposed to append-only references.
      */
-    private final java.util.Set<String> ownedTabs = new java.util.HashSet<>();
+    private final java.util.Set<String> ownedTabs = new it.unimi.dsi.fastutil.objects.ObjectOpenHashSet<>();
     /**
      * Whether this plan has already been attached to a native lifecycle.
      */
@@ -120,7 +120,7 @@ public final class ContentRegistration {
     public void enlist(Backend backend) {
         if (enlisted) throw new IllegalStateException("Content is already enlisted");
         enlisted = true;
-        var tabIds = new TreeSet<>(plan.entries.keySet());
+        var tabIds = new ObjectAVLTreeSet<>(plan.entries.keySet());
         for (var entry : entries.values()) if (entry.group.get(ContentKind.TAB) != null) tabIds.add(entry.group.id);
         for (var id : tabIds) {
             var entry = entries.get(id);

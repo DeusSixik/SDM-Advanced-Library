@@ -36,6 +36,16 @@ sourceSets {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.runtimeClasspath
     }
+    jmhBaseline {
+        // Historical workload uses the API shipped inside the frozen baseline JAR.
+        compileClasspath = sourceSets.main.compileClasspath + sourceSets.jmh.output +
+                files(rootProject.file('core/src/jmh/resources/baseline/ecs-before-cleanup-1.20.1.jar'))
+    }
+    jmhCollectionsBaseline {
+        // The pre-collections workload retains its original NetworkBehaviour API.
+        compileClasspath = sourceSets.main.compileClasspath + sourceSets.jmh.output +
+                files(rootProject.file('core/src/jmh/resources/collections-baseline/ecs-before-collections-1.20.1.jar'))
+    }
 }
 dependencies {
     jmhImplementation 'org.openjdk.jmh:jmh-core:1.37'
@@ -145,7 +155,7 @@ tasks.register('jmhMultiblock', JavaExec) {
 tasks.register('jmhCleanup', JavaExec) {
     group = 'verification'
     description = 'Compare frozen and current ECS implementations with identical workloads and GC profiling.'
-    dependsOn tasks.named('jmhClasses')
+    dependsOn tasks.named('jmhClasses'), tasks.named('jmhBaselineClasses')
     classpath = sourceSets.jmh.runtimeClasspath
     mainClass = 'org.openjdk.jmh.Main'
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
@@ -168,6 +178,23 @@ tasks.register('jmhCleanup', JavaExec) {
         if (stonecutter.current.version != '1.20.1') {
             throw new GradleException('The frozen cleanup baseline uses Minecraft 1.20.1; run :core:1.20.1:jmhCleanup.')
         }
+        layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs()
+    }
+}
+
+tasks.register('jmhCollections', JavaExec) {
+    group = 'verification'
+    description = 'Compare the exact pre-fastutil ECS snapshot with current collections, using GC profiling.'
+    dependsOn tasks.named('jmhClasses'), tasks.named('jmhCollectionsBaselineClasses')
+    classpath = sourceSets.jmh.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    args 'dev.sixik.sdmal.benchmark.EcsCleanupBenchmark.(before|after)', '-p', 'baseline=collections',
+        '-p', 'workload=owner:128:0,queries:1024:0,delta:128:0',
+        '-prof', 'gc', '-foe', 'true', '-jvmArgsAppend', '-Xms512m -Xmx512m -XX:+UseG1GC',
+        '-rf', 'json', '-rff', layout.buildDirectory.file('reports/jmh/ecs-collections.json').get().asFile.absolutePath
+    doFirst {
+        if (stonecutter.current.version != '1.20.1') throw new GradleException('The collections baseline targets Minecraft 1.20.1.')
         layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs()
     }
 }

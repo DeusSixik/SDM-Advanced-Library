@@ -1,7 +1,9 @@
 package dev.sixik.sdmal.api.ecs;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import dev.sixik.sdmal.core.utils.ObjectArrayView;
+
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,17 +23,17 @@ public final class EcsScheduler {
     /**
      * Owning world manager.
      */
-    private final WorldObjectManager manager;
+    private final EcsObjectManager manager;
 
     /**
      * Per-world bounded command queues.
      */
-    private final WorldContext context;
+    private final EcsContext context;
 
     /**
      * Stable registration order, changed only between manager ticks.
      */
-    private final List<Node> systems = new ArrayList<>();
+    private final List<Node> systems = new ObjectArrayList<>();
 
     /**
      * Topological execution groups, rebuilt only after system registration changes.
@@ -72,7 +74,7 @@ public final class EcsScheduler {
     /**
      * Automatic component groups, retained per concrete type until this world's manager is closed.
      */
-    private final Map<Class<?>, ComponentTickSystem> componentSystems = new LinkedHashMap<>();
+    private final Map<Class<?>, ComponentTickSystem> componentSystems = new Object2ObjectLinkedOpenHashMap<>();
 
     /**
      * Increasing stamp for attachment reconciliation, separate from manager tick sequences.
@@ -99,15 +101,15 @@ public final class EcsScheduler {
      *
      * @param manager owner-thread world manager
      */
-    EcsScheduler(WorldObjectManager manager) {
+    EcsScheduler(EcsObjectManager manager) {
         this.manager = manager;
-        context = new WorldContext(manager);
+        context = new EcsContext(manager);
     }
 
     /**
      * @return this world's command queues and restricted world access
      */
-    public WorldContext context() {
+    public EcsContext context() {
         return context;
     }
 
@@ -201,7 +203,7 @@ public final class EcsScheduler {
         synchronizeComponents(tick);
         rebuild();
         context.begin(tick);
-        WorldObjectException errors = null;
+        EcsObjectException errors = null;
         for (Node node : ordered) {
             node.status = Node.WAITING;
             node.flags =
@@ -238,10 +240,10 @@ public final class EcsScheduler {
         long version = manager.structureVersion();
         if (componentVersion != version) {
             long epoch = ++componentEpoch;
-            WorldObject[] objects = manager.dispatchSnapshot();
+            EcsObject[] objects = manager.dispatchSnapshot();
             for (int objectIndex = 0; objectIndex < objects.length; objectIndex++) {
-                WorldObject object = objects[objectIndex];
-                WorldObject.ComponentEntry[] entries = object.entriesArray();
+                EcsObject object = objects[objectIndex];
+                EcsObject.ComponentEntry[] entries = object.entriesArray();
                 for (int i = 0; i < entries.length; i++) {
                     var entry = entries[i];
                     if (!(entry.component() instanceof SnapshotTickableComponent<?, ?> component))
@@ -272,9 +274,9 @@ public final class EcsScheduler {
         if (policyVersion == version) return;
         for (int i = 0; i < ordered.length; i++)
             ordered[i].resolvedFlags = ordered[i].access.flags();
-        WorldObject[] objects = manager.dispatchSnapshot();
+        EcsObject[] objects = manager.dispatchSnapshot();
         for (int objectIndex = 0; objectIndex < objects.length; objectIndex++) {
-            WorldObject.ComponentEntry[] entries = objects[objectIndex].entriesArray();
+            EcsObject.ComponentEntry[] entries = objects[objectIndex].entriesArray();
             for (int i = 0; i < entries.length; i++) {
                 Class<?> type = entries[i].component().getClass();
                 int flags = EcsExecutionPolicy.flags(type);
@@ -309,11 +311,11 @@ public final class EcsScheduler {
      * applied.
      *
      * @param phase next world-tick boundary
-     * @throws WorldObjectException after independent work and command batches have been attempted
+     * @throws EcsObjectException after independent work and command batches have been attempted
      */
     void runPhase(TickPhase phase) {
         context.startPhase(phase);
-        WorldObjectException errors = null;
+        EcsObjectException errors = null;
         boolean interrupted = false;
         try {
             refreshPolicies();
@@ -321,7 +323,7 @@ public final class EcsScheduler {
             admitOptional(phase);
             try {
                 context.flush();
-            } catch (WorldObjectException failure) {
+            } catch (EcsObjectException failure) {
                 errors = aggregate(errors, failure);
             }
             for (Node[] group : phases[phase.ordinal()]) {
@@ -337,7 +339,7 @@ public final class EcsScheduler {
                 errors = applyGroup(group, errors);
                 try {
                     context.flush();
-                } catch (WorldObjectException failure) {
+                } catch (EcsObjectException failure) {
                     errors = aggregate(errors, failure);
                 }
             }
@@ -360,7 +362,7 @@ public final class EcsScheduler {
      * @param errors existing recoverable failures, possibly null
      * @return accumulated failures
      */
-    private WorldObjectException prepareGroup(Node[] group, WorldObjectException errors) {
+    private EcsObjectException prepareGroup(Node[] group, EcsObjectException errors) {
         for (Node node : group) {
             if (manager.isClosed()) break;
             if (node.status == Node.FAILED) continue;
@@ -490,7 +492,7 @@ public final class EcsScheduler {
      * @param errors existing recoverable failures, possibly null
      * @return accumulated failures
      */
-    private WorldObjectException applyGroup(Node[] group, WorldObjectException errors) {
+    private EcsObjectException applyGroup(Node[] group, EcsObjectException errors) {
         for (Node node : group) {
             if (node.status != Node.PREPARED) {
                 context.discard(node.batch);
@@ -604,8 +606,8 @@ public final class EcsScheduler {
      * @param failure current failure
      * @return aggregate containing this failure
      */
-    private static WorldObjectException aggregate(WorldObjectException errors, Throwable failure) {
-        if (errors == null) errors = new WorldObjectException("ECS system phase failed");
+    private static EcsObjectException aggregate(EcsObjectException errors, Throwable failure) {
+        if (errors == null) errors = new EcsObjectException("ECS system phase failed");
         errors.addSuppressed(failure);
         return errors;
     }
@@ -630,10 +632,10 @@ public final class EcsScheduler {
      */
     private void rebuild() {
         if (!dirty) return;
-        Map<String, Node> ids = new LinkedHashMap<>();
+        Map<String, Node> ids = new Object2ObjectLinkedOpenHashMap<>();
         for (Node node : systems) ids.put(node.id, node);
-        List<List<Node[]>> nextPhases = new ArrayList<>();
-        List<Node> nextOrdered = new ArrayList<>();
+        List<List<Node[]>> nextPhases = new ObjectArrayList<>();
+        List<Node> nextOrdered = new ObjectArrayList<>();
         for (TickPhase phase : TickPhase.values()) {
             List<Node> nodes = systems.stream().filter(node -> node.phase == phase).toList();
             boolean[][] edges = new boolean[nodes.size()][nodes.size()];
@@ -654,12 +656,12 @@ public final class EcsScheduler {
                 for (int j = i + 1; j < order.length; j++)
                     if (nodes.get(order[i]).access.conflictsWith(nodes.get(order[j]).access))
                         edges[order[i]][order[j]] = true;
-            List<List<Node>> groups = new ArrayList<>();
+            List<List<Node>> groups = new ObjectArrayList<>();
             int[] waves = new int[order.length];
             for (int index : order) {
                 Node node = nodes.get(index);
                 int wave = 0;
-                List<Node> parents = new ArrayList<>();
+                List<Node> parents = new ObjectArrayList<>();
                 for (int previous = 0; previous < nodes.size(); previous++)
                     if (edges[previous][index]) {
                         parents.add(nodes.get(previous));
@@ -671,7 +673,7 @@ public final class EcsScheduler {
                 }
                 node.parents = parents.toArray(Node[]::new);
                 waves[index] = wave;
-                while (groups.size() <= wave) groups.add(new ArrayList<>());
+                while (groups.size() <= wave) groups.add(new ObjectArrayList<>());
                 groups.get(wave).add(node);
                 nextOrdered.add(node);
             }
@@ -795,7 +797,7 @@ public final class EcsScheduler {
         /**
          * Reused private command buffer.
          */
-        final WorldContext.Batch batch = new WorldContext.Batch();
+        final EcsContext.Batch batch = new EcsContext.Batch();
 
         /**
          * Current scheduling status.
@@ -875,7 +877,7 @@ public final class EcsScheduler {
             id = Objects.requireNonNull(source.id(), "system id");
             phase = Objects.requireNonNull(source.phase(), "system phase");
             access = Objects.requireNonNull(source.access(), "system access");
-            after = List.copyOf(source.after());
+            after = ObjectArrayView.copyOf(source.after());
             parallel = source.parallel();
             deferrable = source.mayDefer();
             resolvedFlags = access.flags();

@@ -9,9 +9,9 @@ import net.minecraft.world.level.block.EntityBlock;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import java.util.Map;
-import java.util.TreeMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 
 /**
  * Validated deterministic startup plan; no Minecraft content instances are constructed here.
@@ -20,12 +20,12 @@ final class ContentPlan {
     /**
      * Groups sharing registry ids; a block and its block entity deliberately share one group.
      */
-    final Map<String, Group> groups = new TreeMap<>();
+    final Map<String, Group> groups = new Object2ObjectAVLTreeMap<>();
 
     /**
      * Declared classes mapped to their automatic ids.
      */
-    final Map<Class<?>, String> classes = new HashMap<>();
+    final Map<Class<?>, String> classes = new Object2ObjectOpenHashMap<>();
 
     /**
      * Tab ids to ordered content groups, including implicitly requested tabs.
@@ -70,7 +70,7 @@ final class ContentPlan {
                                 + type.getName());
             classes.put(type, annotation.id());
         }
-        var byTab = new TreeMap<String, java.util.ArrayList<Group>>();
+        var byTab = new Object2ObjectAVLTreeMap<String, it.unimi.dsi.fastutil.objects.ObjectArrayList<Group>>();
         for (var group : groups.values()) {
             var entity = group.get(ContentKind.BLOCK_ENTITY);
             var block = group.get(ContentKind.BLOCK);
@@ -103,9 +103,9 @@ final class ContentPlan {
             group.tab = presentation == null ? "" : presentation.tab();
             group.ordinal = presentation == null ? 0 : presentation.ordinal();
             if (!group.tab.isEmpty())
-                byTab.computeIfAbsent(group.tab, key -> new java.util.ArrayList<>()).add(group);
+                byTab.computeIfAbsent(group.tab, key -> new it.unimi.dsi.fastutil.objects.ObjectArrayList<>()).add(group);
         }
-        entries = new TreeMap<>();
+        entries = new Object2ObjectAVLTreeMap<>();
         byTab.forEach(
                 (tab, groups) -> {
                     groups.sort(

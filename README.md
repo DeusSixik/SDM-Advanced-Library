@@ -1,5 +1,9 @@
 # SDMAL
 
+ECS для игровых объектов и обычных данных: `EcsObject`, `EcsObjectManager`,
+базовый `Component` и специализированный `NetworkComponent`.
+[Выбор компонентов, пример магазина и переход со старых имён](core/ECS-COMPONENTS.md).
+
 Автоматическая регистрация предметов, блоков, BlockEntity и вкладок через
 `@RegisterContent`: [контракт, примеры и порядок во вкладках](core/REGISTER-CONTENT.md).
 
@@ -185,9 +189,9 @@ Shift+ПКМ с `sdmal:example_item` по контроллеру автомат�
 Серверные миры автоматически сохраняют ECS в отдельный NBT-файл каждого
 измерения с резервной копией. Поддерживаются миграции схем компонентов и
 сохранение неизвестных записей. Типы компонентов нужно зарегистрировать до
-загрузки миров и передавать в `attach(component, type)`; временные объекты
+загрузки миров; `attach(component)` сам находит тип класса с `@EcsComponent`. Временные объекты
 помечайте `setPersistent(false)`. Примеры и формат — в [core/ECS.md](core/ECS.md).
-Для обычных полей без `Field`/`Codec` доступен `AnnotatedWorldObjectComponent`:
+Для обычных полей без `Field`/`Codec` доступен `Component`:
 `@EcsPersist`, records с `@EcsData` и реестр адаптеров пользовательских типов.
 Для компонента достаточно public-класса с `@EcsComponent(id = "modid:name")` и
 public-конструктора без аргументов. `sdmal-ecs-processor` в `annotationProcessor`
@@ -230,8 +234,8 @@ public-конструктора без аргументов. `sdmal-ecs-processo
 
 Запуск игры: `:fabric:<версия>:runClient`, `:forge:<версия>:runClient`
 или `:neoforge:<версия>:runClient`. Для сервера используется `runServer`.
-Для фаз и параллельных систем используйте `WorldObjectManager.scheduler()` и
-`worldContext()`; контракт и пример находятся в [core/ECS-PARALLEL-PLAN.md](core/ECS-PARALLEL-PLAN.md)
+Для фаз и параллельных систем используйте `EcsObjectManager.scheduler()` и
+`context()`; контракт и пример находятся в [core/ECS-PARALLEL-PLAN.md](core/ECS-PARALLEL-PLAN.md)
 и разделе «Фазы и параллельные системы» в [core/ECS.md](core/ECS.md).
 Обычному компоненту достаточно `SnapshotTickableComponent<S,R>` с методами
 `capture/compute/apply`: менеджер автоматически группирует и запускает его,

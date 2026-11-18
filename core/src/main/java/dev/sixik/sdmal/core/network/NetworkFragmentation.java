@@ -3,8 +3,8 @@ package dev.sixik.sdmal.core.network;
 import io.netty.buffer.Unpooled;
 
 import java.util.BitSet;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -125,15 +125,15 @@ final class NetworkFragmentation {
         /**
          * Completed ids bounded in count/age without retaining payload bytes.
          */
-        private final LinkedHashMap<Key, Long> completed = new LinkedHashMap<>();
+        private final Object2ObjectLinkedOpenHashMap<Key, Long> completed = new Object2ObjectLinkedOpenHashMap<>();
         /**
          * Outstanding transfer buffers, guarded by this monitor.
          */
-        private final Map<Key, Transfer> transfers = new HashMap<>();
+        private final Map<Key, Transfer> transfers = new Object2ObjectOpenHashMap<>();
         /**
          * Reservation counters by peer endpoint.
          */
-        private final Map<PeerKey, Usage> peers = new HashMap<>();
+        private final Map<PeerKey, Usage> peers = new Object2ObjectOpenHashMap<>();
         /**
          * Monotonic nanosecond clock.
          */
@@ -248,8 +248,9 @@ final class NetworkFragmentation {
                 var entry = iterator.next();
                 var transfer = entry.getValue();
                 if (now - transfer.started < TIMEOUT && transfer.peer.connected()) continue;
+                var key = entry.getKey();
                 iterator.remove();
-                release(entry.getKey(), transfer);
+                release(key, transfer);
             }
             completed.entrySet().removeIf(entry -> now - entry.getValue() >= TIMEOUT);
         }

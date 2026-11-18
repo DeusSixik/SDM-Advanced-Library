@@ -1,6 +1,6 @@
 package dev.sixik.sdmal;
 
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
 import dev.sixik.sdmal.example.item.ExampleItem;
 
 //? if >=1.19.3 {
@@ -142,7 +142,7 @@ public final class SDMAdvancedLibrary {
      * @param config validated configuration values
      */
     public static void commonSetup(Config config) {
-        WorldObjectComponentRegistry.instance().registerServices();
+        ComponentRegistry.instance().registerServices();
         LOGGER.info("HELLO FROM COMMON SETUP");
         if (config.logDirtBlock()) {
             //? if >=1.19.3 {

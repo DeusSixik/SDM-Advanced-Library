@@ -1,11 +1,11 @@
 package dev.sixik.sdmal.example.ecs;
 
-import dev.sixik.sdmal.api.ecs.WorldObject;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentType;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.EcsObject;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.ComponentType;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
 import dev.sixik.sdmal.api.ecs.annotations.EcsComponent;
-import dev.sixik.sdmal.api.ecs.minecraft.LevelObjectManager;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsAccess;
 
 import net.minecraft.server.level.ServerLevel;
 
@@ -16,15 +16,16 @@ public final class EcsExample {
     /**
      * Запрещает создание экземпляра класса регистрации.
      */
-    private EcsExample() {}
+    private EcsExample() {
+    }
 
     /**
      * Returns the descriptor discovered from {@link EcsComponent} during common setup.
      *
      * @return automatically registered generator type
      */
-    public static WorldObjectComponentType<GeneratorComponent> generatorType() {
-        return WorldObjectComponentRegistry.instance().require(GeneratorComponent.class);
+    public static ComponentType<GeneratorComponent> generatorType() {
+        return ComponentRegistry.instance().require(GeneratorComponent.class);
     }
 
     /**
@@ -36,8 +37,8 @@ public final class EcsExample {
      * @return зарегистрированный объект с одним GeneratorComponent
      * @throws IllegalStateException если тип не зарегистрирован, менеджер закрыт или поток неверен
      */
-    public static WorldObject createGenerator(ServerLevel level) {
-        return createGenerator(LevelObjectManager.getManager(level));
+    public static EcsObject createGenerator(ServerLevel level) {
+        return createGenerator(LevelEcsAccess.getManager(level));
     }
 
     /**
@@ -48,9 +49,9 @@ public final class EcsExample {
      * @return новый сохраняемый объект с типизированным компонентом
      * @throws IllegalStateException если тип не зарегистрирован, менеджер закрыт или поток неверен
      */
-    public static WorldObject createGenerator(WorldObjectManager manager) {
+    public static EcsObject createGenerator(EcsObjectManager manager) {
         var generatorType = generatorType();
-        WorldObject object = manager.create();
+        EcsObject object = manager.create();
         object.setTickInterval(20);
         object.attach(new GeneratorComponent(), generatorType);
         return object;

@@ -1,7 +1,9 @@
 package dev.sixik.sdmal.api.ecs;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
+import dev.sixik.sdmal.core.utils.ObjectArrayView;
+
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -28,12 +30,12 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
     /**
      * World manager owning every live attachment in this adapter.
      */
-    private final WorldObjectManager manager;
+    private final EcsObjectManager manager;
 
     /**
      * Command context shared with the ordinary scheduler.
      */
-    private final WorldContext context;
+    private final EcsContext context;
 
     /**
      * Concrete type used to group same-class component instances.
@@ -68,23 +70,23 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
     /**
      * Identity lookup for reusing attachment buffers across ticks.
      */
-    private final IdentityHashMap<WorldObjectComponent, Binding> byComponent =
-            new IdentityHashMap<>();
+    private final Reference2ObjectOpenHashMap<Component, Binding> byComponent =
+            new Reference2ObjectOpenHashMap<>();
 
     /**
      * Stable attachment order, changed only while synchronizing between ticks.
      */
-    private final List<Binding> bindings = new ArrayList<>();
+    private final List<Binding> bindings = new ObjectArrayList<>();
 
     /**
      * Current selected captures; reused after every barrier.
      */
-    private final List<Binding> prepared = new ArrayList<>();
+    private final List<Binding> prepared = new ObjectArrayList<>();
 
     /**
      * At most MAX_JOBS futures from the current phase; all joined before apply.
      */
-    private final List<FutureTask<Void>> jobs = new ArrayList<>();
+    private final List<FutureTask<Void>> jobs = new ObjectArrayList<>();
 
     /**
      * Whether at least one live awake instance has a pending dispatch.
@@ -98,17 +100,17 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
      * @param component first snapshot component instance of this type
      */
     @SuppressWarnings("unchecked")
-    ComponentTickSystem(WorldObjectManager manager, SnapshotTickableComponent<?, ?> component) {
+    ComponentTickSystem(EcsObjectManager manager, SnapshotTickableComponent<?, ?> component) {
         this.manager = manager;
-        context = manager.worldContext();
+        context = manager.context();
         componentClass = component.getClass();
         id = SnapshotTickableComponent.systemId(componentClass);
         phase = java.util.Objects.requireNonNull(component.tickPhase(), "component tick phase");
         access =
                 java.util.Objects.requireNonNull(component.tickAccess(), "component tick access")
-                        .write((Class<? extends WorldObjectComponent>) componentClass);
+                        .write((Class<? extends Component>) componentClass);
         deferrable = component.mayDeferTick();
-        after = List.copyOf(component.tickAfter());
+        after = ObjectArrayView.copyOf(component.tickAfter());
     }
 
     /**
@@ -119,7 +121,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
      * @param entry  exact attached component/sequence pair
      * @param epoch  scheduler synchronization stamp
      */
-    void observe(WorldObject object, WorldObject.ComponentEntry entry, long epoch) {
+    void observe(EcsObject object, EcsObject.ComponentEntry entry, long epoch) {
         Binding binding = byComponent.get(entry.component());
         if (binding == null || binding.object != object || binding.sequence != entry.sequence()) {
             binding = new Binding(object, entry);
@@ -228,7 +230,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
      * @return this reusable internal batch; live bindings never become user snapshot data
      */
     @Override
-    public ComponentTickSystem prepare(WorldContext context, WorldObjectManager manager) {
+    public ComponentTickSystem prepare(EcsContext context, EcsObjectManager manager) {
         boolean required = context.requiresCurrentTick();
         for (int i = 0; i < bindings.size() && !manager.isClosed(); i++) {
             Binding binding = bindings.get(i);
@@ -238,7 +240,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
             binding.batch.required = required;
             binding.batch.computing = false;
             prepared.add(binding);
-            WorldContext.Batch previous = context.swapBatch(binding.batch);
+            EcsContext.Batch previous = context.swapBatch(binding.batch);
             try {
                 binding.input = binding.component.capture(context);
             } catch (Throwable failure) {
@@ -292,7 +294,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
      * @return completed batch for stable owner-thread commit
      */
     @Override
-    public ComponentTickSystem compute(ComponentTickSystem input, WorldContext context) {
+    public ComponentTickSystem compute(ComponentTickSystem input, EcsContext context) {
         if (jobs.isEmpty()) computeRange(0, prepared.size());
         else {
             boolean interrupted = false;
@@ -319,7 +321,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
             }
             if (error != null) {
                 EcsFailures.rethrowFatal(error);
-                throw new WorldObjectException("Component worker batch failed", error);
+                throw new EcsObjectException("Component worker batch failed", error);
             }
         }
         return this;
@@ -336,7 +338,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
             Binding binding = prepared.get(i);
             if (binding.failure != null) continue;
             binding.batch.computing = true;
-            WorldContext.Batch previous = context.swapBatch(binding.batch);
+            EcsContext.Batch previous = context.swapBatch(binding.batch);
             try {
                 binding.result = binding.component.compute(binding.input, context);
             } catch (Throwable failure) {
@@ -354,16 +356,16 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
      * @param result  completed internal batch
      * @param context owner-thread context
      * @param manager owning manager
-     * @throws WorldObjectException after every healthy result is attempted, if any instance failed
+     * @throws EcsObjectException after every healthy result is attempted, if any instance failed
      */
     @Override
     public void apply(
-            ComponentTickSystem result, WorldContext context, WorldObjectManager manager) {
-        WorldObjectException errors = null;
+            ComponentTickSystem result, EcsContext context, EcsObjectManager manager) {
+        EcsObjectException errors = null;
         for (int i = 0; i < prepared.size(); i++) {
             Binding binding = prepared.get(i);
             if (binding.failure == null && binding.live()) {
-                WorldContext.Batch previous = context.swapBatch(binding.batch);
+                EcsContext.Batch previous = context.swapBatch(binding.batch);
                 try {
                     binding.component.apply(binding.result, context);
                     if (binding.live()) context.publish(binding.batch);
@@ -377,7 +379,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
                 EcsFailures.rethrowFatal(binding.failure);
                 if (errors == null)
                     errors =
-                            new WorldObjectException(
+                            new EcsObjectException(
                                     "Snapshot components failed: " + componentClass.getName());
                 errors.addSuppressed(binding.failure);
             }
@@ -403,7 +405,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
         /**
          * Object identity used to reject results after UUID reuse or object replacement.
          */
-        final WorldObject object;
+        final EcsObject object;
 
         /**
          * Exact attachment sequence used to reject detach/reattach of the same component instance.
@@ -413,12 +415,12 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
         /**
          * Exact immutable entry identity, including this attachment's generation.
          */
-        final WorldObject.ComponentEntry attachment;
+        final EcsObject.ComponentEntry attachment;
 
         /**
          * Last component array in which this entry was verified present.
          */
-        WorldObject.ComponentEntry[] verifiedEntries;
+        EcsObject.ComponentEntry[] verifiedEntries;
 
         /**
          * Type-erased callback target; only its own capture and apply may access live component
@@ -429,7 +431,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
         /**
          * Reused private command buffer, not shared with other instances in a chunk.
          */
-        final WorldContext.Batch batch = new WorldContext.Batch();
+        final EcsContext.Batch batch = new EcsContext.Batch();
 
         /**
          * Scheduler synchronization epoch in which this attachment was observed.
@@ -463,7 +465,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
          * @param entry  exact component entry
          */
         @SuppressWarnings("unchecked")
-        Binding(WorldObject object, WorldObject.ComponentEntry entry) {
+        Binding(EcsObject object, EcsObject.ComponentEntry entry) {
             this.object = object;
             sequence = entry.sequence();
             attachment = entry;
@@ -477,7 +479,7 @@ final class ComponentTickSystem implements EcsSystem<ComponentTickSystem, Compon
         boolean live() {
             if (manager.isClosed() || !object.isTickActive(manager))
                 return false;
-            WorldObject.ComponentEntry[] current = object.entriesArray();
+            EcsObject.ComponentEntry[] current = object.entriesArray();
             if (current == verifiedEntries) return true;
             for (int i = 0; i < current.length; i++) {
                 if (current[i] != attachment) continue;

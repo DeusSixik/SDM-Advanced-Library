@@ -1,10 +1,10 @@
 package dev.sixik.sdmal.api.ecs;
 
 /**
- * Thrown by {@code attach} when the type's {@link WorldObjectComponentType.DuplicatePolicy#REJECT}
+ * Thrown by {@code attach} when the type's {@link ComponentType.DuplicatePolicy#REJECT}
  * forbids a second instance.
  */
-public final class DuplicateComponentException extends WorldObjectException {
+public final class DuplicateComponentException extends EcsObjectException {
 
     /**
      * Creates a DuplicateComponentException with the supplied configuration.

@@ -33,7 +33,7 @@ public class EcsHostedTickBenchmark {
     /**
      * Owning scheduler created on the JMH thread.
      */
-    private WorldObjectManager manager;
+    private EcsObjectManager manager;
 
     /**
      * Observed first active counter prevents dead-code elimination.
@@ -45,13 +45,13 @@ public class EcsHostedTickBenchmark {
      */
     @Setup
     public void setup() {
-        manager = new WorldObjectManager();
+        manager = new EcsObjectManager();
         for (int i = 0; i < count; i++) {
             Counter counter = new Counter();
             if (mode.equals("plain")) {
                 manager.create().attach(counter);
             } else {
-                var host = new HostedWorldObject();
+                var host = new HostedEcsObject();
                 boolean active = !mode.equals("hostedHalf") || (i & 1) == 0;
                 host.bind(
                         manager,
@@ -99,7 +99,7 @@ public class EcsHostedTickBenchmark {
      * Reuses a primitive snapshot on the owner thread to isolate gate/dispatch overhead.
      */
     @EcsNoThreadSafe
-    private static final class Counter extends AbstractWorldObjectComponent
+    private static final class Counter extends Component
             implements SnapshotTickableComponent<int[], int[]> {
         /**
          * Current counter value; overflow is harmless for this dispatch workload.
@@ -115,7 +115,7 @@ public class EcsHostedTickBenchmark {
          * @param context owner context @return copied counter in the reusable slot
          */
         @Override
-        public int[] capture(WorldContext context) {
+        public int[] capture(EcsContext context) {
             data[0] = value;
             return data;
         }
@@ -125,7 +125,7 @@ public class EcsHostedTickBenchmark {
          *     updated slot
          */
         @Override
-        public int[] compute(int[] snapshot, WorldContext context) {
+        public int[] compute(int[] snapshot, EcsContext context) {
             snapshot[0]++;
             return snapshot;
         }
@@ -134,7 +134,7 @@ public class EcsHostedTickBenchmark {
          * @param result computed slot @param context owner context
          */
         @Override
-        public void apply(int[] result, WorldContext context) {
+        public void apply(int[] result, EcsContext context) {
             value = result[0];
         }
     }

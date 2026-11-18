@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.google.gson.JsonParser;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsManagers;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -48,14 +48,14 @@ class GeneratorInteractionTest {
     @BeforeAll static void bootstrap() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        WorldObjectComponentRegistry.instance().registerServices();
+        ComponentRegistry.instance().registerServices();
     }
 
     /**
      * Releases test world registrations.
      */
     @AfterEach void cleanup() {
-        worlds.forEach(WorldObjectManagerApi::unregisterWorld);
+        worlds.forEach(LevelEcsManagers::unregisterWorld);
     }
 
     /**
@@ -66,7 +66,7 @@ class GeneratorInteractionTest {
         var shell = shell();
         var level = world(false, shell);
         shell.setLevel(level);
-        WorldObjectManagerApi.getManager(level).tickAll();
+        LevelEcsManagers.getManager(level).tickAll();
         var player = mock(Player.class);
         click(level, player, false);
         var message = ArgumentCaptor.forClass(Component.class);
@@ -203,7 +203,7 @@ class GeneratorInteractionTest {
         when(level.hasChunkAt(POS)).thenReturn(true);
         when(level.shouldTickBlocksAt(POS)).thenReturn(true);
         when(level.getBlockState(POS)).thenReturn(Blocks.FURNACE.defaultBlockState());
-        WorldObjectManagerApi.registerWorld(level);
+        LevelEcsManagers.registerWorld(level);
         worlds.add(level);
         return level;
     }

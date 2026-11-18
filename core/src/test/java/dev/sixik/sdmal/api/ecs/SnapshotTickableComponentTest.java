@@ -24,7 +24,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void nestedWorldCommand_componentDetachedBeforeLaterPhase_discardsInheritedCommand() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var object = manager.create();
             var commands = new AtomicInteger();
             object.attach(
@@ -42,7 +42,7 @@ class SnapshotTickableComponentTest {
                          * @param context owner context
                          */
                         @Override
-                        public void apply(Integer result, WorldContext context) {
+                        public void apply(Integer result, EcsContext context) {
                             super.apply(result, context);
                             context.enqueue(
                                     TickPhase.PRE,
@@ -54,7 +54,7 @@ class SnapshotTickableComponentTest {
                     });
             manager.tickAll();
             assertEquals(0, commands.get());
-            assertEquals(0, manager.worldContext().pendingCommands());
+            assertEquals(0, manager.context().pendingCommands());
             assertTrue(object.isDetached());
         }
     }
@@ -65,7 +65,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void priorWorldCommand_detachesComponent_beforeItsPublishedCommandExecutes() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var firstObject = manager.create();
             var secondObject = manager.create();
             var first = firstObject.attach(new CommandRemovingCounter());
@@ -84,7 +84,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void attach_withoutSystemRegistration_automaticallyTicksAndRespectsObjectSchedule() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var object = manager.create();
             object.setTickInterval(3);
             Counter component = object.attach(new Counter());
@@ -111,7 +111,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void postComponent_usesBeginningOfTickSchedule() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var object = manager.create();
             object.setTickInterval(4);
             var component = object.attach(new PostCounter());
@@ -131,7 +131,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void sameType_capturesAllInputsBeforeApplyAndCommitsCommandsStably() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             List<String> trace = new ArrayList<>();
             manager.create().attach(new OrderedCounter("one", trace));
             manager.create().attach(new OrderedCounter("two", trace));
@@ -158,7 +158,7 @@ class SnapshotTickableComponentTest {
                 Runtime.getRuntime().availableProcessors() > 1,
                 "Multiple worker chunks require more than one available processor");
         var executor = Executors.newFixedThreadPool(2);
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setExecutor(executor);
             CountDownLatch chunks = new CountDownLatch(2);
             for (int i = 0; i < 128; i++)
@@ -177,12 +177,12 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void closeDuringCapture_discardsComponentCommandsAndStopsDispatch() {
-        var manager = new WorldObjectManager();
+        var manager = new EcsObjectManager();
         manager.create()
                 .attach(
                         new Counter() {
                             @Override
-                            public Integer capture(WorldContext context) {
+                            public Integer capture(EcsContext context) {
                                 context.enqueue(
                                         TickPhase.POST,
                                         () -> fail("command survived world unload"));
@@ -191,7 +191,7 @@ class SnapshotTickableComponentTest {
                             }
 
                             @Override
-                            public Integer compute(Integer input, WorldContext context) {
+                            public Integer compute(Integer input, EcsContext context) {
                                 fail("closed manager computed");
                                 return 0;
                             }
@@ -199,7 +199,7 @@ class SnapshotTickableComponentTest {
         manager.tickAll();
         assertTrue(manager.isClosed());
         assertFalse(manager.isTicking());
-        assertEquals(0, manager.worldContext().pendingCommands());
+        assertEquals(0, manager.context().pendingCommands());
     }
 
     /**
@@ -208,7 +208,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void delayedExecutor_oldChunkTasks_cannotRunAgainOnFollowingTick() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             List<Runnable> delayed = new ArrayList<>();
             manager.scheduler().setExecutor(delayed::add);
             var component = manager.create().attach(new Counter());
@@ -225,7 +225,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void restrictions_forceOwnerAndIgnoreOptionalBudget() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setOptionalBudget(0);
             var component = manager.create().attach(new MandatoryCounter(Thread.currentThread()));
             manager.tickAll();
@@ -240,7 +240,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void optionalBudget_retainsUncapturedWorkAndCapturesFreshDataLater() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setOptionalBudget(0);
             var object = manager.create();
             object.setTickInterval(10);
@@ -263,7 +263,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void detachAndReattachDuringSiblingApply_discardsStaleAttachmentResult() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var firstObject = manager.create();
             var secondObject = manager.create();
             var second = new ReattachedCounter();
@@ -288,14 +288,14 @@ class SnapshotTickableComponentTest {
     @Test
     void perInstanceFailures_stillApplyHealthyResultsWithoutPublishingFailedCommands() {
         for (String stage : List.of("capture", "compute", "apply")) {
-            try (var manager = new WorldObjectManager()) {
+            try (var manager = new EcsObjectManager()) {
                 var broken = manager.create().attach(new FailingCounter(stage));
                 var healthy = manager.create().attach(new FailingCounter("none"));
-                assertThrows(WorldObjectException.class, manager::tickAll);
+                assertThrows(EcsObjectException.class, manager::tickAll);
                 assertEquals(1, healthy.value, stage);
                 assertEquals(1, healthy.commands.get(), stage);
                 assertEquals(0, broken.commands.get(), stage);
-                assertEquals(0, manager.worldContext().pendingCommands(), stage);
+                assertEquals(0, manager.context().pendingCommands(), stage);
                 assertFalse(manager.isTicking());
             }
         }
@@ -307,7 +307,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void explicitSystem_afterAutomaticGroup_seesCommittedComponentState() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var component = manager.create().attach(new Counter());
             manager.scheduler()
                     .register(
@@ -330,20 +330,20 @@ class SnapshotTickableComponentTest {
 
                                 @Override
                                 public Integer prepare(
-                                        WorldContext context, WorldObjectManager owner) {
+                                        EcsContext context, EcsObjectManager owner) {
                                     return component.value;
                                 }
 
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     return input;
                                 }
 
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     assertEquals(1, result);
                                 }
                             });
@@ -358,10 +358,10 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void componentAttachedDuringTick_startsNextTick() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var object = manager.create();
             var component = new Counter();
-            manager.worldContext().enqueue(TickPhase.PRE, () -> object.attach(component));
+            manager.context().enqueue(TickPhase.PRE, () -> object.attach(component));
             manager.tickAll();
             assertEquals(0, component.value);
             manager.tickAll();
@@ -374,17 +374,17 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void mixedLegacyAndSnapshotInterfaces_areRejectedBeforeAttachment() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             assertThrows(
                     IllegalArgumentException.class,
                     () -> manager.create().attach(new MixedCounter()));
             assertThrows(
                     IllegalArgumentException.class,
                     () ->
-                            new WorldObjectComponentType<>(
+                            new ComponentType<>(
                                     "test:mixed",
                                     MixedCounter.class,
-                                    WorldObjectComponentType.DuplicatePolicy.REJECT,
+                                    ComponentType.DuplicatePolicy.REJECT,
                                     MixedCounter::new));
         }
     }
@@ -394,7 +394,7 @@ class SnapshotTickableComponentTest {
      */
     @Test
     void compute_ownerFallbackCannotAccessWorldOrMutateManager() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setExecutor(Runnable::run);
             var component =
                     manager.create()
@@ -402,7 +402,7 @@ class SnapshotTickableComponentTest {
                                     new Counter() {
                                         @Override
                                         public Integer compute(
-                                                Integer input, WorldContext context) {
+                                                Integer input, EcsContext context) {
                                             assertThrows(
                                                     IllegalStateException.class, context::level);
                                             assertThrows(
@@ -418,7 +418,7 @@ class SnapshotTickableComponentTest {
     /**
      * Minimal component-local snapshot callback with owner-thread state.
      */
-    private static class Counter extends AbstractWorldObjectComponent
+    private static class Counter extends Component
             implements SnapshotTickableComponent<Integer, Integer> {
         /**
          * Current owner-thread counter.
@@ -435,7 +435,7 @@ class SnapshotTickableComponentTest {
          * @return copied scalar value
          */
         @Override
-        public Integer capture(WorldContext context) {
+        public Integer capture(EcsContext context) {
             captures++;
             return value;
         }
@@ -446,7 +446,7 @@ class SnapshotTickableComponentTest {
          * @return next scalar value
          */
         @Override
-        public Integer compute(Integer input, WorldContext context) {
+        public Integer compute(Integer input, EcsContext context) {
             return input + 1;
         }
 
@@ -455,7 +455,7 @@ class SnapshotTickableComponentTest {
          * @param context owner-thread context
          */
         @Override
-        public void apply(Integer result, WorldContext context) {
+        public void apply(Integer result, EcsContext context) {
             value = result;
         }
     }
@@ -523,7 +523,7 @@ class SnapshotTickableComponentTest {
          * @return incremented state
          */
         @Override
-        public Integer compute(Integer input, WorldContext context) {
+        public Integer compute(Integer input, EcsContext context) {
             assertSame(owner, Thread.currentThread());
             assertThrows(
                     IllegalStateException.class, () -> context.enqueue(TickPhase.PRE, () -> {}));
@@ -560,7 +560,7 @@ class SnapshotTickableComponentTest {
          * @return copied scalar
          */
         @Override
-        public Integer capture(WorldContext context) {
+        public Integer capture(EcsContext context) {
             trace.add("capture-" + name);
             return super.capture(context);
         }
@@ -570,7 +570,7 @@ class SnapshotTickableComponentTest {
          * @param context owner context
          */
         @Override
-        public void apply(Integer result, WorldContext context) {
+        public void apply(Integer result, EcsContext context) {
             trace.add("apply-" + name);
             super.apply(result, context);
             context.enqueue(TickPhase.POST, () -> trace.add("command-" + name));
@@ -607,7 +607,7 @@ class SnapshotTickableComponentTest {
          * @return incremented scalar
          */
         @Override
-        public Integer compute(Integer input, WorldContext context) {
+        public Integer compute(Integer input, EcsContext context) {
             if (index == 0 || index == 64) {
                 entered.countDown();
                 try {
@@ -643,7 +643,7 @@ class SnapshotTickableComponentTest {
          * @return incremented scalar
          */
         @Override
-        public Integer compute(Integer input, WorldContext context) {
+        public Integer compute(Integer input, EcsContext context) {
             context.enqueue(TickPhase.POST, commands::incrementAndGet);
             return super.compute(input, context);
         }
@@ -653,7 +653,7 @@ class SnapshotTickableComponentTest {
          * @param context owner context
          */
         @Override
-        public void apply(Integer result, WorldContext context) {
+        public void apply(Integer result, EcsContext context) {
             super.apply(result, context);
             if (onApply != null) onApply.run();
         }
@@ -685,7 +685,7 @@ class SnapshotTickableComponentTest {
          * @return copied scalar
          */
         @Override
-        public Integer capture(WorldContext context) {
+        public Integer capture(EcsContext context) {
             if (stage.equals("capture")) {
                 context.enqueue(TickPhase.POST, commands::incrementAndGet);
                 throw new IllegalArgumentException(stage);
@@ -699,7 +699,7 @@ class SnapshotTickableComponentTest {
          * @return incremented scalar
          */
         @Override
-        public Integer compute(Integer input, WorldContext context) {
+        public Integer compute(Integer input, EcsContext context) {
             context.enqueue(TickPhase.POST, commands::incrementAndGet);
             if (stage.equals("compute")) throw new IllegalArgumentException(stage);
             return super.compute(input, context);
@@ -710,7 +710,7 @@ class SnapshotTickableComponentTest {
          * @param context owner context
          */
         @Override
-        public void apply(Integer result, WorldContext context) {
+        public void apply(Integer result, EcsContext context) {
             if (stage.equals("apply")) throw new IllegalArgumentException(stage);
             super.apply(result, context);
         }
@@ -734,7 +734,7 @@ class SnapshotTickableComponentTest {
         /**
          * Owner-thread target removed by a deferred world command, possibly null.
          */
-        WorldObject target;
+        EcsObject target;
 
         /**
          * Number of commands that actually executed for this instance.
@@ -746,7 +746,7 @@ class SnapshotTickableComponentTest {
          * @param context owner-thread command buffer
          */
         @Override
-        public void apply(Integer result, WorldContext context) {
+        public void apply(Integer result, EcsContext context) {
             super.apply(result, context);
             if (target != null) context.enqueue(TickPhase.POST, target::detach);
             context.enqueue(TickPhase.POST, commands::incrementAndGet);

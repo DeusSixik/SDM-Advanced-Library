@@ -11,7 +11,7 @@ import org.jetbrains.annotations.ApiStatus;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 
 /**
  * Loader bridge for one process-wide automatic content registration.
@@ -41,7 +41,7 @@ public final class ContentRuntime {
      * @return completely validated registration plan
      */
     public static ContentRegistration discover(ClassLoader loader) {
-        var types = new LinkedHashSet<Class<?>>();
+        var types = new ObjectLinkedOpenHashSet<Class<?>>();
         try {
             var resources = loader.getResources(INDEX);
             while (resources.hasMoreElements()) {

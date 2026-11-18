@@ -57,7 +57,7 @@ class WorldTickMixinTest {
         int pauseChecks = 0;
         for (var instruction : handler.instructions) {
             if (instruction instanceof MethodInsnNode call) {
-                if (call.owner.equals("dev/sixik/sdmal/impl/ecs/WorldObjectTicker") && call.name.equals("tick")) dispatches++;
+                if (call.owner.equals("dev/sixik/sdmal/impl/ecs/EcsObjectTicker") && call.name.equals("tick")) dispatches++;
                 if (call.name.equals("runsNormally")) pauseChecks++;
             }
         }
@@ -91,12 +91,12 @@ class WorldTickMixinTest {
         int unregisters = 0;
         for (var instruction : callback.instructions) {
             if (instruction instanceof MethodInsnNode call
-                && call.owner.equals("dev/sixik/sdmal/api/ecs/minecraft/WorldObjectManagerApi")
+                && call.owner.equals("dev/sixik/sdmal/api/ecs/minecraft/LevelEcsManagers")
                 && call.name.equals("unregisterWorld")) unregisters++;
         }
         assertEquals(1, unregisters);
         assertTrue(callback.tryCatchBlocks.stream()
-            .anyMatch(block -> "dev/sixik/sdmal/api/ecs/WorldObjectException".equals(block.type)));
+            .anyMatch(block -> "dev/sixik/sdmal/api/ecs/EcsObjectException".equals(block.type)));
         var inject = callback.visibleAnnotations.stream()
             .filter(annotation -> annotation.desc.equals("Lorg/spongepowered/asm/mixin/injection/Inject;"))
             .findFirst().orElseThrow();
@@ -136,7 +136,7 @@ class WorldTickMixinTest {
         boolean dispatches = false;
         for (var instruction : callback.instructions) {
             if (instruction instanceof MethodInsnNode call && (method.equals("<init>")
-                ? call.owner.equals("dev/sixik/sdmal/impl/ecs/WorldObjectFileStorage") && call.name.equals("load")
+                ? call.owner.equals("dev/sixik/sdmal/impl/ecs/EcsObjectFileStorage") && call.name.equals("load")
                 : call.name.equals("sdm$saveArchive"))) dispatches = true;
         }
         assertTrue(dispatches);

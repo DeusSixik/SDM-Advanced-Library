@@ -23,7 +23,7 @@ class EcsHotPathTest {
      */
     @Test
     void policyCache_compositionAndSystemChanges_refreshConcreteRestrictions() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var submissions = new AtomicInteger();
             manager.scheduler()
                     .setExecutor(
@@ -57,7 +57,7 @@ class EcsHotPathTest {
      */
     @Test
     void policyCache_removedMandatorySubtype_restoresOptionalBudget() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setOptionalBudget(0);
             var object = manager.create();
             var required = object.attach(new Mandatory());
@@ -80,9 +80,9 @@ class EcsHotPathTest {
      */
     @Test
     void components_cachedProjection_staysImmutableAcrossAttachDetachAndResort() {
-        var object = new WorldObject();
+        var object = new EcsObject();
         var first = object.attach(new Base());
-        List<WorldObjectComponent> old = object.components();
+        List<Component> old = object.components();
         assertSame(old, object.components());
         var second = object.attach(new Base());
         assertEquals(List.of(first), old);
@@ -96,15 +96,29 @@ class EcsHotPathTest {
         assertEquals(List.of(first), old);
     }
 
+    /** Public entry/component views cannot reveal the raw array that dispatches live callbacks. */
+    @Test void publicSnapshots_arrayCopies_cannotCorruptOwnerComposition() {
+        var object = new EcsObject();
+        var component = object.attach(new Base());
+        assertFalse(object.entries() instanceof dev.sixik.sdmal.core.utils.ObjectArrayView<?>);
+        assertFalse(object.components() instanceof dev.sixik.sdmal.core.utils.ObjectArrayView<?>);
+        Object[] entriesCopy = object.entries().toArray(); entriesCopy[0] = null;
+        Object[] componentsCopy = object.components().toArray(); componentsCopy[0] = null;
+        assertSame(component, object.entries().get(0).component());
+        assertSame(component, object.components().get(0));
+        assertThrows(UnsupportedOperationException.class, () -> object.entries().clear());
+        assertTrue(object.has(Base.class));
+    }
+
     /**
      * Publishing and discarding mixed private chains cannot lose slots or change per-phase order.
      */
     @Test
     void privateCommandChains_publishDiscardAndReuse_preserveCapacityAndOrder() {
-        try (var manager = new WorldObjectManager()) {
-            WorldContext context = manager.worldContext();
-            var accepted = new WorldContext.Batch();
-            var discarded = new WorldContext.Batch();
+        try (var manager = new EcsObjectManager()) {
+            EcsContext context = manager.context();
+            var accepted = new EcsContext.Batch();
+            var discarded = new EcsContext.Batch();
             var trace = new java.util.ArrayList<Integer>();
             context.enter(accepted);
             context.enqueue(TickPhase.POST, () -> trace.add(3));
@@ -123,12 +137,12 @@ class EcsHotPathTest {
             var calls = new AtomicInteger();
             Runnable command = calls::incrementAndGet;
             for (int round = 0; round < 4; round++) {
-                for (int i = 0; i < WorldContext.COMMAND_CAPACITY; i++)
+                for (int i = 0; i < EcsContext.COMMAND_CAPACITY; i++)
                     context.enqueue(TickPhase.POST, command);
                 manager.tickAll();
                 assertEquals(0, context.pendingCommands());
             }
-            assertEquals(WorldContext.COMMAND_CAPACITY * 4, calls.get());
+            assertEquals(EcsContext.COMMAND_CAPACITY * 4, calls.get());
         }
     }
 
@@ -142,8 +156,8 @@ class EcsHotPathTest {
     void concurrentCommandProducers_repeatedCapacityReuse_executesEveryActionOnce()
             throws Exception {
         var workers = Executors.newFixedThreadPool(4);
-        try (var manager = new WorldObjectManager()) {
-            var context = manager.worldContext();
+        try (var manager = new EcsObjectManager()) {
+            var context = manager.context();
             var completed = new AtomicInteger();
             Thread owner = Thread.currentThread();
             Runnable action =
@@ -157,14 +171,14 @@ class EcsHotPathTest {
                     jobs.add(
                             workers.submit(
                                     () -> {
-                                        for (int i = 0; i < WorldContext.COMMAND_CAPACITY / 4; i++)
+                                        for (int i = 0; i < EcsContext.COMMAND_CAPACITY / 4; i++)
                                             context.enqueue(TickPhase.POST, action);
                                     }));
                 }
                 for (var job : jobs) job.get(5, TimeUnit.SECONDS);
-                assertEquals(WorldContext.COMMAND_CAPACITY, context.pendingCommands());
+                assertEquals(EcsContext.COMMAND_CAPACITY, context.pendingCommands());
                 manager.tickAll();
-                assertEquals(WorldContext.COMMAND_CAPACITY * (round + 1), completed.get());
+                assertEquals(EcsContext.COMMAND_CAPACITY * (round + 1), completed.get());
                 assertEquals(0, context.pendingCommands());
             }
         } finally {
@@ -180,9 +194,9 @@ class EcsHotPathTest {
      */
     @Test
     void commandStorage_closeAndDiscard_clearRetainedUserReferences() throws Exception {
-        var manager = new WorldObjectManager();
-        var context = manager.worldContext();
-        var batch = new WorldContext.Batch();
+        var manager = new EcsObjectManager();
+        var context = manager.context();
+        var batch = new EcsContext.Batch();
         context.enqueue(TickPhase.PRE, () -> fail("closed action executed"));
         context.enter(batch);
         context.enqueue(TickPhase.POST, () -> fail("closed private action executed"));
@@ -191,7 +205,7 @@ class EcsHotPathTest {
         assertEquals(1, context.pendingCommands());
         context.discard(batch);
         assertEquals(0, context.pendingCommands());
-        var field = WorldContext.class.getDeclaredField("actions");
+        var field = EcsContext.class.getDeclaredField("actions");
         field.setAccessible(true);
         assertNull(field.get(context));
     }
@@ -199,7 +213,7 @@ class EcsHotPathTest {
     /**
      * Resource base class used by concrete subtype restriction checks.
      */
-    private static class Base extends AbstractWorldObjectComponent {}
+    private static class Base extends Component {}
 
     /**
      * Concrete type requiring owner-thread execution.
@@ -279,7 +293,7 @@ class EcsHotPathTest {
          * @return empty input
          */
         @Override
-        public Void prepare(WorldContext context, WorldObjectManager manager) {
+        public Void prepare(EcsContext context, EcsObjectManager manager) {
             return null;
         }
 
@@ -289,7 +303,7 @@ class EcsHotPathTest {
          * @return empty result
          */
         @Override
-        public Void compute(Void input, WorldContext context) {
+        public Void compute(Void input, EcsContext context) {
             return null;
         }
 
@@ -299,7 +313,7 @@ class EcsHotPathTest {
          * @param manager owner manager
          */
         @Override
-        public void apply(Void result, WorldContext context, WorldObjectManager manager) {
+        public void apply(Void result, EcsContext context, EcsObjectManager manager) {
             applied++;
         }
     }

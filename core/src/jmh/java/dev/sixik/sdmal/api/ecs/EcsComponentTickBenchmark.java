@@ -17,13 +17,13 @@ public class EcsComponentTickBenchmark {
     /** Owner-only reference or automatic worker chunks, with identical component calculations. */
     @Param({"owner", "worker"}) public String execution;
     /** World manager ticked by the benchmark harness thread. */
-    private WorldObjectManager manager;
+    private EcsObjectManager manager;
     /** Observed component prevents elimination of the component update. */
     private Counter first;
 
     /** Creates attachments and caches the automatic plan before measured dispatch. */
     @Setup public void setup() {
-        manager = new WorldObjectManager();
+        manager = new EcsObjectManager();
         for (int i = 0; i < count; i++) {
             Counter counter = execution.equals("owner") ? new OwnerCounter() : new Counter();
             manager.create().attach(counter);
@@ -50,17 +50,17 @@ public class EcsComponentTickBenchmark {
     }
 
     /** Minimal component that performs no snapshot allocations inside its compute callback. */
-    private static class Counter extends AbstractWorldObjectComponent implements SnapshotTickableComponent<Data, Data> {
+    private static class Counter extends Component implements SnapshotTickableComponent<Data, Data> {
         /** Owner-thread counter. */
         int value;
         /** Exclusive reusable snapshot/result; never shared across component instances. */
         private final Data data = new Data();
         /** @param context owner context @return exclusively owned copied input */
-        @Override public Data capture(WorldContext context) { data.input = value; return data; }
+        @Override public Data capture(EcsContext context) { data.input = value; return data; }
         /** @param input copied data @param context restricted commands @return updated independent data */
-        @Override public Data compute(Data input, WorldContext context) { input.output = input.input + 1; return input; }
+        @Override public Data compute(Data input, EcsContext context) { input.output = input.input + 1; return input; }
         /** @param result computed data @param context owner context */
-        @Override public void apply(Data result, WorldContext context) { value = result.output; }
+        @Override public void apply(Data result, EcsContext context) { value = result.output; }
     }
 
     /** Same arithmetic with worker execution prohibited, for measuring dispatch/task overhead. */

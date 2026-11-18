@@ -23,14 +23,14 @@ class EcsComponentProcessorTest {
     /** Minimal runtime API package used without introducing any Minecraft dependency into the processor. */
     private static final String API = "dev.sixik.sdmal.api.ecs";
     /** Relative output path consumed by Java's ServiceLoader. */
-    private static final String INDEX = "META-INF/services/" + API + ".WorldObjectComponent";
+    private static final String INDEX = "META-INF/services/" + API + ".Component";
 
     /**
      * Creates an independent API with the annotation and marker service contract.
      * @throws IOException if test fixture files cannot be created
      */
     @BeforeEach void api() throws IOException {
-        source(API + ".WorldObjectComponent", "package " + API + "; public interface WorldObjectComponent {}");
+        source(API + ".Component", "package " + API + "; public abstract class Component {}");
         source(API + ".annotations.EcsComponent", "package " + API + ".annotations; "
             + "@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME) "
             + "@java.lang.annotation.Target(java.lang.annotation.ElementType.TYPE) "
@@ -42,11 +42,11 @@ class EcsComponentProcessorTest {
      * @throws IOException if test files cannot be read or compiled
      */
     @Test void compile_qualifiedAndNestedComponents_writesOnlySortedServiceDescriptor() throws IOException {
-        source("consumer.Zed", component("Zed", "consumer:zed", "public class Zed implements WorldObjectComponent {}"));
+        source("consumer.Zed", component("Zed", "consumer:zed", "public class Zed extends Component {}"));
         source("consumer.Alpha", "package consumer; @" + API + ".annotations.EcsComponent(id=\"consumer:alpha\") "
-            + "public class Alpha implements " + API + ".WorldObjectComponent {}");
+            + "public class Alpha extends " + API + ".Component {}");
         source("consumer.Outer", "package consumer; import " + API + ".*; import " + API + ".annotations.*; public class Outer { "
-            + "@EcsComponent(id=\"consumer:nested\") public static class Nested implements WorldObjectComponent {} }");
+            + "@EcsComponent(id=\"consumer:nested\") public static class Nested extends Component {} }");
         source("consumer.Comment", "package consumer; // @EcsComponent(id=\"ignored:comment\")\npublic class Comment {}");
         assertTrue(compile(), diagnostics());
         assertEquals("consumer.Alpha\nconsumer.Outer$Nested\nconsumer.Zed\n", Files.readString(index()));
@@ -63,12 +63,12 @@ class EcsComponentProcessorTest {
      */
     @ParameterizedTest
     @CsvSource(delimiter = '|', value = {
-        "public abstract class Bad implements WorldObjectComponent {}|concrete class",
-        "public interface Bad extends WorldObjectComponent {}|concrete class",
-        "public class Bad {}|must implement",
-        "class Bad implements WorldObjectComponent {}|public component",
-        "public class Bad implements WorldObjectComponent { private Bad() {} }|public no-argument constructor",
-        "public class Bad implements WorldObjectComponent { public Bad(int value) {} }|public no-argument constructor"
+        "public abstract class Bad extends Component {}|concrete class",
+        "public interface Bad {}|concrete class",
+        "public class Bad {}|must extend",
+        "class Bad extends Component {}|public component",
+        "public class Bad extends Component { private Bad() {} }|public no-argument constructor",
+        "public class Bad extends Component { public Bad(int value) {} }|public no-argument constructor"
     })
     void compile_invalidProvider_failsWithSourceDiagnostic(String declaration, String expected) throws IOException {
         source("consumer.Bad", component("Bad", "consumer:bad", declaration));
@@ -83,7 +83,7 @@ class EcsComponentProcessorTest {
      */
     @Test void compile_innerComponent_requiresStatic() throws IOException {
         source("consumer.Outer", "package consumer; import " + API + ".*; import " + API + ".annotations.*; public class Outer { "
-            + "@EcsComponent(id=\"consumer:inner\") public class Inner implements WorldObjectComponent {} }");
+            + "@EcsComponent(id=\"consumer:inner\") public class Inner extends Component {} }");
         assertFalse(compile());
         assertTrue(diagnostics().contains("to be static"), diagnostics());
     }
@@ -93,7 +93,7 @@ class EcsComponentProcessorTest {
      * @throws IOException if the consumer source cannot be written
      */
     @Test void compile_invalidIdentifier_failsBeforeWritingIndex() throws IOException {
-        source("consumer.Bad", component("Bad", "UpperCase", "public class Bad implements WorldObjectComponent {}"));
+        source("consumer.Bad", component("Bad", "UpperCase", "public class Bad extends Component {}"));
         assertFalse(compile());
         assertTrue(diagnostics().contains("namespaced identifier"), diagnostics());
     }
@@ -103,8 +103,8 @@ class EcsComponentProcessorTest {
      * @throws IOException if the consumer sources cannot be written
      */
     @Test void compile_duplicateIds_reportsBothClasses() throws IOException {
-        source("consumer.One", component("One", "consumer:same", "public class One implements WorldObjectComponent {}"));
-        source("consumer.Two", component("Two", "consumer:same", "public class Two implements WorldObjectComponent {}"));
+        source("consumer.One", component("One", "consumer:same", "public class One extends Component {}"));
+        source("consumer.Two", component("Two", "consumer:same", "public class Two extends Component {}"));
         assertFalse(compile());
         assertTrue(diagnostics().contains("Duplicate @EcsComponent id"), diagnostics());
         assertFalse(Files.exists(index()));
@@ -115,8 +115,8 @@ class EcsComponentProcessorTest {
      * @throws IOException if consumer sources or the descriptor cannot be updated
      */
     @Test void compile_removingLastAnnotation_replacesPreviousIndexWithEmptyDescriptor() throws IOException {
-        source("consumer.One", component("One", "consumer:one", "public class One implements WorldObjectComponent {}"));
-        source("consumer.Two", component("Two", "consumer:two", "public class Two implements WorldObjectComponent {}"));
+        source("consumer.One", component("One", "consumer:one", "public class One extends Component {}"));
+        source("consumer.Two", component("Two", "consumer:two", "public class Two extends Component {}"));
         assertTrue(compile(), diagnostics());
         source("consumer.One", "package consumer; public class One {}");
         assertTrue(compile(), diagnostics());

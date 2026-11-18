@@ -28,9 +28,9 @@ public final class EcsComponentProcessor extends AbstractProcessor {
      */
     private static final String ANNOTATION = "dev.sixik.sdmal.api.ecs.annotations.EcsComponent";
     /**
-     * Service interface implemented by every automatically registered component.
+     * Service base extended by every automatically registered component.
      */
-    private static final String SERVICE = "dev.sixik.sdmal.api.ecs.WorldObjectComponent";
+    private static final String SERVICE = "dev.sixik.sdmal.api.ecs.Component";
     /**
      * Sorted provider names with originating types, accumulated across processing rounds.
      */
@@ -82,14 +82,14 @@ public final class EcsComponentProcessor extends AbstractProcessor {
     private void collect(Element element) {
         if (!(element instanceof TypeElement type) || element.getKind() != ElementKind.CLASS
                 || type.getModifiers().contains(Modifier.ABSTRACT)) {
-            error(element, "@EcsComponent requires a concrete class implementing " + SERVICE);
+            error(element, "@EcsComponent requires a concrete class extending " + SERVICE);
             return;
         }
         TypeElement service = processingEnv.getElementUtils().getTypeElement(SERVICE);
         if (service == null || !processingEnv.getTypeUtils().isAssignable(
                 processingEnv.getTypeUtils().erasure(type.asType()),
                 processingEnv.getTypeUtils().erasure(service.asType()))) {
-            error(type, "@EcsComponent class must implement " + SERVICE);
+            error(type, "@EcsComponent class must extend " + SERVICE);
             return;
         }
         for (Element enclosing = type; enclosing instanceof TypeElement; enclosing = enclosing.getEnclosingElement()) {

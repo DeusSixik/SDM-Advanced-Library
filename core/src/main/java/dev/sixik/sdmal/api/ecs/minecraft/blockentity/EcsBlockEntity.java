@@ -1,9 +1,9 @@
 package dev.sixik.sdmal.api.ecs.minecraft.blockentity;
 
-import dev.sixik.sdmal.api.ecs.HostedWorldObject;
-import dev.sixik.sdmal.api.ecs.WorldObject;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
+import dev.sixik.sdmal.api.ecs.HostedEcsObject;
+import dev.sixik.sdmal.api.ecs.EcsObject;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsManagers;
 
 import java.util.Optional;
 
@@ -38,7 +38,7 @@ public abstract class EcsBlockEntity extends BlockEntity {
     /**
      * Single-owner lifecycle/persistence handle, created without invoking subclass methods in the constructor.
      */
-    private final HostedWorldObject ecs = new HostedWorldObject();
+    private final HostedEcsObject ecs = new HostedEcsObject();
     /**
      * Initial chunk synchronization can arrive before vanilla assigns the client world.
      */
@@ -60,20 +60,20 @@ public abstract class EcsBlockEntity extends BlockEntity {
      *
      * @param object new transient object with its BlockEntityComponent already attached
      */
-    protected abstract void createComponents(WorldObject object);
+    protected abstract void createComponents(EcsObject object);
 
     /**
      * Called after binding/restoration to rebuild render projections or cache component handles.
      *
      * @param object active composition; do not register another ticker
      */
-    protected void onEcsReady(WorldObject object) {
+    protected void onEcsReady(EcsObject object) {
     }
 
     /**
      * @return current live composition, or empty before installation, while unloaded or for unresolved data
      */
-    public final Optional<WorldObject> ecsObject() {
+    public final Optional<EcsObject> ecsObject() {
         return ecs.object();
     }
 
@@ -133,8 +133,8 @@ public abstract class EcsBlockEntity extends BlockEntity {
      */
     private void activateEcsObject() {
         if (ecs.object().isPresent()) return;
-        boolean active = ecs.bind(WorldObjectManagerApi.getManager(getLevel()), object -> {
-            object.attach(new BlockEntityComponent(), WorldObjectComponentRegistry.instance().require(BlockEntityComponent.class));
+        boolean active = ecs.bind(LevelEcsManagers.getManager(getLevel()), object -> {
+            object.attach(new BlockEntityComponent(), ComponentRegistry.instance().require(BlockEntityComponent.class));
             createComponents(object);
         }, this::bindRuntime);
         if (active) onEcsReady(ecs.object().orElseThrow());
@@ -145,7 +145,7 @@ public abstract class EcsBlockEntity extends BlockEntity {
      *
      * @param object unpublished restored/new client or server composition
      */
-    private void bindRuntime(WorldObject object) {
+    private void bindRuntime(EcsObject object) {
         BlockEntityComponent binding = object.getSingle(BlockEntityComponent.class)
                 .orElseThrow(() -> new IllegalStateException("Hosted object has no BlockEntityComponent"));
         binding.bind(this);
@@ -241,7 +241,7 @@ public abstract class EcsBlockEntity extends BlockEntity {
     private void loadEcs(CompoundTag tag) {
         if (tag.get("sync") instanceof ByteArrayTag sync) {
             byte[] bytes = sync.getAsByteArray();
-            if (bytes.length > HostedWorldObject.MAX_SNAPSHOT_BYTES)
+            if (bytes.length > HostedEcsObject.MAX_SNAPSHOT_BYTES)
                 throw new IllegalArgumentException("Hosted snapshot exceeds 8 MiB");
             pendingClientSnapshot = bytes.clone();
             applyPendingClientSnapshot();

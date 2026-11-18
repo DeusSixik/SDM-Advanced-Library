@@ -31,7 +31,7 @@ import java.util.UUID;
  * <p>All codecs are stateless singletons (except parameterized {@link #listOf} / {@link #mapOf} /
  * {@link #enumCodec} results) and safe to share across threads. Every schema name is stable across
  * restarts; renaming one breaks network compatibility by design, because {@code
- * SyncedWorldObjectComponent} compares schemas on delta reads.
+ * NetworkComponent} compares schemas on delta reads.
  *
  * <p>Copy semantics: immutable values return as-is; {@link #listOf}, {@link #mapOf} and {@link
  * #compoundOf} deep-copy through their element codecs so snapshots never alias live state.

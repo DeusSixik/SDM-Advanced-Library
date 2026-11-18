@@ -1,6 +1,6 @@
 package dev.sixik.sdmal.core.ecs.serialization;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.Component;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
 import dev.sixik.sdmal.api.ecs.annotations.EcsUseAdapter;
 import dev.sixik.sdmal.api.ecs.serialization.EcsSerializationException;
@@ -12,11 +12,11 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,18 +45,18 @@ final class EcsSchemaBuilder {
     /**
      * Newly built adapters awaiting a successful whole-schema publication.
      */
-    private final Map<Type, EcsSerializer<?>> pending = new LinkedHashMap<>();
+    private final Map<Type, EcsSerializer<?>> pending = new Object2ObjectLinkedOpenHashMap<>();
 
     /**
      * Newly constructed annotation overrides awaiting publication.
      */
     private final Map<Class<? extends EcsSerializer<?>>, EcsSerializer<?>> pendingOverrides =
-            new HashMap<>();
+            new Object2ObjectOpenHashMap<>();
 
     /**
      * Active resolution chain, capped at 64 and used to reject recursive schemas.
      */
-    private final Set<Type> visiting = new LinkedHashSet<>();
+    private final Set<Type> visiting = new ObjectLinkedOpenHashSet<>();
 
     /**
      * Captures stable registry maps while the caller holds the registry monitor.
@@ -121,13 +121,13 @@ final class EcsSchemaBuilder {
      * @return immutable schema in stable NBT-key order
      */
     EcsComponentSchema component(Class<?> type) {
-        if (!AnnotatedWorldObjectComponent.class.isAssignableFrom(type)
+        if (!Component.class.isAssignableFrom(type)
                 || Modifier.isAbstract(type.getModifiers()))
-            throw new EcsSerializationException("Expected concrete AnnotatedWorldObjectComponent");
-        List<EcsMember> members = new ArrayList<>();
-        Set<String> keys = new LinkedHashSet<>();
+            throw new EcsSerializationException("Expected concrete Component");
+        List<EcsMember> members = new ObjectArrayList<>();
+        Set<String> keys = new ObjectLinkedOpenHashSet<>();
         Type current = type;
-        while (EcsTypes.raw(current) != AnnotatedWorldObjectComponent.class) {
+        while (EcsTypes.raw(current) != Component.class) {
             Class<?> raw = EcsTypes.raw(current);
             var bindings = EcsTypes.bindings(current);
             for (Field field : raw.getDeclaredFields()) {

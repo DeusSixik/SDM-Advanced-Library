@@ -1,7 +1,6 @@
 package dev.sixik.sdmal.example.ecs.multiblock;
 
-import dev.sixik.sdmal.api.ecs.WorldObject;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+import dev.sixik.sdmal.api.ecs.EcsObject;
 import dev.sixik.sdmal.api.ecs.minecraft.blockentity.EcsBlockEntity;
 
 import net.minecraft.core.BlockPos;
@@ -33,11 +32,8 @@ public final class MultiblockControllerBlockEntity extends EcsBlockEntity {
      * @param object new object with its runtime BlockEntityComponent already attached
      */
     @Override
-    protected void createComponents(WorldObject object) {
-        object.attach(
-                new MultiblockGeneratorComponent(),
-                WorldObjectComponentRegistry.instance()
-                        .require(MultiblockGeneratorComponent.class));
+    protected void createComponents(EcsObject object) {
+        object.attach(new MultiblockGeneratorComponent());
     }
 
     /**
@@ -46,7 +42,7 @@ public final class MultiblockControllerBlockEntity extends EcsBlockEntity {
      * @param object newly bound composition
      */
     @Override
-    protected void onEcsReady(WorldObject object) {
+    protected void onEcsReady(EcsObject object) {
         object.getSingle(MultiblockGeneratorComponent.class).orElseThrow().publishView();
     }
 
@@ -69,7 +65,7 @@ public final class MultiblockControllerBlockEntity extends EcsBlockEntity {
     public void assemble(Player player) {
         var level = getLevel();
         if (level == null || level.isClientSide()) return;
-        ecsObject().flatMap(WorldObject::manager).ifPresent(manager -> manager.checkThread());
+        ecsObject().flatMap(EcsObject::manager).ifPresent(manager -> manager.checkThread());
         var result = MultiblockAssembler.assemble(level, this, player);
         player.sendSystemMessage(Component.translatable(result.messageKey()));
     }

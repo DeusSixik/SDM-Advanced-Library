@@ -7,8 +7,8 @@ import dev.sixik.sdmal.api.ecs.sync.Field;
 import dev.sixik.sdmal.api.ecs.sync.FieldCodec;
 import dev.sixik.sdmal.api.ecs.sync.FieldCodecs;
 import dev.sixik.sdmal.api.ecs.sync.SyncException;
-import dev.sixik.sdmal.api.ecs.sync.SyncedWorldObjectComponent;
-import dev.sixik.sdmal.api.ecs.sync.SyncedWorldObjectComponent.DeltaTracker;
+import dev.sixik.sdmal.api.ecs.sync.NetworkComponent;
+import dev.sixik.sdmal.api.ecs.sync.NetworkComponent.DeltaTracker;
 import dev.sixik.sdmal.api.ecs.sync.TrackedField;
 import dev.sixik.sdmal.core.ecs.codecs.NbtAccess;
 
@@ -358,6 +358,8 @@ class ComponentSerializationTest {
     @Test
     void singleThreadedComponent_foreignNbtAccess_rejectsWrongThread() throws Exception {
         Single component = new Single();
+        var manager = new EcsObjectManager();
+        manager.create().attach(component);
         component.writeNbt(new CompoundTag());
         var executor = Executors.newSingleThreadExecutor();
         try {
@@ -435,7 +437,7 @@ class ComponentSerializationTest {
     /**
      * Component containing both synchronized and NBT-only fields.
      */
-    private static class Example extends SyncedWorldObjectComponent {
+    private static class Example extends NetworkComponent {
         /**
          * Networked count, initially zero.
          */
@@ -450,7 +452,7 @@ class ComponentSerializationTest {
     /**
      * Two-field component used to verify all packet bytes decode before values are applied.
      */
-    private static class Pair extends SyncedWorldObjectComponent {
+    private static class Pair extends NetworkComponent {
         /**
          * First synchronized value, initially zero.
          */
@@ -465,7 +467,7 @@ class ComponentSerializationTest {
     /**
      * Fixture exposing declaration checks.
      */
-    private static class Flexible extends FieldedWorldObjectComponent {
+    private static class Flexible extends NetworkComponent {
         /**
          * Adds a constructor-style field.
          *
@@ -479,17 +481,18 @@ class ComponentSerializationTest {
     /**
      * Single-thread persistence fixture with one plain field.
      */
-    private static class Single extends SingleThreadedWorldObjectComponent {
+    private static class Single extends Component {
         /**
          * NBT-only counter.
          */
-        final Field<Integer> count = field("count", FieldCodecs.intValue(), 0);
+        @dev.sixik.sdmal.api.ecs.annotations.EcsPersist("count")
+        private int count;
     }
 
     /**
      * Forces a field change during encoding to reproduce the source's lost-delta race.
      */
-    private static class Racing extends SyncedWorldObjectComponent {
+    private static class Racing extends NetworkComponent {
         /**
          * Limits the mutation during encoding to the first packet.
          */

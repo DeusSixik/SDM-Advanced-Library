@@ -18,9 +18,9 @@ class DeltaBufferTest {
     @Test
     void writeFailure_reusingTracker_retriesEveryUnacknowledgedField() {
         var source = new Pair();
-        var tracker = new SyncedWorldObjectComponent.DeltaTracker();
+        var tracker = new NetworkComponent.DeltaTracker();
         var destination = new Pair();
-        var receiving = new SyncedWorldObjectComponent.DeltaTracker();
+        var receiving = new NetworkComponent.DeltaTracker();
         FriendlyByteBuf buffer = buffer();
         try {
             source.a.set(10);
@@ -52,7 +52,7 @@ class DeltaBufferTest {
     @Test
     void readFailure_reusingTracker_clearsSeenFieldsAndKeepsAtomicDecode() {
         var destination = new Pair();
-        var tracker = new SyncedWorldObjectComponent.DeltaTracker();
+        var tracker = new NetworkComponent.DeltaTracker();
         FriendlyByteBuf buffer = buffer();
         try {
             buffer.writeVarInt(2);
@@ -69,7 +69,7 @@ class DeltaBufferTest {
             var source = new Pair();
             source.a.set(30);
             source.b.set(40);
-            source.writeDelta(buffer, new SyncedWorldObjectComponent.DeltaTracker());
+            source.writeDelta(buffer, new NetworkComponent.DeltaTracker());
             destination.readDelta(buffer, tracker);
             assertEquals(30, destination.a.get());
             assertEquals(40, destination.b.get());
@@ -85,7 +85,7 @@ class DeltaBufferTest {
     @Test
     void recursiveEncode_sameTracker_keepsOuterAndInnerCapturesIndependent() {
         var source = new Pair();
-        var tracker = new SyncedWorldObjectComponent.DeltaTracker();
+        var tracker = new NetworkComponent.DeltaTracker();
         FriendlyByteBuf outer = buffer();
         FriendlyByteBuf inner = buffer();
         try {
@@ -100,8 +100,8 @@ class DeltaBufferTest {
             source.writeDelta(outer, tracker);
             var old = new Pair();
             var newer = new Pair();
-            old.readDelta(outer, new SyncedWorldObjectComponent.DeltaTracker());
-            newer.readDelta(inner, new SyncedWorldObjectComponent.DeltaTracker());
+            old.readDelta(outer, new NetworkComponent.DeltaTracker());
+            newer.readDelta(inner, new NetworkComponent.DeltaTracker());
             assertEquals(10, old.a.get());
             assertEquals(20, old.b.get());
             assertEquals(30, newer.a.get());
@@ -121,7 +121,7 @@ class DeltaBufferTest {
     @Test
     void failedDecode_releaseClearsEveryPopulatedStagingReference() throws Exception {
         var target = new Pair();
-        var tracker = new SyncedWorldObjectComponent.DeltaTracker();
+        var tracker = new NetworkComponent.DeltaTracker();
         FriendlyByteBuf wire = buffer();
         try {
             wire.writeVarInt(2);
@@ -161,7 +161,7 @@ class DeltaBufferTest {
      * Two fields; the last encoder can recursively submit or fail a packet after all snapshots are
      * captured.
      */
-    private static final class Pair extends SyncedWorldObjectComponent {
+    private static final class Pair extends NetworkComponent {
         /**
          * One-shot user encoder callback.
          */

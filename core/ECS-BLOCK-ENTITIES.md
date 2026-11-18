@@ -17,9 +17,9 @@ public final class MachineBlockEntity extends EcsBlockEntity {
     }
 
     @Override
-    protected void createComponents(WorldObject object) {
+    protected void createComponents(EcsObject object) {
         object.attach(new MachineComponent(),
-                WorldObjectComponentRegistry.instance().require(MachineComponent.class));
+                ComponentRegistry.instance().require(MachineComponent.class));
     }
 }
 ```
@@ -41,7 +41,7 @@ import dev.sixik.sdmal.api.ecs.minecraft.blockentity.RenderStateComponent;
 
 `createComponents` вызывается только для нового блока. При чтении существующих
 данных состав восстанавливается из сохранения. Для добавления компонентов
-существующим блокам нужна явная миграция. `onEcsReady(WorldObject)` вызывается
+существующим блокам нужна явная миграция. `onEcsReady(EcsObject)` вызывается
 после загрузки, повторной установки и замены клиентской композиции: здесь можно
 перестроить render state и обновить кэш ссылок на компоненты.
 
@@ -103,7 +103,7 @@ ECS-архив. Если тип отсутствует, данные повре�
 
 `BlockEntityComponent.requestClientUpdate()` запрашивает обычное обновление
 BlockEntity. Оболочка отправляет полный состав и только поля `@EcsSync`
-либо tracked-поля `SyncedWorldObjectComponent`. Поля только с `@EcsPersist`
+либо tracked-поля `NetworkComponent`. Поля только с `@EcsPersist`
 остаются серверными. Статические компоненты без сетевых полей создаются
 через их фабрики. Для всех отправляемых типов нужна реализация на клиенте.
 

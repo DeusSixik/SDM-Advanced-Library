@@ -1,6 +1,6 @@
 package dev.sixik.sdmal.api.ecs.minecraft.blockentity;
 
-import dev.sixik.sdmal.api.ecs.AbstractWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.Component;
 import dev.sixik.sdmal.api.ecs.annotations.EcsComponent;
 
 import net.minecraft.core.BlockPos;
@@ -15,7 +15,7 @@ import java.util.function.BooleanSupplier;
  * entering worker computation.
  */
 @EcsComponent(id = "sdmal:block_entity")
-public final class BlockEntityComponent extends AbstractWorldObjectComponent
+public final class BlockEntityComponent extends Component
         implements BooleanSupplier {
     /**
      * Weak reference prevents manager values from strongly retaining their weak-key world through a

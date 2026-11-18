@@ -2,7 +2,7 @@ package dev.sixik.sdmal.core.ecs.serialization;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.Component;
 import dev.sixik.sdmal.api.ecs.annotations.EcsSync;
 import dev.sixik.sdmal.api.ecs.annotations.EcsUseNetworkAdapter;
 import dev.sixik.sdmal.api.ecs.serialization.EcsNetworkSerializer;
@@ -132,7 +132,7 @@ class PrimitiveWireTest {
     /**
      * Component deliberately changing an int's default fixed-width encoding.
      */
-    private static final class Custom extends AnnotatedWorldObjectComponent {
+    private static final class Custom extends Component {
         /**
          * Explicitly overridden primitive format.
          */

@@ -63,7 +63,7 @@ public class EcsNetworkBenchmark {
     @Benchmark public int readViaNbt() { nbtInput.readerIndex(0); target.readNbt(nbtInput.readNbt()); return target.energy; }
 
     /** Fixed data workload containing primitives, a UUID, text and a validated record. */
-    public static final class Energy extends AnnotatedWorldObjectComponent {
+    public static final class Energy extends Component {
         /** Current energy in arbitrary units. */
         @EcsPersist("energy") @EcsSync private int energy = 357;
         /** Stable sample ownership identity. */

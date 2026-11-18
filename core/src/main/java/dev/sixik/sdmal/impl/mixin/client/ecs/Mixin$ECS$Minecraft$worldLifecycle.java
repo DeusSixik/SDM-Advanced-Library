@@ -1,10 +1,10 @@
 package dev.sixik.sdmal.impl.mixin.client.ecs;
 
 import dev.sixik.sdmal.SDMAdvancedLibrary;
-import dev.sixik.sdmal.api.ecs.WorldObjectException;
-import dev.sixik.sdmal.api.ecs.minecraft.LevelObjectManager;
-import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
-import dev.sixik.sdmal.impl.ecs.WorldObjectTicker;
+import dev.sixik.sdmal.api.ecs.EcsObjectException;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsAccess;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsManagers;
+import dev.sixik.sdmal.impl.ecs.EcsObjectTicker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,7 +29,7 @@ public class Mixin$ECS$Minecraft$worldLifecycle {
         target = "Lnet/minecraft/client/multiplayer/ClientLevel;tickBlockEntities()V"))
     private void sdm$normalTick(CallbackInfo ci) {
         ClientLevel level = ((Minecraft) (Object) this).level;
-        if (level != null) WorldObjectTicker.normal(LevelObjectManager.getManager(level));
+        if (level != null) EcsObjectTicker.normal(LevelEcsAccess.getManager(level));
     }
     *///?}
 
@@ -50,8 +50,8 @@ public class Mixin$ECS$Minecraft$worldLifecycle {
         sdm$installedWorld = nextWorld;
         if (previous == null || previous == nextWorld) return;
         try {
-            WorldObjectManagerApi.unregisterWorld(previous);
-        } catch (WorldObjectException failure) {
+            LevelEcsManagers.unregisterWorld(previous);
+        } catch (EcsObjectException failure) {
             SDMAdvancedLibrary.LOGGER.error("ECS replaced client-world cleanup failed", failure);
         }
     }

@@ -3,8 +3,8 @@ package dev.sixik.sdmal.example.ecs.multiblock;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsManagers;
 import dev.sixik.sdmal.example.item.ExampleItem;
 
 import net.minecraft.SharedConstants;
@@ -73,7 +73,7 @@ class MultiblockAssemblyTest {
     static void bootstrap() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        WorldObjectComponentRegistry.instance().registerServices();
+        ComponentRegistry.instance().registerServices();
     }
 
     /**
@@ -81,7 +81,7 @@ class MultiblockAssemblyTest {
      */
     @AfterEach
     void cleanup() {
-        if (level != null) WorldObjectManagerApi.unregisterWorld(level);
+        if (level != null) LevelEcsManagers.unregisterWorld(level);
     }
 
     /**
@@ -100,7 +100,7 @@ class MultiblockAssemblyTest {
         assertFalse(writes.contains(ORIGIN));
         assertEquals(id, controller.ecsObject().orElseThrow().id());
         assertEquals(0, controller.renderState().energy());
-        WorldObjectManagerApi.getManager(level).tickAll();
+        LevelEcsManagers.getManager(level).tickAll();
         assertEquals(10, controller.renderState().energy());
         assertEquals(MultiblockStatus.FORMED, controller.renderState().status());
         var message = ArgumentCaptor.forClass(Component.class);
@@ -121,7 +121,7 @@ class MultiblockAssemblyTest {
         assertEquals(MultiblockAssembler.Result.BUILT, assemble());
         assertEquals(8, writes.size());
         assertFalse(writes.contains(part(0)));
-        WorldObjectManagerApi.getManager(level).tickAll();
+        LevelEcsManagers.getManager(level).tickAll();
         var object = controller.ecsObject().orElseThrow();
         writes.clear();
         assertEquals(MultiblockAssembler.Result.ALREADY_COMPLETE, assemble());
@@ -385,7 +385,7 @@ class MultiblockAssemblyTest {
             throw new AssertionError(failure);
         }
         when(level.getBlockEntity(ORIGIN)).thenReturn(controller);
-        WorldObjectManagerApi.registerWorld(level);
+        LevelEcsManagers.registerWorld(level);
         controller.setLevel(level);
     }
 }

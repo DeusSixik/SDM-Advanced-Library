@@ -1,11 +1,11 @@
 package dev.sixik.sdmal.api.ecs.serialization;
 
-import dev.sixik.sdmal.api.ecs.WorldObjectPersistenceException;
+import dev.sixik.sdmal.api.ecs.EcsPersistenceException;
 
 /**
  * Reports an invalid annotated schema or value with its component/member path.
  */
-public final class EcsSerializationException extends WorldObjectPersistenceException {
+public final class EcsSerializationException extends EcsPersistenceException {
     /**
      * Describes an invalid schema or value.
      *

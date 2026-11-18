@@ -1,6 +1,8 @@
 package dev.sixik.sdmal.api.ecs;
 
-import java.util.ArrayList;
+import dev.sixik.sdmal.core.utils.ObjectArrayView;
+
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -11,17 +13,17 @@ public final class EcsAccess {
     /**
      * Empty declaration for systems without component resources.
      */
-    public static final EcsAccess NONE = new EcsAccess(List.of(), List.of());
+    public static final EcsAccess NONE = new EcsAccess(ObjectArrayView.of(), ObjectArrayView.of());
 
     /**
      * Read-only component resources, including compatible subtypes.
      */
-    private final List<Class<? extends WorldObjectComponent>> reads;
+    private final ObjectArrayView<Class<? extends Component>> reads;
 
     /**
      * Mutable component resources, including compatible subtypes.
      */
-    private final List<Class<? extends WorldObjectComponent>> writes;
+    private final ObjectArrayView<Class<? extends Component>> writes;
 
     /**
      * Restrictions known directly from the declared resource classes.
@@ -35,10 +37,10 @@ public final class EcsAccess {
      * @param writes mutable resources
      */
     private EcsAccess(
-            List<Class<? extends WorldObjectComponent>> reads,
-            List<Class<? extends WorldObjectComponent>> writes) {
-        this.reads = List.copyOf(reads);
-        this.writes = List.copyOf(writes);
+            List<Class<? extends Component>> reads,
+            List<Class<? extends Component>> writes) {
+        this.reads = ObjectArrayView.copyOf(reads);
+        this.writes = ObjectArrayView.copyOf(writes);
         int resolved = 0;
         for (var type : reads) resolved |= EcsExecutionPolicy.flags(type);
         for (var type : writes) resolved |= EcsExecutionPolicy.flags(type);
@@ -52,7 +54,7 @@ public final class EcsAccess {
      * @return new immutable declaration
      */
     @SafeVarargs
-    public final EcsAccess read(Class<? extends WorldObjectComponent>... types) {
+    public final EcsAccess read(Class<? extends Component>... types) {
         return new EcsAccess(append(reads, types), writes);
     }
 
@@ -63,7 +65,7 @@ public final class EcsAccess {
      * @return new immutable declaration
      */
     @SafeVarargs
-    public final EcsAccess write(Class<? extends WorldObjectComponent>... types) {
+    public final EcsAccess write(Class<? extends Component>... types) {
         return new EcsAccess(reads, append(writes, types));
     }
 
@@ -74,11 +76,11 @@ public final class EcsAccess {
      * @param extra    additional resource classes
      * @return independent deduplicated declaration list
      */
-    private static List<Class<? extends WorldObjectComponent>> append(
-            List<Class<? extends WorldObjectComponent>> original,
-            Class<? extends WorldObjectComponent>[] extra) {
+    private static List<Class<? extends Component>> append(
+            List<Class<? extends Component>> original,
+            Class<? extends Component>[] extra) {
         Objects.requireNonNull(extra, "types");
-        var result = new ArrayList<>(original);
+        var result = new ObjectArrayList<>(original);
         for (var type : extra)
             if (!result.contains(Objects.requireNonNull(type, "component class"))) result.add(type);
         return result;
@@ -104,14 +106,20 @@ public final class EcsAccess {
      * @return true if resources can describe the same component instance
      */
     private static boolean overlaps(
-            List<Class<? extends WorldObjectComponent>> left,
-            List<Class<? extends WorldObjectComponent>> right) {
-        for (var a : left)
-            for (var b : right)
+            ObjectArrayView<Class<? extends Component>> left,
+            ObjectArrayView<Class<? extends Component>> right) {
+        Object[] leftTypes = left.elements();
+        Object[] rightTypes = right.elements();
+        for (int i = 0; i < leftTypes.length; i++) {
+            var a = (Class<?>) leftTypes[i];
+            for (int j = 0; j < rightTypes.length; j++) {
+                var b = (Class<?>) rightTypes[j];
                 if (a.isAssignableFrom(b)
                         || b.isAssignableFrom(a)
                         || a.isInterface()
                         || b.isInterface()) return true;
+            }
+        }
         return false;
     }
 

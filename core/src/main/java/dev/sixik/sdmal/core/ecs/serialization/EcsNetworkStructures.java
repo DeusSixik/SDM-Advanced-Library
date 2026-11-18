@@ -8,10 +8,10 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -87,7 +87,7 @@ final class EcsNetworkStructures {
                 },
                 buffer -> {
                     int count = EcsNetworkValues.readSize(buffer, 1);
-                    List<Object> values = new ArrayList<>(count);
+                    List<Object> values = new ObjectArrayList<>(count);
                     for (int index = 0; index < count; index++) {
                         try {
                             values.add(EcsNetworkValues.read(element, buffer, true));
@@ -121,7 +121,7 @@ final class EcsNetworkStructures {
                 },
                 buffer -> {
                     int count = EcsNetworkValues.readSize(buffer, 2);
-                    Map<Object, Object> values = new LinkedHashMap<>();
+                    Map<Object, Object> values = new Object2ObjectLinkedOpenHashMap<>();
                     for (int index = 0; index < count; index++) {
                         try {
                             Object decodedKey = EcsNetworkValues.read(key, buffer, true);
@@ -168,7 +168,7 @@ final class EcsNetworkStructures {
             EcsNetworkMember[] members = new EcsNetworkMember[components.length];
             Class<?>[] parameters = new Class<?>[components.length];
             String[] descriptions = new String[components.length];
-            Set<String> keys = new HashSet<>();
+            Set<String> keys = new ObjectOpenHashSet<>();
             var bindings = EcsTypes.bindings(type);
             for (int index = 0; index < components.length; index++) {
                 var component = components[index];

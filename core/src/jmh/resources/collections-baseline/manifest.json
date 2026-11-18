@@ -1,0 +1,7 @@
+{
+  "description": "Exact pre-fastutil runtime classes captured before the collections change on 2026-11-18.",
+  "minecraft": "1.20.1",
+  "java": 17,
+  "jarSha256": "cd4dcdffafd2dc171edb9fc355b43cf79d79b704095a522ef0096308c909ad66",
+  "fixtureSha256": "898edfad5faa019b9e7a5625cbfac1d6008d871530b56c001dd61c15167a5172"
+}

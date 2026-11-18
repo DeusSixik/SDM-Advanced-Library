@@ -18,8 +18,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import java.util.Map;
 
 /**
@@ -93,7 +92,7 @@ public final class PacketRegistry {
      * @return validated immutable registry
      */
     public static PacketRegistry discover(ClassLoader loader) {
-        var types = new LinkedHashSet<Class<? extends Packet>>();
+        var types = new ObjectLinkedOpenHashSet<Class<? extends Packet>>();
         try {
             var resources = loader.getResources(INDEX);
             while (resources.hasMoreElements()) {

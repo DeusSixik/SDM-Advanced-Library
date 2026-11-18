@@ -2,7 +2,7 @@ package dev.sixik.sdmal.content;
 
 import dev.sixik.sdmal.core.content.ContentRegistration;
 import dev.sixik.sdmal.core.content.ContentRuntime;
-import java.util.HashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -39,20 +39,20 @@ public final class FmlContent implements ContentRegistration.Backend {
     /**
      * Deferred block registries by namespace.
      */
-    private final Map<String, DeferredRegister<Block>> blocks = new HashMap<>();
+    private final Map<String, DeferredRegister<Block>> blocks = new Object2ObjectOpenHashMap<>();
     /**
      * Deferred item registries by namespace.
      */
-    private final Map<String, DeferredRegister<Item>> items = new HashMap<>();
+    private final Map<String, DeferredRegister<Item>> items = new Object2ObjectOpenHashMap<>();
     /**
      * Deferred block entity type registries by namespace.
      */
-    private final Map<String, DeferredRegister<BlockEntityType<?>>> entities = new HashMap<>();
+    private final Map<String, DeferredRegister<BlockEntityType<?>>> entities = new Object2ObjectOpenHashMap<>();
     //? if >=1.19.3 {
     /**
      * Deferred creative tab registries by namespace.
      */
-    private final Map<String, DeferredRegister<CreativeModeTab>> tabs = new HashMap<>();
+    private final Map<String, DeferredRegister<CreativeModeTab>> tabs = new Object2ObjectOpenHashMap<>();
     //?}
     /**
      * Creates a loader-owned registry backend.

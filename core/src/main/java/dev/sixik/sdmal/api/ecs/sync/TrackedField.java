@@ -7,7 +7,7 @@ import java.util.function.UnaryOperator;
 /**
  * A {@link Field} guarded by a {@link StampedLock}, with a monotonic revision.
  *
- * <p>Поле для многопоточных компонентов ({@code SyncedWorldObjectComponent}): optimistic reads для
+ * <p>Поле для многопоточных компонентов ({@code NetworkComponent}): optimistic reads для
  * {@link #get}, эксклюзивные writes для {@link #set}. Каждая запись сравнивает новое значение с
  * живым под write-stamp, поэтому гонящиеся писатели сериализуются и ни одно обновление не теряется.
  * Ревизия растёт только на реальном изменении (по {@link FieldCodec#areEqual}); установка равного

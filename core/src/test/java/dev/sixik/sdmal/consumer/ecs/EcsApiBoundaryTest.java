@@ -3,8 +3,8 @@ package dev.sixik.sdmal.consumer.ecs;
 import static org.junit.jupiter.api.Assertions.*;
 
 import dev.sixik.sdmal.api.ecs.EcsScheduler;
-import dev.sixik.sdmal.api.ecs.WorldContext;
-import dev.sixik.sdmal.api.ecs.WorldObject;
+import dev.sixik.sdmal.api.ecs.EcsContext;
+import dev.sixik.sdmal.api.ecs.EcsObject;
 import dev.sixik.sdmal.api.ecs.annotations.EcsComponent;
 import dev.sixik.sdmal.api.ecs.annotations.EcsData;
 import dev.sixik.sdmal.api.ecs.annotations.EcsNoThreadSafe;
@@ -69,7 +69,7 @@ class EcsApiBoundaryTest {
                 "dev.sixik.sdmal.api.ecs.ComponentTickSystem",
                 "dev.sixik.sdmal.api.ecs.EcsExecutionPolicy",
                 "dev.sixik.sdmal.api.ecs.EcsFailures",
-                "dev.sixik.sdmal.api.ecs.WorldObjectArchive",
+                "dev.sixik.sdmal.api.ecs.EcsObjectArchive",
                 "dev.sixik.sdmal.core.ecs.serialization.EcsComponentSchema",
                 "dev.sixik.sdmal.core.ecs.serialization.EcsSchemaBuilder",
                 "dev.sixik.sdmal.core.ecs.serialization.EcsNetworkSchema",
@@ -87,7 +87,7 @@ class EcsApiBoundaryTest {
      */
     @Test
     void publicHandles_doNotExposeInternalLifecycleAndSchemaOperations() {
-        assertThrows(NoSuchMethodException.class, () -> WorldContext.class.getMethod("close"));
+        assertThrows(NoSuchMethodException.class, () -> EcsContext.class.getMethod("close"));
         assertThrows(NoSuchMethodException.class, () -> EcsScheduler.class.getMethod("close"));
         for (Class<?> registry :
                 new Class<?>[] {EcsSerializers.class, EcsNetworkSerializers.class}) {
@@ -114,7 +114,7 @@ class EcsApiBoundaryTest {
     void publicSignatures_doNotLeakCoreOrInaccessibleTypes() throws Exception {
         Path classes =
                 Path.of(
-                        WorldObject.class
+                        EcsObject.class
                                 .getProtectionDomain()
                                 .getCodeSource()
                                 .getLocation()

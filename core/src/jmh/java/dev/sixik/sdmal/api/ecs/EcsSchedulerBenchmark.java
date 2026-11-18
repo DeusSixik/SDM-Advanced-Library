@@ -22,21 +22,21 @@ import org.openjdk.jmh.annotations.Warmup;
 @Fork(1)
 public class EcsSchedulerBenchmark {
     /** Standalone manager with a cached scheduler plan. */
-    private WorldObjectManager manager;
+    private EcsObjectManager manager;
 
     /** Registers independent systems before timing begins. */
     @Setup
     public void setup() {
-        manager = new WorldObjectManager();
+        manager = new EcsObjectManager();
         for (int index = 0; index < 16; index++) {
             int id = index;
             manager.scheduler().register(new EcsSystem<Long, Long>() {
                 @Override public String id() { return "benchmark:system_" + id; }
                 @Override public EcsAccess access() { return EcsAccess.NONE; }
                 @Override public boolean parallel() { return false; }
-                @Override public Long prepare(WorldContext context, WorldObjectManager owner) { return context.tick(); }
-                @Override public Long compute(Long input, WorldContext context) { return input + 1; }
-                @Override public void apply(Long result, WorldContext context, WorldObjectManager owner) {}
+                @Override public Long prepare(EcsContext context, EcsObjectManager owner) { return context.tick(); }
+                @Override public Long compute(Long input, EcsContext context) { return input + 1; }
+                @Override public void apply(Long result, EcsContext context, EcsObjectManager owner) {}
             });
         }
         manager.scheduler().validatePlan();

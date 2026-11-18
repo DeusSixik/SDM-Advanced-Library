@@ -1,7 +1,6 @@
 package dev.sixik.sdmal.example.ecs.blockentity;
 
-import dev.sixik.sdmal.api.ecs.WorldObject;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+import dev.sixik.sdmal.api.ecs.EcsObject;
 import dev.sixik.sdmal.api.ecs.minecraft.blockentity.EcsBlockEntity;
 
 import net.minecraft.core.BlockPos;
@@ -31,17 +30,15 @@ public final class GeneratorBlockEntity extends EcsBlockEntity {
      * @param object new hosted composition; restoration uses saved types instead of this factory
      */
     @Override
-    protected void createComponents(WorldObject object) {
-        object.attach(
-                new BlockGeneratorComponent(),
-                WorldObjectComponentRegistry.instance().require(BlockGeneratorComponent.class));
+    protected void createComponents(EcsObject object) {
+        object.attach(new BlockGeneratorComponent());
     }
 
     /**
      * @param object newly bound or synchronized composition
      */
     @Override
-    protected void onEcsReady(WorldObject object) {
+    protected void onEcsReady(EcsObject object) {
         object.getSingle(BlockGeneratorComponent.class).orElseThrow().publishView();
     }
 

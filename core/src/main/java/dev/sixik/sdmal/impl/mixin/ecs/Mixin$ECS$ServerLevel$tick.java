@@ -1,10 +1,10 @@
 package dev.sixik.sdmal.impl.mixin.ecs;
 
 import dev.sixik.sdmal.SDMAdvancedLibrary;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
-import dev.sixik.sdmal.api.ecs.minecraft.LevelObjectManager;
-import dev.sixik.sdmal.impl.ecs.WorldObjectFileStorage;
-import dev.sixik.sdmal.impl.ecs.WorldObjectTicker;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsAccess;
+import dev.sixik.sdmal.impl.ecs.EcsObjectFileStorage;
+import dev.sixik.sdmal.impl.ecs.EcsObjectTicker;
 import java.io.IOException;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.ProgressListener;
@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public final class Mixin$ECS$ServerLevel$tick {
 
     /** World-specific file session; a failed load disables automatic replacement. */
-    @Unique private WorldObjectFileStorage sdm$storage;
+    @Unique private EcsObjectFileStorage sdm$storage;
 
     /**
      * Opens PRE before vanilla simulation while respecting world freeze.
@@ -33,7 +33,7 @@ public final class Mixin$ECS$ServerLevel$tick {
         boolean running = true;
         //? if >=1.20.3
         //running = level.tickRateManager().runsNormally();
-        WorldObjectTicker.begin(LevelObjectManager.getManager(level), running);
+        EcsObjectTicker.begin(LevelEcsAccess.getManager(level), running);
     }
 
     /**
@@ -43,7 +43,7 @@ public final class Mixin$ECS$ServerLevel$tick {
     @Inject(method = "tick", at = @At(value = "INVOKE",
         target = "Lnet/minecraft/server/level/ServerLevel;tickBlockEntities()V"))
     private void sdm$normalTick(CallbackInfo ci) {
-        WorldObjectTicker.normal(LevelObjectManager.getManager((Level) (Object) this));
+        EcsObjectTicker.normal(LevelEcsAccess.getManager((Level) (Object) this));
     }
 
     /**
@@ -59,10 +59,10 @@ public final class Mixin$ECS$ServerLevel$tick {
         *///?} else {
         var dimension = level.dimension().location();
         //?}
-        sdm$storage = new WorldObjectFileStorage(WorldObjectFileStorage.pathFor(
+        sdm$storage = new EcsObjectFileStorage(EcsObjectFileStorage.pathFor(
             level.getServer().getWorldPath(LevelResource.ROOT), dimension.getNamespace(), dimension.getPath()));
         try {
-            var warnings = sdm$storage.load(LevelObjectManager.getManager(level));
+            var warnings = sdm$storage.load(LevelEcsAccess.getManager(level));
             for (String warning : warnings) SDMAdvancedLibrary.LOGGER.warn("ECS archive: {}", warning);
         } catch (IOException failure) {
             SDMAdvancedLibrary.LOGGER.error("ECS archive could not be loaded; automatic saving is disabled for this world", failure);
@@ -93,10 +93,10 @@ public final class Mixin$ECS$ServerLevel$tick {
     /** Records save errors without replacing a previous successful archive. */
     @Unique private void sdm$saveArchive() {
         if (sdm$storage == null || !sdm$storage.isWritable()) return;
-        WorldObjectManager manager = LevelObjectManager.getManager((Level) (Object) this);
+        EcsObjectManager manager = LevelEcsAccess.getManager((Level) (Object) this);
         if (manager.isClosed()) return;
         try { sdm$storage.save(manager); }
-        catch (IOException | dev.sixik.sdmal.api.ecs.WorldObjectException failure) {
+        catch (IOException | dev.sixik.sdmal.api.ecs.EcsObjectException failure) {
             SDMAdvancedLibrary.LOGGER.error("ECS archive save failed; previous archive retained", failure);
         }
     }
@@ -104,7 +104,7 @@ public final class Mixin$ECS$ServerLevel$tick {
     /**
      * Runs ECS objects after vanilla has processed this server world.
      *
-     * <p>Failures are logged after {@link WorldObjectManager} has attempted every
+     * <p>Failures are logged after {@link EcsObjectManager} has attempted every
      * object. A faulty ECS component therefore does not abort the Minecraft tick.
      *
      * @param ci callback state supplied by Mixin
@@ -115,6 +115,6 @@ public final class Mixin$ECS$ServerLevel$tick {
         boolean running = true;
         //? if >=1.20.3
         //running = level.tickRateManager().runsNormally();
-        WorldObjectTicker.tick(LevelObjectManager.getManager(level), running);
+        EcsObjectTicker.tick(LevelEcsAccess.getManager(level), running);
     }
 }

@@ -11,7 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 
 import java.lang.reflect.Type;
-import java.util.LinkedHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -31,7 +31,7 @@ final class EcsNetworkBuiltins {
      * @return independent exact-class catalog with immutable binary format names
      */
     static Map<Type, EcsNetworkSerializer<?>> create() {
-        Map<Type, EcsNetworkSerializer<?>> result = new LinkedHashMap<>();
+        Map<Type, EcsNetworkSerializer<?>> result = new Object2ObjectLinkedOpenHashMap<>();
         result.put(
                 Boolean.class,
                 of(

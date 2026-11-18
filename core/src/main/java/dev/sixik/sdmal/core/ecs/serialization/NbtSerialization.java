@@ -1,6 +1,6 @@
 package dev.sixik.sdmal.core.ecs.serialization;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.Component;
 import dev.sixik.sdmal.api.ecs.serialization.EcsSerializationException;
 import dev.sixik.sdmal.api.ecs.serialization.EcsSerializer;
 import dev.sixik.sdmal.api.ecs.serialization.TypeRef;
@@ -11,7 +11,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -203,15 +202,24 @@ public final class NbtSerialization {
 
     /**
      * Checks all persisted members without constructing a component or running its callbacks.
-     * WorldObjectComponentRegistry invokes this automatically for annotated components.
+     * ComponentRegistry invokes this automatically for annotated components.
      *
      * @param type concrete annotated component class
      * @throws EcsSerializationException for unsupported types, inaccessible members or invalid
      *                                   annotations
      */
     public static synchronized void validateComponent(
-            Class<? extends AnnotatedWorldObjectComponent> type) {
+            Class<? extends Component> type) {
         componentSchema(Objects.requireNonNull(type, "type"));
+    }
+
+    /**
+     * Identifies ownership-only components from version-zero archives without constructing instances.
+     * @param type concrete component class
+     * @return whether the automatic persistence schema contains at least one annotated member
+     */
+    public static synchronized boolean hasPersistedFields(Class<? extends Component> type) {
+        return componentSchema(type).members().length != 0;
     }
 
     /**
@@ -241,7 +249,7 @@ public final class NbtSerialization {
      * @param component source component, non-null; caller must protect its state
      * @param nbt       destination compound; unknown top-level keys are retained
      */
-    public static void writeComponent(AnnotatedWorldObjectComponent component, CompoundTag nbt) {
+    public static void writeComponent(Component component, CompoundTag nbt) {
         componentSchema(component.getClass()).write(component, Objects.requireNonNull(nbt, "nbt"));
     }
 
@@ -252,7 +260,7 @@ public final class NbtSerialization {
      * @param component target component, non-null; caller must protect its state
      * @param nbt       source compound
      */
-    public static void readComponent(AnnotatedWorldObjectComponent component, CompoundTag nbt) {
+    public static void readComponent(Component component, CompoundTag nbt) {
         componentSchema(component.getClass()).read(component, Objects.requireNonNull(nbt, "nbt"));
     }
 

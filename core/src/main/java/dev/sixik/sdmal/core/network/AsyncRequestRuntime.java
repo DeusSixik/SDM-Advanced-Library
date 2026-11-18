@@ -11,8 +11,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -57,15 +57,15 @@ public final class AsyncRequestRuntime {
     /**
      * Bounded replay ids without decoded messages or response bodies.
      */
-    private static final LinkedHashMap<IncomingKey, Long> COMPLETED = new LinkedHashMap<>();
+    private static final Object2ObjectLinkedOpenHashMap<IncomingKey, Long> COMPLETED = new Object2ObjectLinkedOpenHashMap<>();
     /**
      * Indexed metadata by stable request id.
      */
-    private static volatile Map<String, Entry> byId = Map.of();
+    private static volatile Map<String, Entry> byId = it.unimi.dsi.fastutil.objects.Object2ObjectMaps.emptyMap();
     /**
      * Indexed metadata by exact request class.
      */
-    private static volatile Map<Class<?>, Entry> byClass = Map.of();
+    private static volatile Map<Class<?>, Entry> byClass = it.unimi.dsi.fastutil.objects.Object2ObjectMaps.emptyMap();
     /**
      * Prevents repeating discovery for an empty modpack.
      */
@@ -88,9 +88,9 @@ public final class AsyncRequestRuntime {
      */
     public static synchronized void install(ClassLoader loader) {
         if (installed) return;
-        var ids = new java.util.HashMap<String, Entry>();
-        var classes = new java.util.HashMap<Class<?>, Entry>();
-        var types = new LinkedHashSet<Class<?>>();
+        var ids = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<String, Entry>();
+        var classes = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<Class<?>, Entry>();
+        var types = new ObjectLinkedOpenHashSet<Class<?>>();
         try {
             var resources = loader.getResources(INDEX);
             while (resources.hasMoreElements()) {
@@ -111,8 +111,8 @@ public final class AsyncRequestRuntime {
             if (previous != null) throw new IllegalStateException("Duplicate async request id: " + entry.id);
             classes.put(type, entry);
         }
-        byId = Map.copyOf(ids);
-        byClass = Map.copyOf(classes);
+        byId = it.unimi.dsi.fastutil.objects.Object2ObjectMaps.unmodifiable(ids);
+        byClass = it.unimi.dsi.fastutil.objects.Object2ObjectMaps.unmodifiable(classes);
         installed = true;
     }
 

@@ -1,6 +1,8 @@
 package dev.sixik.sdmal.api.ecs.minecraft.blockentity;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.Component;
+import dev.sixik.sdmal.api.ecs.EcsObject;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
 
 /**
  * Publishes an immutable rendering projection independently of mutable simulation fields. A
@@ -10,7 +12,7 @@ import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
  * @param <S> deeply immutable render-state value; must not contain Level, BlockEntity or live
  *            components
  */
-public abstract class RenderStateComponent<S> extends AnnotatedWorldObjectComponent {
+public abstract class RenderStateComponent<S> extends Component {
     /**
      * Last fully published immutable state; null before the first publication.
      */
@@ -28,7 +30,7 @@ public abstract class RenderStateComponent<S> extends AnnotatedWorldObjectCompon
      * @param next deeply immutable state, possibly null to hide the rendering projection
      */
     protected final void publishState(S next) {
-        owner().flatMap(object -> object.manager()).ifPresent(manager -> manager.checkThread());
+        owner().flatMap(EcsObject::manager).ifPresent(EcsObjectManager::checkThread);
         state = next;
     }
 

@@ -1,5 +1,7 @@
 package dev.sixik.sdmal.api.ecs;
 
+import dev.sixik.sdmal.core.utils.ObjectArrayView;
+
 import java.util.List;
 
 /**
@@ -47,7 +49,7 @@ public interface EcsSystem<S, R> {
      * @return system ids whose results must be committed before preparing this system
      */
     default List<String> after() {
-        return List.of();
+        return ObjectArrayView.of();
     }
 
     /**
@@ -68,7 +70,7 @@ public interface EcsSystem<S, R> {
      * @param manager world's object manager
      * @return independently owned input snapshot; may be null when supported by compute
      */
-    S prepare(WorldContext context, WorldObjectManager manager);
+    S prepare(EcsContext context, EcsObjectManager manager);
 
     /**
      * Computes from the snapshot without touching the live manager, components or Level. World
@@ -78,7 +80,7 @@ public interface EcsSystem<S, R> {
      * @param context  deferred command API; live world access is forbidden during compute
      * @return independently owned result, possibly null
      */
-    R compute(S snapshot, WorldContext context);
+    R compute(S snapshot, EcsContext context);
 
     /**
      * Applies results on the owner thread in stable dependency-group order.
@@ -87,5 +89,5 @@ public interface EcsSystem<S, R> {
      * @param context owner-thread world access and deferred commands
      * @param manager world's object manager
      */
-    void apply(R result, WorldContext context, WorldObjectManager manager);
+    void apply(R result, EcsContext context, EcsObjectManager manager);
 }

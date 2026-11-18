@@ -1,5 +1,7 @@
 package dev.sixik.sdmal;
 
+import dev.sixik.sdmal.core.utils.ObjectArrayView;
+
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import java.util.List;
@@ -15,7 +17,7 @@ public final class NeoForgeConfig {
     /** Prefix for the example number. */
     private static final ForgeConfigSpec.ConfigValue<String> INTRODUCTION = BUILDER.define("magicNumberIntroduction", Config.DEFAULT.magicNumberIntroduction());
     /** Validated registry identifiers for items to log. */
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> ITEMS = BUILDER.defineListAllowEmpty(List.of("items"), () -> Config.DEFAULT.items(), SDMAdvancedLibrary::isItem);
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> ITEMS = BUILDER.defineListAllowEmpty(ObjectArrayView.of("items"), () -> Config.DEFAULT.items(), SDMAdvancedLibrary::isItem);
     /** Native specification registered as sdmal-common.toml. */
     public static final ForgeConfigSpec SPEC = BUILDER.build();
     /** Most recently loaded common configuration. */
@@ -30,6 +32,6 @@ public final class NeoForgeConfig {
      */
     public static void onLoad(ModConfigEvent event) {
         if (event.getConfig().getSpec() != SPEC) return;
-        current = new Config(LOG_DIRT_BLOCK.get(), MAGIC_NUMBER.get(), INTRODUCTION.get(), List.copyOf(ITEMS.get()));
+        current = new Config(LOG_DIRT_BLOCK.get(), MAGIC_NUMBER.get(), INTRODUCTION.get(), ObjectArrayView.copyOf(ITEMS.get()));
     }
 }

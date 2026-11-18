@@ -2,10 +2,10 @@ package dev.sixik.sdmal.api.ecs;
 
 import dev.sixik.sdmal.api.ecs.sync.Field;
 import dev.sixik.sdmal.api.ecs.sync.FieldCodecs;
-import dev.sixik.sdmal.api.ecs.sync.SyncedWorldObjectComponent.DeltaTracker;
-import dev.sixik.sdmal.api.ecs.sync.SyncedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.sync.NetworkComponent.DeltaTracker;
+import dev.sixik.sdmal.api.ecs.sync.NetworkComponent;
 import dev.sixik.sdmal.api.ecs.sync.TrackedField;
-import dev.sixik.sdmal.impl.ecs.WorldObjectTicker;
+import dev.sixik.sdmal.impl.ecs.EcsObjectTicker;
 import io.netty.buffer.Unpooled;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,11 +31,11 @@ public class EcsBenchmark {
     /**
      * Manager containing 128 objects with one tickable component each.
      */
-    private WorldObjectManager manager;
+    private EcsObjectManager manager;
     /**
      * Independent object with eight tickable components.
      */
-    private WorldObject object;
+    private EcsObject object;
     /**
      * Revisioned field used by the snapshot measurement.
      */
@@ -57,7 +57,7 @@ public class EcsBenchmark {
      */
     private long tick;
     /** Previous map-iteration dispatch path for comparison with stable active arrays. */
-    private Map<UUID, WorldObject> legacyObjects;
+    private Map<UUID, EcsObject> legacyObjects;
     /** Independent sequence for the previous dispatch path. */
     private long legacyTick;
     /** Mutable declaration list representing the previous per-call schema copying input. */
@@ -70,16 +70,16 @@ public class EcsBenchmark {
     public void setup() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        manager = new WorldObjectManager();
+        manager = new EcsObjectManager();
         for (int index = 0; index < 128; index++) manager.create().attach(new PlainCounter());
-        object = new WorldObject();
+        object = new EcsObject();
         for (int index = 0; index < 8; index++) object.attach(new PlainCounter());
         field = new TrackedField<>("value", FieldCodecs.intValue(), 42);
         synced = new Counter();
         tracker = new DeltaTracker();
         buffer = new FriendlyByteBuf(Unpooled.buffer(256));
         legacyObjects = new ConcurrentHashMap<>();
-        for (WorldObject entry : manager.snapshot()) legacyObjects.put(entry.id(), entry);
+        for (EcsObject entry : manager.snapshot()) legacyObjects.put(entry.id(), entry);
         declarations = new ArrayList<>(synced.syncedFields());
     }
 
@@ -122,7 +122,7 @@ public class EcsBenchmark {
     @Benchmark
     public long legacyTickManager() {
         long current = ++legacyTick;
-        for (WorldObject entry : legacyObjects.values()) entry.tick(current);
+        for (EcsObject entry : legacyObjects.values()) entry.tick(current);
         return current;
     }
 
@@ -146,7 +146,7 @@ public class EcsBenchmark {
      */
     @Benchmark
     public long tickWorld() {
-        WorldObjectTicker.tick(manager, true);
+        EcsObjectTicker.tick(manager, true);
         return manager.lastTick();
     }
 
@@ -156,7 +156,7 @@ public class EcsBenchmark {
      */
     @Benchmark
     public long tickFrozenWorld() {
-        WorldObjectTicker.tick(manager, false);
+        EcsObjectTicker.tick(manager, false);
         return manager.lastTick();
     }
 
@@ -186,7 +186,7 @@ public class EcsBenchmark {
     /**
      * Tick-only component avoiding field serialization in the dispatch benchmarks.
      */
-    private static class PlainCounter extends AbstractWorldObjectComponent implements TickableComponent {
+    private static class PlainCounter extends Component implements TickableComponent {
         /**
          * Last observed manager tick number, initially zero.
          */
@@ -204,7 +204,7 @@ public class EcsBenchmark {
     /**
      * One-field component used by the delta benchmark.
      */
-    private static class Counter extends SyncedWorldObjectComponent {
+    private static class Counter extends NetworkComponent {
         /**
          * Revisioned bounded counter alternating between 42 and 43.
          */

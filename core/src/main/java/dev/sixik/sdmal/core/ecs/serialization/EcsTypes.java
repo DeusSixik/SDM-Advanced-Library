@@ -6,7 +6,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.util.Arrays;
-import java.util.HashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import java.util.Map;
 
 /**
@@ -97,7 +97,7 @@ final class EcsTypes {
      * @return independent substitution map
      */
     static Map<TypeVariable<?>, Type> bindings(Type type) {
-        Map<TypeVariable<?>, Type> result = new HashMap<>();
+        Map<TypeVariable<?>, Type> result = new Object2ObjectOpenHashMap<>();
         if (type instanceof ParameterizedType generic) {
             TypeVariable<?>[] variables = raw(type).getTypeParameters();
             Type[] arguments = generic.getActualTypeArguments();

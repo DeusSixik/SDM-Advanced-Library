@@ -2,10 +2,10 @@ package dev.sixik.sdmal.core.ecs.serialization;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentType;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.Component;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.ComponentType;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
 import dev.sixik.sdmal.api.ecs.annotations.EcsData;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
 import dev.sixik.sdmal.api.ecs.annotations.EcsSync;
@@ -428,7 +428,7 @@ class EcsNetworkSerializersTest {
     @ParameterizedTest
     @MethodSource("invalidComponents")
     void schema_invalidWireMember_rejectsAtRegistration(
-            Class<? extends AnnotatedWorldObjectComponent> type) {
+            Class<? extends Component> type) {
         var error =
                 assertThrows(
                         EcsSerializationException.class,
@@ -439,7 +439,7 @@ class EcsNetworkSerializersTest {
     /**
      * @return distinct invalid binary schema declarations
      */
-    private static List<Class<? extends AnnotatedWorldObjectComponent>> invalidComponents() {
+    private static List<Class<? extends Component>> invalidComponents() {
         return List.of(
                 NoKey.class,
                 StaticField.class,
@@ -459,12 +459,12 @@ class EcsNetworkSerializersTest {
     @Test
     void registry_invalidWireSchema_isNotInstalled() {
         String id = "test:wire_invalid_" + UUID.randomUUID();
-        var registry = WorldObjectComponentRegistry.instance();
+        var registry = ComponentRegistry.instance();
         var type =
-                new WorldObjectComponentType<>(
+                new ComponentType<>(
                         id,
                         NoKey.class,
-                        WorldObjectComponentType.DuplicatePolicy.REJECT,
+                        ComponentType.DuplicatePolicy.REJECT,
                         NoKey::new);
         assertThrows(EcsSerializationException.class, () -> registry.register(type));
         assertTrue(registry.get(id).isEmpty());
@@ -622,7 +622,7 @@ class EcsNetworkSerializersTest {
      */
     @Test
     void component_wrongWorldThread_rejectsBeforeTouchingBuffer() throws Exception {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var component = manager.create().attach(new Scalar());
             var executor = Executors.newSingleThreadExecutor();
             try {
@@ -678,7 +678,7 @@ class EcsNetworkSerializersTest {
     /**
      * One primitive field for exact packet layout checks.
      */
-    private static final class Scalar extends AnnotatedWorldObjectComponent {
+    private static final class Scalar extends Component {
         /**
          * Plain wire integer.
          */
@@ -689,7 +689,7 @@ class EcsNetworkSerializersTest {
     /**
      * Different binary type under the same wire key.
      */
-    private static final class LongScalar extends AnnotatedWorldObjectComponent {
+    private static final class LongScalar extends Component {
         /**
          * Default retained after schema mismatch.
          */
@@ -700,7 +700,7 @@ class EcsNetworkSerializersTest {
     /**
      * Independent selection of persisted and network-only state.
      */
-    private static final class Selection extends AnnotatedWorldObjectComponent {
+    private static final class Selection extends Component {
         /**
          * Stable key shared by both transports.
          */
@@ -761,7 +761,7 @@ class EcsNetworkSerializersTest {
     /**
      * Nested binary structures fixture.
      */
-    private static final class Structured extends AnnotatedWorldObjectComponent {
+    private static final class Structured extends Component {
         /**
          * Nullable record elements.
          */
@@ -786,7 +786,7 @@ class EcsNetworkSerializersTest {
      *
      * @param <T> concrete child value
      */
-    private abstract static class Parent<T> extends AnnotatedWorldObjectComponent {
+    private abstract static class Parent<T> extends Component {
         /**
          * Inherited generic field.
          */
@@ -824,7 +824,7 @@ class EcsNetworkSerializersTest {
     /**
      * Sender declaration order differs from receiver order.
      */
-    private static final class CompatibleA extends AnnotatedWorldObjectComponent {
+    private static final class CompatibleA extends Component {
         /**
          * First key.
          */
@@ -841,7 +841,7 @@ class EcsNetworkSerializersTest {
     /**
      * Receiver uses different Java names and declaration order.
      */
-    private static final class CompatibleB extends AnnotatedWorldObjectComponent {
+    private static final class CompatibleB extends Component {
         /**
          * Last key declared first.
          */
@@ -923,7 +923,7 @@ class EcsNetworkSerializersTest {
     /**
      * Component using a dual adapter for one selected field.
      */
-    private static final class DualComponent extends AnnotatedWorldObjectComponent {
+    private static final class DualComponent extends Component {
         /**
          * Both transports select this field; only network is exercised.
          */
@@ -1017,7 +1017,7 @@ class EcsNetworkSerializersTest {
     /**
      * Both global and local binary representations of one network-only type.
      */
-    private static final class WireComponent extends AnnotatedWorldObjectComponent {
+    private static final class WireComponent extends Component {
         /**
          * Global fixed-width adapter.
          */
@@ -1042,7 +1042,7 @@ class EcsNetworkSerializersTest {
     /**
      * Retryable native schema fixture.
      */
-    private static final class LateComponent extends AnnotatedWorldObjectComponent {
+    private static final class LateComponent extends Component {
         /**
          * Value requiring registration.
          */
@@ -1053,7 +1053,7 @@ class EcsNetworkSerializersTest {
     /**
      * First primitive must remain unchanged if the late record is rejected.
      */
-    private static final class BatteryComponent extends AnnotatedWorldObjectComponent {
+    private static final class BatteryComponent extends Component {
         /**
          * First-decoded primitive.
          */
@@ -1111,7 +1111,7 @@ class EcsNetworkSerializersTest {
     /**
      * Component with a throwing binary writer.
      */
-    private static final class FailingComponent extends AnnotatedWorldObjectComponent {
+    private static final class FailingComponent extends Component {
         /**
          * Value encoded by a failure-injection adapter.
          */
@@ -1186,7 +1186,7 @@ class EcsNetworkSerializersTest {
     /**
      * Complete-frame size rejection fixture.
      */
-    private static final class HugeComponent extends AnnotatedWorldObjectComponent {
+    private static final class HugeComponent extends Component {
         /**
          * Oversized encoded output.
          */
@@ -1198,7 +1198,7 @@ class EcsNetworkSerializersTest {
     /**
      * No stable name exists when there is no persistence key to reuse.
      */
-    private static final class NoKey extends AnnotatedWorldObjectComponent {
+    private static final class NoKey extends Component {
         /**
          * Invalid implicit key.
          */
@@ -1208,7 +1208,7 @@ class EcsNetworkSerializersTest {
     /**
      * Invalid static wire state.
      */
-    private static final class StaticField extends AnnotatedWorldObjectComponent {
+    private static final class StaticField extends Component {
         /**
          * Static fields cannot be restored per component.
          */
@@ -1219,7 +1219,7 @@ class EcsNetworkSerializersTest {
     /**
      * Invalid immutable component state.
      */
-    private static final class FinalField extends AnnotatedWorldObjectComponent {
+    private static final class FinalField extends Component {
         /**
          * Final fields cannot be committed by a component reader.
          */
@@ -1230,7 +1230,7 @@ class EcsNetworkSerializersTest {
     /**
      * Duplicate binary keys are invalid.
      */
-    private static final class DuplicateKey extends AnnotatedWorldObjectComponent {
+    private static final class DuplicateKey extends Component {
         /**
          * First conflicting key.
          */
@@ -1247,7 +1247,7 @@ class EcsNetworkSerializersTest {
     /**
      * A raw list has no finite element schema.
      */
-    private static final class Raw extends AnnotatedWorldObjectComponent {
+    private static final class Raw extends Component {
         /**
          * Invalid erased type.
          */
@@ -1259,7 +1259,7 @@ class EcsNetworkSerializersTest {
     /**
      * A wildcard list has no concrete element format.
      */
-    private static final class Wildcard extends AnnotatedWorldObjectComponent {
+    private static final class Wildcard extends Component {
         /**
          * Invalid wildcard type.
          */
@@ -1270,7 +1270,7 @@ class EcsNetworkSerializersTest {
     /**
      * Field-local formats require selection of the field itself.
      */
-    private static final class MissingSync extends AnnotatedWorldObjectComponent {
+    private static final class MissingSync extends Component {
         /**
          * Invalid orphan override.
          */
@@ -1281,7 +1281,7 @@ class EcsNetworkSerializersTest {
     /**
      * Field-local format value type must match.
      */
-    private static final class WrongOverride extends AnnotatedWorldObjectComponent {
+    private static final class WrongOverride extends Component {
         /**
          * OnlyWire adapter cannot encode int.
          */
@@ -1293,7 +1293,7 @@ class EcsNetworkSerializersTest {
     /**
      * Arbitrary objects require an explicit network adapter.
      */
-    private static final class UnknownType extends AnnotatedWorldObjectComponent {
+    private static final class UnknownType extends Component {
         /**
          * Unsupported automatic type.
          */
@@ -1312,7 +1312,7 @@ class EcsNetworkSerializersTest {
     /**
      * Recursive binary schema fixture.
      */
-    private static final class RecursiveComponent extends AnnotatedWorldObjectComponent {
+    private static final class RecursiveComponent extends Component {
         /**
          * Invalid automatic recursive graph.
          */

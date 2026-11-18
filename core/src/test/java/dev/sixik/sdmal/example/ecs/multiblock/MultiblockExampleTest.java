@@ -3,8 +3,8 @@ package dev.sixik.sdmal.example.ecs.multiblock;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsManagers;
 import dev.sixik.sdmal.example.ecs.blockentity.EcsExampleBlock;
 
 import io.netty.buffer.Unpooled;
@@ -77,7 +77,7 @@ class MultiblockExampleTest {
     static void bootstrap() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        WorldObjectComponentRegistry.instance().registerServices();
+        ComponentRegistry.instance().registerServices();
     }
 
     /**
@@ -85,7 +85,7 @@ class MultiblockExampleTest {
      */
     @AfterEach
     void cleanup() {
-        worlds.forEach(WorldObjectManagerApi::unregisterWorld);
+        worlds.forEach(LevelEcsManagers::unregisterWorld);
     }
 
     /**
@@ -142,7 +142,7 @@ class MultiblockExampleTest {
         var shell = shell();
         var level = world(shell, false);
         shell.setLevel(level);
-        var manager = WorldObjectManagerApi.getManager(level);
+        var manager = LevelEcsManagers.getManager(level);
         manager.tickAll();
         assertEquals(MultiblockStatus.INCOMPLETE, shell.renderState().status());
         assertEquals(0, shell.renderState().energy());
@@ -175,7 +175,7 @@ class MultiblockExampleTest {
         var shell = shell();
         var level = world(shell, false);
         shell.setLevel(level);
-        var manager = WorldObjectManagerApi.getManager(level);
+        var manager = LevelEcsManagers.getManager(level);
         manager.tickAll();
         unloaded.add(part(2).asLong());
         partReads.set(0);
@@ -203,7 +203,7 @@ class MultiblockExampleTest {
                         .orElseThrow()
                         .getSingle(MultiblockGeneratorComponent.class)
                         .orElseThrow();
-        var context = WorldObjectManagerApi.getManager(level).worldContext();
+        var context = LevelEcsManagers.getManager(level).context();
         var result = component.compute(component.capture(context), context);
         assertEquals(10, result.nextEnergy);
         blocks.remove(part(8).asLong());
@@ -228,7 +228,7 @@ class MultiblockExampleTest {
                         .orElseThrow()
                         .getSingle(MultiblockGeneratorComponent.class)
                         .orElseThrow();
-        var context = WorldObjectManagerApi.getManager(level).worldContext();
+        var context = LevelEcsManagers.getManager(level).context();
         var result = component.compute(component.capture(context), context);
         unloaded.add(part(1).asLong());
         partReads.set(0);
@@ -250,7 +250,7 @@ class MultiblockExampleTest {
         when(level.isOutsideBuildHeight(any(BlockPos.class)))
                 .thenAnswer(call -> ((BlockPos) call.getArgument(0)).getY() > ORIGIN.getY());
         shell.setLevel(level);
-        WorldObjectManagerApi.getManager(level).tickAll();
+        LevelEcsManagers.getManager(level).tickAll();
         assertEquals(0, partReads.get());
         assertEquals(MultiblockStatus.OUT_OF_BOUNDS, shell.renderState().status());
         shell.setRemoved();
@@ -267,7 +267,7 @@ class MultiblockExampleTest {
         level.getWorldBorder().setCenter(ORIGIN.getX(), ORIGIN.getZ());
         level.getWorldBorder().setSize(1);
         shell.setLevel(level);
-        WorldObjectManagerApi.getManager(level).tickAll();
+        LevelEcsManagers.getManager(level).tickAll();
         assertEquals(0, partReads.get());
         assertEquals(MultiblockStatus.OUT_OF_BOUNDS, shell.renderState().status());
         shell.setRemoved();
@@ -283,7 +283,7 @@ class MultiblockExampleTest {
         var shell = shell();
         var level = world(shell, false);
         shell.setLevel(level);
-        var manager = WorldObjectManagerApi.getManager(level);
+        var manager = LevelEcsManagers.getManager(level);
         manager.tickAll();
         var old = shell.ecsObject().orElseThrow();
         var component = old.getSingle(MultiblockGeneratorComponent.class).orElseThrow();
@@ -316,7 +316,7 @@ class MultiblockExampleTest {
         var server = shell();
         var serverLevel = world(server, false);
         server.setLevel(serverLevel);
-        WorldObjectManagerApi.getManager(serverLevel).tickAll();
+        LevelEcsManagers.getManager(serverLevel).tickAll();
         var client = shell();
         var clientLevel = world(client, true);
         client.setLevel(clientLevel);
@@ -325,7 +325,7 @@ class MultiblockExampleTest {
             server.writeClientSnapshot(buffer);
             client.readClientSnapshot(buffer);
             assertEquals(server.renderState(), client.renderState());
-            WorldObjectManagerApi.getManager(clientLevel).tickAll();
+            LevelEcsManagers.getManager(clientLevel).tickAll();
             assertEquals(10, client.renderState().energy());
             verify(clientLevel, never()).getBlockState(any(BlockPos.class));
         } finally {
@@ -346,7 +346,7 @@ class MultiblockExampleTest {
         var shell = shell();
         var level = world(shell, false);
         shell.setLevel(level);
-        WorldObjectManagerApi.getManager(level).tickAll();
+        LevelEcsManagers.getManager(level).tickAll();
         var player = mock(Player.class);
         var block = mock(MultiblockControllerBlock.class, CALLS_REAL_METHODS);
         var method =
@@ -480,7 +480,7 @@ class MultiblockExampleTest {
                             return blocks.getOrDefault(
                                     position.asLong(), Blocks.AIR.defaultBlockState());
                         });
-        WorldObjectManagerApi.registerWorld(level);
+        LevelEcsManagers.registerWorld(level);
         worlds.add(level);
         return level;
     }

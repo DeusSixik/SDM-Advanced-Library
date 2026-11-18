@@ -8,9 +8,9 @@ import java.net.URLClassLoader;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Compares the frozen pre-cleanup library and the current implementation through identical workload
- * bytecode. Both libraries use isolated child-first loaders; only setup uses reflection, never
- * measured operations.
+ * Compares the frozen pre-cleanup library and the current implementation through equivalent
+ * workloads compiled against their respective APIs. Both libraries use isolated child-first
+ * loaders; only setup uses reflection, never measured operations.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -19,6 +19,9 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 @Fork(1)
 public class EcsCleanupBenchmark {
+    /** Frozen implementation to compare; collections is captured immediately before that migration. */
+    @Param({"cleanup"})
+    public String baseline;
     /**
      * Workload kind, number of components/values, and arithmetic rounds per compute callback.
      */
@@ -64,17 +67,23 @@ public class EcsCleanupBenchmark {
      */
     @Setup
     public void setup() throws Exception {
-        URL baseline = getClass().getResource("/baseline/ecs-before-cleanup-1.20.1.jar");
-        if (baseline == null) {
+        URL baselineJar = getClass().getResource(this.baseline.equals("collections")
+                ? "/collections-baseline/ecs-before-collections-1.20.1.jar"
+                : "/baseline/ecs-before-cleanup-1.20.1.jar");
+        if (baselineJar == null) {
             throw new IllegalStateException("Frozen ECS baseline resource is missing");
         }
         URL current =
-                dev.sixik.sdmal.api.ecs.WorldObject.class
+                dev.sixik.sdmal.api.ecs.EcsObject.class
                         .getProtectionDomain()
                         .getCodeSource()
                         .getLocation();
         URL fixtures = getClass().getProtectionDomain().getCodeSource().getLocation();
-        beforeLoader = new IsolatedLibrary(baseline, fixtures);
+        var baselineFixtures = java.nio.file.Path.of(fixtures.toURI()).resolveSibling(
+                this.baseline.equals("collections") ? "jmhCollectionsBaseline" : "jmhBaseline");
+        if (!java.nio.file.Files.isDirectory(baselineFixtures))
+            throw new IllegalStateException("Run through the jmhCleanup Gradle task");
+        beforeLoader = new IsolatedLibrary(baselineJar, baselineFixtures.toUri().toURL());
         afterLoader = new IsolatedLibrary(current, fixtures);
         before = create(beforeLoader);
         after = create(afterLoader);
@@ -89,7 +98,7 @@ public class EcsCleanupBenchmark {
     }
 
     /**
-     * Instantiates unchanged fixture bytecode against one implementation.
+     * Instantiates the matching fixture build against one implementation.
      *
      * @param loader implementation loader
      * @return shared-interface workload without reflection in its measured operations

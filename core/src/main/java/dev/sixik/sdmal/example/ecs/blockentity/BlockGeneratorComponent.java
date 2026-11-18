@@ -1,7 +1,7 @@
 package dev.sixik.sdmal.example.ecs.blockentity;
 
 import dev.sixik.sdmal.api.ecs.SnapshotTickableComponent;
-import dev.sixik.sdmal.api.ecs.WorldContext;
+import dev.sixik.sdmal.api.ecs.EcsContext;
 import dev.sixik.sdmal.api.ecs.annotations.EcsComponent;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
 import dev.sixik.sdmal.api.ecs.annotations.EcsSync;
@@ -34,7 +34,7 @@ public final class BlockGeneratorComponent
      * @return independent copied charge
      */
     @Override
-    public Integer capture(WorldContext context) {
+    public Integer capture(EcsContext context) {
         return energy;
     }
 
@@ -44,7 +44,7 @@ public final class BlockGeneratorComponent
      * @return next charge, capped at 1000 units
      */
     @Override
-    public Integer compute(Integer snapshot, WorldContext context) {
+    public Integer compute(Integer snapshot, EcsContext context) {
         return Math.min(1000, snapshot + 1);
     }
 
@@ -56,7 +56,7 @@ public final class BlockGeneratorComponent
      * @param context owner-thread commit context
      */
     @Override
-    public void apply(Integer result, WorldContext context) {
+    public void apply(Integer result, EcsContext context) {
         if (energy == result) return;
         energy = result;
         publishView();

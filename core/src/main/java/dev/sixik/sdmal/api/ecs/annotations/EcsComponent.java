@@ -1,6 +1,6 @@
 package dev.sixik.sdmal.api.ecs.annotations;
 
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentType;
+import dev.sixik.sdmal.api.ecs.ComponentType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -26,6 +26,6 @@ public @interface EcsComponent {
      *
      * @return attachment policy
      */
-    WorldObjectComponentType.DuplicatePolicy duplicatePolicy() default
-            WorldObjectComponentType.DuplicatePolicy.REJECT;
+    ComponentType.DuplicatePolicy duplicatePolicy() default
+            ComponentType.DuplicatePolicy.REJECT;
 }

@@ -25,11 +25,11 @@ class EcsSchedulerTest {
      */
     @Test
     void phaseCommand_attachesRestrictedSubtype_beforeJobAdmission() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             Thread owner = Thread.currentThread();
             AtomicInteger computed = new AtomicInteger();
             manager.scheduler().setOptionalBudget(0);
-            manager.worldContext()
+            manager.context()
                     .enqueue(
                             TickPhase.NORMAL, () -> manager.create().attach(new RestrictedChild()));
             manager.scheduler()
@@ -41,7 +41,7 @@ class EcsSchedulerTest {
                                 }
 
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     assertSame(owner, Thread.currentThread());
                                     computed.incrementAndGet();
                                     return input;
@@ -57,7 +57,7 @@ class EcsSchedulerTest {
      */
     @Test
     void optionalBudget_independentPendingJobs_eventuallyAllRun() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setOptionalBudget(1);
             List<String> applied = new ArrayList<>();
             for (String name : List.of("one", "two", "three"))
@@ -72,8 +72,8 @@ class EcsSchedulerTest {
                                     @Override
                                     public void apply(
                                             Integer result,
-                                            WorldContext context,
-                                            WorldObjectManager owner) {
+                                            EcsContext context,
+                                            EcsObjectManager owner) {
                                         applied.add(id());
                                     }
                                 });
@@ -89,7 +89,7 @@ class EcsSchedulerTest {
      */
     @Test
     void schedulingFailure_stillRunsIndependentSystemsAndClosesTick() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             AtomicInteger applied = new AtomicInteger();
             manager.scheduler()
                     .register(
@@ -105,12 +105,12 @@ class EcsSchedulerTest {
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     applied.incrementAndGet();
                                 }
                             });
-            assertThrows(WorldObjectException.class, manager::tickAll);
+            assertThrows(EcsObjectException.class, manager::tickAll);
             assertEquals(1, applied.get());
             assertFalse(manager.isTicking());
         }
@@ -122,10 +122,10 @@ class EcsSchedulerTest {
     @Test
     void descriptor_inheritedRestrictions_cachesBothFlags() {
         var type =
-                new WorldObjectComponentType<>(
+                new ComponentType<>(
                         "test:restricted",
                         RestrictedChild.class,
-                        WorldObjectComponentType.DuplicatePolicy.REJECT,
+                        ComponentType.DuplicatePolicy.REJECT,
                         RestrictedChild::new);
         assertTrue(type.requiresWorldThread());
         assertTrue(type.requiresCurrentTick());
@@ -158,7 +158,7 @@ class EcsSchedulerTest {
     @Test
     void parallelJobs_reverseCompletion_commitInStableOrder() {
         var executor = Executors.newFixedThreadPool(2);
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setExecutor(executor);
             List<String> trace = new ArrayList<>();
             CountDownLatch entered = new CountDownLatch(2);
@@ -167,7 +167,7 @@ class EcsSchedulerTest {
                     .register(
                             new TestSystem("first", EcsAccess.NONE) {
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     entered.countDown();
                                     await(entered);
                                     await(secondFinished);
@@ -179,8 +179,8 @@ class EcsSchedulerTest {
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     trace.add("first-apply");
                                 }
                             });
@@ -188,7 +188,7 @@ class EcsSchedulerTest {
                     .register(
                             new TestSystem("second", EcsAccess.NONE) {
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     entered.countDown();
                                     await(entered);
                                     context.enqueue(
@@ -200,8 +200,8 @@ class EcsSchedulerTest {
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     trace.add("second-apply");
                                 }
                             });
@@ -220,7 +220,7 @@ class EcsSchedulerTest {
      */
     @Test
     void writeReadDependency_preparesFreshDataAfterCommit() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             AtomicInteger value = new AtomicInteger();
             manager.scheduler()
                     .register(
@@ -228,8 +228,8 @@ class EcsSchedulerTest {
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     value.set(7);
                                     context.enqueue(TickPhase.NORMAL, () -> value.addAndGet(3));
                                 }
@@ -239,15 +239,15 @@ class EcsSchedulerTest {
                             new TestSystem("read", EcsAccess.NONE.read(A.class)) {
                                 @Override
                                 public Integer prepare(
-                                        WorldContext context, WorldObjectManager owner) {
+                                        EcsContext context, EcsObjectManager owner) {
                                     return value.get();
                                 }
 
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     assertEquals(10, result);
                                 }
                             });
@@ -261,7 +261,7 @@ class EcsSchedulerTest {
      */
     @Test
     void actualRestrictedSubtype_forcesOwnerAndMandatoryExecution() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.create().attach(new RestrictedChild());
             manager.scheduler().setOptionalBudget(0);
             Thread owner = Thread.currentThread();
@@ -275,7 +275,7 @@ class EcsSchedulerTest {
                                 }
 
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     assertSame(owner, Thread.currentThread());
                                     computed.incrementAndGet();
                                     return input;
@@ -292,7 +292,7 @@ class EcsSchedulerTest {
      */
     @Test
     void mandatoryConsumer_promotesEarlierPhasePredecessor() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setOptionalBudget(0);
             List<String> trace = new ArrayList<>();
             manager.scheduler()
@@ -311,8 +311,8 @@ class EcsSchedulerTest {
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     trace.add("producer");
                                 }
                             });
@@ -337,8 +337,8 @@ class EcsSchedulerTest {
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     trace.add("consumer");
                                 }
                             });
@@ -353,7 +353,7 @@ class EcsSchedulerTest {
      */
     @Test
     void optionalBudget_defersBeforePrepareAndUsesFreshSnapshot() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setOptionalBudget(0);
             List<Integer> applied = new ArrayList<>();
             manager.scheduler()
@@ -372,8 +372,8 @@ class EcsSchedulerTest {
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     applied.add(result);
                                 }
                             });
@@ -391,7 +391,7 @@ class EcsSchedulerTest {
      */
     @Test
     void queuedFuture_ownerFallbackRunsExactlyOnceEvenWhenExecutorInvokesLater() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             List<Runnable> delayed = new ArrayList<>();
             manager.scheduler().setExecutor(delayed::add);
             AtomicInteger calls = new AtomicInteger();
@@ -399,7 +399,7 @@ class EcsSchedulerTest {
                     .register(
                             new TestSystem("job", EcsAccess.NONE) {
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     calls.incrementAndGet();
                                     return input;
                                 }
@@ -417,13 +417,13 @@ class EcsSchedulerTest {
      */
     @Test
     void compute_deniesLiveWorldAndOwnerFallbackMutation() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler().setExecutor(Runnable::run);
             manager.scheduler()
                     .register(
                             new TestSystem("restricted-api", EcsAccess.NONE) {
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     assertThrows(IllegalStateException.class, context::level);
                                     assertThrows(IllegalStateException.class, manager::create);
                                     return input;
@@ -440,13 +440,13 @@ class EcsSchedulerTest {
      */
     @Test
     void computeFailure_discardsCommandsAndBlocksDependents() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             AtomicInteger committed = new AtomicInteger();
             manager.scheduler()
                     .register(
                             new TestSystem("broken", EcsAccess.NONE) {
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     context.enqueue(
                                             TickPhase.POST,
                                             () -> fail("failed job published a command"));
@@ -462,7 +462,7 @@ class EcsSchedulerTest {
                                 }
 
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     fail("dependency failed");
                                     return input;
                                 }
@@ -473,14 +473,14 @@ class EcsSchedulerTest {
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     committed.incrementAndGet();
                                 }
                             });
-            assertThrows(WorldObjectException.class, manager::tickAll);
+            assertThrows(EcsObjectException.class, manager::tickAll);
             assertEquals(1, committed.get());
-            assertEquals(0, manager.worldContext().pendingCommands());
+            assertEquals(0, manager.context().pendingCommands());
             assertFalse(manager.isTicking());
         }
     }
@@ -491,12 +491,12 @@ class EcsSchedulerTest {
      */
     @Test
     void applyFailure_discardsWholeUnpublishedCommandBuffer() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler()
                     .register(
                             new TestSystem("broken-apply", EcsAccess.NONE) {
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     context.enqueue(
                                             TickPhase.POST, () -> fail("compute command leaked"));
                                     return input;
@@ -505,15 +505,15 @@ class EcsSchedulerTest {
                                 @Override
                                 public void apply(
                                         Integer result,
-                                        WorldContext context,
-                                        WorldObjectManager owner) {
+                                        EcsContext context,
+                                        EcsObjectManager owner) {
                                     context.enqueue(
                                             TickPhase.POST, () -> fail("apply command leaked"));
                                     throw new IllegalArgumentException("apply failed");
                                 }
                             });
-            assertThrows(WorldObjectException.class, manager::tickAll);
-            assertEquals(0, manager.worldContext().pendingCommands());
+            assertThrows(EcsObjectException.class, manager::tickAll);
+            assertEquals(0, manager.context().pendingCommands());
         }
     }
 
@@ -522,12 +522,12 @@ class EcsSchedulerTest {
      */
     @Test
     void mandatoryJob_rejectsPassedPhaseInsteadOfSilentlyDeferring() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler()
                     .register(
                             new TestSystem("required", EcsAccess.NONE.read(Restricted.class)) {
                                 @Override
-                                public Integer compute(Integer input, WorldContext context) {
+                                public Integer compute(Integer input, EcsContext context) {
                                     assertThrows(
                                             IllegalStateException.class,
                                             () -> context.enqueue(TickPhase.PRE, () -> {}));
@@ -543,7 +543,7 @@ class EcsSchedulerTest {
      */
     @Test
     void graph_rejectsMissingIdsCyclesAndLaterPhaseDependencies() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler()
                     .register(
                             new TestSystem("one", EcsAccess.NONE) {
@@ -563,7 +563,7 @@ class EcsSchedulerTest {
                             });
             assertThrows(IllegalStateException.class, manager.scheduler()::validatePlan);
         }
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             manager.scheduler()
                     .register(
                             new TestSystem("pre", EcsAccess.NONE) {
@@ -595,12 +595,12 @@ class EcsSchedulerTest {
      */
     @Test
     void closeDuringCallback_releasesBuffersAndManagerTickState() {
-        var manager = new WorldObjectManager();
+        var manager = new EcsObjectManager();
         manager.scheduler()
                 .register(
                         new TestSystem("close", EcsAccess.NONE) {
                             @Override
-                            public Integer prepare(WorldContext context, WorldObjectManager owner) {
+                            public Integer prepare(EcsContext context, EcsObjectManager owner) {
                                 context.enqueue(TickPhase.POST, () -> fail("closed world"));
                                 owner.close();
                                 return 0;
@@ -609,7 +609,7 @@ class EcsSchedulerTest {
         manager.tickAll();
         assertTrue(manager.isClosed());
         assertFalse(manager.isTicking());
-        assertEquals(0, manager.worldContext().pendingCommands());
+        assertEquals(0, manager.context().pendingCommands());
     }
 
     /**
@@ -630,12 +630,12 @@ class EcsSchedulerTest {
     /**
      * Ordinary resource used for access declarations.
      */
-    private static class A extends AbstractWorldObjectComponent {}
+    private static class A extends Component {}
 
     /**
      * Independent resource.
      */
-    private static final class B extends AbstractWorldObjectComponent {}
+    private static final class B extends Component {}
 
     /**
      * Strong component restrictions inherited by concrete consumers.
@@ -702,7 +702,7 @@ class EcsSchedulerTest {
          * @return current tick snapshot
          */
         @Override
-        public Integer prepare(WorldContext context, WorldObjectManager manager) {
+        public Integer prepare(EcsContext context, EcsObjectManager manager) {
             return (int) context.tick();
         }
 
@@ -712,7 +712,7 @@ class EcsSchedulerTest {
          * @return unchanged snapshot
          */
         @Override
-        public Integer compute(Integer input, WorldContext context) {
+        public Integer compute(Integer input, EcsContext context) {
             return input;
         }
 
@@ -722,6 +722,6 @@ class EcsSchedulerTest {
          * @param manager live manager
          */
         @Override
-        public void apply(Integer result, WorldContext context, WorldObjectManager manager) {}
+        public void apply(Integer result, EcsContext context, EcsObjectManager manager) {}
     }
 }

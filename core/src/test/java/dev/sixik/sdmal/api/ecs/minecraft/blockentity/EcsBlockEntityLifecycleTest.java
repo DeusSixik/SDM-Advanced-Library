@@ -3,8 +3,8 @@ package dev.sixik.sdmal.api.ecs.minecraft.blockentity;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.minecraft.WorldObjectManagerApi;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.minecraft.LevelEcsManagers;
 import dev.sixik.sdmal.example.ecs.blockentity.GeneratorBlockEntity;
 
 import io.netty.buffer.Unpooled;
@@ -49,7 +49,7 @@ class EcsBlockEntityLifecycleTest {
     static void bootstrap() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        WorldObjectComponentRegistry.instance().registerServices();
+        ComponentRegistry.instance().registerServices();
     }
 
     /**
@@ -57,7 +57,7 @@ class EcsBlockEntityLifecycleTest {
      */
     @AfterEach
     void cleanup() {
-        worlds.forEach(WorldObjectManagerApi::unregisterWorld);
+        worlds.forEach(LevelEcsManagers::unregisterWorld);
     }
 
     /**
@@ -68,7 +68,7 @@ class EcsBlockEntityLifecycleTest {
         var shell = shell();
         var installed = new AtomicReference<BlockEntity>();
         var level = world(false, installed);
-        var manager = WorldObjectManagerApi.getManager(level);
+        var manager = LevelEcsManagers.getManager(level);
         shell.setLevel(level);
         manager.tickAll();
         assertEquals(0, shell.renderState().energy());
@@ -98,7 +98,7 @@ class EcsBlockEntityLifecycleTest {
         var shell = shell();
         var installed = new AtomicReference<BlockEntity>(shell);
         var level = world(false, installed);
-        var manager = WorldObjectManagerApi.getManager(level);
+        var manager = LevelEcsManagers.getManager(level);
         shell.setLevel(level);
         manager.tickAll();
         var old = shell.ecsObject().orElseThrow();
@@ -122,7 +122,7 @@ class EcsBlockEntityLifecycleTest {
         var server = shell();
         var serverLevel = world(false, new AtomicReference<>(server));
         server.setLevel(serverLevel);
-        var serverManager = WorldObjectManagerApi.getManager(serverLevel);
+        var serverManager = LevelEcsManagers.getManager(serverLevel);
         for (int i = 0; i < 20; i++) serverManager.tickAll();
         verify(serverLevel)
                 .sendBlockUpdated(POS, server.getBlockState(), server.getBlockState(), 2);
@@ -134,7 +134,7 @@ class EcsBlockEntityLifecycleTest {
             server.writeClientSnapshot(buffer);
             client.readClientSnapshot(buffer);
             assertEquals(20, client.renderState().energy());
-            WorldObjectManagerApi.getManager(clientLevel).tickAll();
+            LevelEcsManagers.getManager(clientLevel).tickAll();
             assertEquals(20, client.renderState().energy());
             assertEquals(
                     server.ecsObject().orElseThrow().id(), client.ecsObject().orElseThrow().id());
@@ -155,7 +155,7 @@ class EcsBlockEntityLifecycleTest {
         var shell = shell();
         var level = world(false, new AtomicReference<>(shell));
         shell.setLevel(level);
-        var manager = WorldObjectManagerApi.getManager(level);
+        var manager = LevelEcsManagers.getManager(level);
         manager.tickAll();
         var save =
                 Arrays.stream(BlockEntity.class.getMethods())
@@ -192,7 +192,7 @@ class EcsBlockEntityLifecycleTest {
         var server = shell();
         var serverLevel = world(false, new AtomicReference<>(server));
         server.setLevel(serverLevel);
-        WorldObjectManagerApi.getManager(serverLevel).tickAll();
+        LevelEcsManagers.getManager(serverLevel).tickAll();
         var update =
                 Arrays.stream(EcsBlockEntity.class.getMethods())
                         .filter(m -> m.getName().equals("getUpdateTag"))
@@ -208,7 +208,7 @@ class EcsBlockEntityLifecycleTest {
         client.setLevel(clientLevel);
         assertEquals(1, client.renderState().energy());
         assertEquals(server.ecsObject().orElseThrow().id(), client.ecsObject().orElseThrow().id());
-        WorldObjectManagerApi.getManager(clientLevel).tickAll();
+        LevelEcsManagers.getManager(clientLevel).tickAll();
         assertEquals(1, client.renderState().energy());
         assertNotNull(server.getUpdatePacket());
         client.setRemoved();
@@ -288,7 +288,7 @@ class EcsBlockEntityLifecycleTest {
         when(level.getWorldBorder()).thenReturn(new WorldBorder());
         when(level.getBlockState(POS)).thenReturn(Blocks.FURNACE.defaultBlockState());
         when(level.getBlockEntity(POS)).thenAnswer(call -> installed.get());
-        WorldObjectManagerApi.registerWorld(level);
+        LevelEcsManagers.registerWorld(level);
         worlds.add(level);
         return level;
     }

@@ -2,8 +2,8 @@ package dev.sixik.sdmal.api.ecs.minecraft.blockentity;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.ComponentRegistry;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
 import dev.sixik.sdmal.example.ecs.blockentity.BlockGeneratorComponent;
 import dev.sixik.sdmal.example.ecs.blockentity.GeneratorBlock;
 import dev.sixik.sdmal.example.ecs.blockentity.GeneratorBlockEntity;
@@ -32,7 +32,7 @@ class EcsBlockEntityTest {
     static void bootstrap() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        WorldObjectComponentRegistry.instance().registerServices();
+        ComponentRegistry.instance().registerServices();
     }
 
     /**
@@ -60,7 +60,7 @@ class EcsBlockEntityTest {
      */
     @Test
     void services_blockEntityTypes_areAutomaticallyRegistered() {
-        var registry = WorldObjectComponentRegistry.instance();
+        var registry = ComponentRegistry.instance();
         assertEquals("sdmal:block_entity", registry.require(BlockEntityComponent.class).id());
         assertEquals(
                 "sdmal_example:block_generator",
@@ -93,7 +93,7 @@ class EcsBlockEntityTest {
      */
     @Test
     void renderState_publication_enforcesOwnerAndAllowsRendererRead() throws Exception {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var object = manager.create();
             var render = object.attach(new RenderProbe());
             render.publish("ready");
@@ -114,11 +114,11 @@ class EcsBlockEntityTest {
      */
     @Test
     void position_componentSerialization_containsNoRuntimeState() {
-        try (var manager = new WorldObjectManager()) {
+        try (var manager = new EcsObjectManager()) {
             var object = manager.create();
             object.attach(
                     new BlockEntityComponent(),
-                    WorldObjectComponentRegistry.instance().require(BlockEntityComponent.class));
+                    ComponentRegistry.instance().require(BlockEntityComponent.class));
             var archive = manager.writeNbt();
             var record =
                     (net.minecraft.nbt.CompoundTag)

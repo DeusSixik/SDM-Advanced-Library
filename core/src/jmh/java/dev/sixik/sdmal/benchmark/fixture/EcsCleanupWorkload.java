@@ -1,5 +1,7 @@
 package dev.sixik.sdmal.benchmark.fixture;
 
+import dev.sixik.sdmal.api.ecs.sync.NetworkComponent;
+
 import dev.sixik.sdmal.api.ecs.*;
 import dev.sixik.sdmal.api.ecs.annotations.*;
 import dev.sixik.sdmal.api.ecs.sync.*;
@@ -38,7 +40,7 @@ public final class EcsCleanupWorkload implements Workload {
     /**
      * Trial-owned world manager.
      */
-    private final WorldObjectManager manager = new WorldObjectManager();
+    private final EcsObjectManager manager = new EcsObjectManager();
 
     /**
      * Optional fixed two-worker executor, never shared between trials.
@@ -58,7 +60,7 @@ public final class EcsCleanupWorkload implements Workload {
     /**
      * Stable objects used to measure typed component queries.
      */
-    private WorldObject[] queryObjects;
+    private EcsObject[] queryObjects;
 
     /**
      * Counter changed only by phase command callbacks.
@@ -88,13 +90,13 @@ public final class EcsCleanupWorkload implements Workload {
     /**
      * Sender revisions retained across packets.
      */
-    private SyncedWorldObjectComponent.DeltaTracker tracker;
+    private NetworkComponent.DeltaTracker tracker;
 
     /** Independent receiver for repeated full changed-field decode measurements. */
     private Delta receiving;
 
     /** Receiver revisions reset to the previous frame without allocating a new tracker. */
-    private SyncedWorldObjectComponent.DeltaTracker received;
+    private NetworkComponent.DeltaTracker received;
 
     /**
      * Reused packet buffer; allocation/growth happens during setup.
@@ -128,9 +130,9 @@ public final class EcsCleanupWorkload implements Workload {
                 }
             }
             case "queries" -> {
-                queryObjects = new WorldObject[count];
+                queryObjects = new EcsObject[count];
                 for (int i = 0; i < count; i++) {
-                    WorldObject object = manager.create();
+                    EcsObject object = manager.create();
                     queryObjects[i] = object;
                     for (int j = 0; j < 8; j++) object.attach(new Legacy());
                 }
@@ -138,12 +140,12 @@ public final class EcsCleanupWorkload implements Workload {
             case "commands" -> {}
             case "delta", "deltaEmpty", "deltaSparse", "deltaRead" -> {
                 delta = new Delta(count);
-                tracker = new SyncedWorldObjectComponent.DeltaTracker();
+                tracker = new NetworkComponent.DeltaTracker();
                 buffer = new FriendlyByteBuf(Unpooled.buffer(8192));
                 if (kind.equals("deltaRead")) {
                     for (int i = 0; i < delta.fields.length; i++) delta.fields[i].set(1);
                     receiving = new Delta(count);
-                    received = new SyncedWorldObjectComponent.DeltaTracker(count);
+                    received = new NetworkComponent.DeltaTracker(count);
                 }
                 delta.writeDelta(buffer, tracker);
             }
@@ -201,7 +203,7 @@ public final class EcsCleanupWorkload implements Workload {
                 yield matches;
             }
             case "commands" -> {
-                WorldContext context = manager.worldContext();
+                EcsContext context = manager.context();
                 for (int i = 0; i < count; i++) context.enqueue(TickPhase.POST, command);
                 manager.tickAll();
                 yield commands;
@@ -257,8 +259,8 @@ public final class EcsCleanupWorkload implements Workload {
     @Override
     public long verificationHash() {
         long result = 1;
-        for (WorldObject object : manager.snapshot()) {
-            for (WorldObjectComponent component : object.components()) {
+        for (EcsObject object : manager.snapshot()) {
+            for (Component component : object.components()) {
                 if (component instanceof Counter counter) result = 31 * result + counter.value;
                 if (component instanceof Legacy serial) result = 31 * result + serial.value;
             }
@@ -305,7 +307,7 @@ public final class EcsCleanupWorkload implements Workload {
     /**
      * Automatic component with immutable configuration and independent input/result storage.
      */
-    private static class Counter extends AbstractWorldObjectComponent
+    private static class Counter extends Component
             implements SnapshotTickableComponent<Data, Data> {
         /**
          * Committed owner-thread value.
@@ -334,7 +336,7 @@ public final class EcsCleanupWorkload implements Workload {
          * @return copied primitive state
          */
         @Override
-        public Data capture(WorldContext context) {
+        public Data capture(EcsContext context) {
             data.input = value;
             return data;
         }
@@ -345,7 +347,7 @@ public final class EcsCleanupWorkload implements Workload {
          * @return calculated state
          */
         @Override
-        public Data compute(Data input, WorldContext context) {
+        public Data compute(Data input, EcsContext context) {
             int next = input.input + 1;
             for (int i = 0; i < rounds; i++)
                 next = Integer.rotateLeft(next * 1664525 + 1013904223, 7);
@@ -358,7 +360,7 @@ public final class EcsCleanupWorkload implements Workload {
          * @param context owner context
          */
         @Override
-        public void apply(Data result, WorldContext context) {
+        public void apply(Data result, EcsContext context) {
             value = result.output;
         }
     }
@@ -379,7 +381,7 @@ public final class EcsCleanupWorkload implements Workload {
     /**
      * Legacy callback with no per-tick state allocation.
      */
-    private static final class Legacy extends AbstractWorldObjectComponent
+    private static final class Legacy extends Component
             implements TickableComponent {
         /**
          * Committed serial counter.
@@ -398,7 +400,7 @@ public final class EcsCleanupWorkload implements Workload {
     /**
      * Component with scalar values and a list whose decoded ownership remains defensive.
      */
-    private static final class Payload extends AnnotatedWorldObjectComponent {
+    private static final class Payload extends Component {
         /**
          * Mutable consumer-owned values, never mutated by serialization.
          */
@@ -417,7 +419,7 @@ public final class EcsCleanupWorkload implements Workload {
     /**
      * Revisioned fields exercising changed-field collection and packet encoding.
      */
-    private static final class Delta extends SyncedWorldObjectComponent {
+    private static final class Delta extends NetworkComponent {
         /**
          * Fixed field handles, created outside measured operations.
          */

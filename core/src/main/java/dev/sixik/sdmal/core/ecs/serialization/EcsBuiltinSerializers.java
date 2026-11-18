@@ -14,7 +14,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 
 import java.lang.reflect.Type;
-import java.util.LinkedHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -34,7 +34,7 @@ final class EcsBuiltinSerializers {
      * @return independent catalog of immutable built-in scalar adapter registrations
      */
     static Map<Type, EcsSerializer<?>> create() {
-        Map<Type, EcsSerializer<?>> result = new LinkedHashMap<>();
+        Map<Type, EcsSerializer<?>> result = new Object2ObjectLinkedOpenHashMap<>();
         result.put(
                 Boolean.class,
                 owned(

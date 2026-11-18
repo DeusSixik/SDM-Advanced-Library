@@ -35,15 +35,15 @@ class EcsServiceRegistrationTest {
      * Component service descriptor name shared by the processor and runtime loader.
      */
     private static final String SERVICE =
-            "META-INF/services/" + WorldObjectComponent.class.getName();
+            "META-INF/services/" + Component.class.getName();
 
     /**
      * Removes only registrations owned by these service-loading cases.
      */
     @AfterEach
     void cleanup() {
-        WorldObjectComponentRegistry.instance().unregister("services_test:one");
-        WorldObjectComponentRegistry.instance().unregister("services_test:duplicate");
+        ComponentRegistry.instance().unregister("services_test:one");
+        ComponentRegistry.instance().unregister("services_test:duplicate");
     }
 
     /**
@@ -58,16 +58,16 @@ class EcsServiceRegistrationTest {
             throws Exception {
         Path output = consumer("One", "services_test:one");
         try (var loader = serviceLoader(output)) {
-            Class<? extends WorldObjectComponent> type =
-                    loader.loadClass("consumer.One").asSubclass(WorldObjectComponent.class);
-            var registry = WorldObjectComponentRegistry.instance();
+            Class<? extends Component> type =
+                    loader.loadClass("consumer.One").asSubclass(Component.class);
+            var registry = ComponentRegistry.instance();
             assertEquals(1, registry.registerServices(loader));
             var descriptor = registry.require(type);
             assertEquals(0, type.getField("constructions").getInt(null));
             assertEquals(1, registry.registerServices(loader));
             assertSame(descriptor, registry.require(type));
             assertEquals(
-                    WorldObjectComponentType.DuplicatePolicy.REPLACE, descriptor.duplicatePolicy());
+                    ComponentType.DuplicatePolicy.REPLACE, descriptor.duplicatePolicy());
             assertEquals(type, descriptor.createDefault().getClass());
             assertEquals(1, type.getField("constructions").getInt(null));
         }
@@ -87,7 +87,7 @@ class EcsServiceRegistrationTest {
             var failure =
                     assertThrows(
                             IllegalStateException.class,
-                            () -> WorldObjectComponentRegistry.instance().registerServices(loader));
+                            () -> ComponentRegistry.instance().registerServices(loader));
             assertTrue(failure.getMessage().contains("services_test:duplicate"));
         }
     }
@@ -108,7 +108,7 @@ class EcsServiceRegistrationTest {
         ClassLoader previous = thread.getContextClassLoader();
         try (var loader = serviceLoader(output)) {
             thread.setContextClassLoader(loader);
-            assertEquals(0, WorldObjectComponentRegistry.instance().registerServices());
+            assertEquals(0, ComponentRegistry.instance().registerServices());
         } finally {
             thread.setContextClassLoader(previous);
         }
@@ -130,7 +130,7 @@ class EcsServiceRegistrationTest {
             var failure =
                     assertThrows(
                             ServiceConfigurationError.class,
-                            () -> WorldObjectComponentRegistry.instance().registerServices(loader));
+                            () -> ComponentRegistry.instance().registerServices(loader));
             assertTrue(failure.getMessage().contains("consumer.Missing"));
         }
     }
@@ -156,10 +156,10 @@ class EcsServiceRegistrationTest {
                         + "import dev.sixik.sdmal.api.ecs.annotations.EcsComponent;\n"
                         + "@EcsComponent(id=\""
                         + id
-                        + "\", duplicatePolicy=WorldObjectComponentType.DuplicatePolicy.REPLACE)\n"
+                        + "\", duplicatePolicy=ComponentType.DuplicatePolicy.REPLACE)\n"
                         + "public final class "
                         + name
-                        + " extends AbstractWorldObjectComponent {\n"
+                        + " extends Component {\n"
                         + "  public static int constructions;\n"
                         + "  public "
                         + name
@@ -169,7 +169,7 @@ class EcsServiceRegistrationTest {
         var diagnostics = new DiagnosticCollector<JavaFileObject>();
         String api =
                 Path.of(
-                                WorldObjectComponent.class
+                                Component.class
                                         .getProtectionDomain()
                                         .getCodeSource()
                                         .getLocation()
@@ -203,7 +203,7 @@ class EcsServiceRegistrationTest {
         URL[] urls = new URL[roots.length];
         for (int index = 0; index < roots.length; index++)
             urls[index] = roots[index].toUri().toURL();
-        return new URLClassLoader(urls, WorldObjectComponent.class.getClassLoader()) {
+        return new URLClassLoader(urls, Component.class.getClassLoader()) {
             /**
              * Loads only this fixture's provider indexes while retaining parent access to ordinary
              * resources.

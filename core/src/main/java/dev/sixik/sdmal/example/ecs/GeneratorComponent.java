@@ -1,10 +1,10 @@
 package dev.sixik.sdmal.example.ecs;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.Component;
 import dev.sixik.sdmal.api.ecs.SnapshotTickableComponent;
 import dev.sixik.sdmal.api.ecs.TickPhase;
-import dev.sixik.sdmal.api.ecs.WorldContext;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.EcsContext;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
 import dev.sixik.sdmal.api.ecs.annotations.EcsComponent;
 import dev.sixik.sdmal.api.ecs.annotations.EcsData;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
@@ -17,7 +17,7 @@ import java.util.UUID;
  * компонент на потоке его менеджера; работа из фонового потока передаётся через execute.
  */
 @EcsComponent(id = "sdmal_example:generator")
-public final class GeneratorComponent extends AnnotatedWorldObjectComponent
+public final class GeneratorComponent extends Component
         implements SnapshotTickableComponent<GeneratorComponent.Input, GeneratorComponent.Battery> {
     /**
      * Заряд в условных единицах; сохраняется и передаётся по сети без ручного Codec.
@@ -57,8 +57,8 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent
      * @return независимый снимок заряда и активности
      */
     @Override
-    public Input capture(WorldContext context) {
-        checkWorldThread();
+    public Input capture(EcsContext context) {
+        checkOwnerThread();
         return new Input(battery, running);
     }
 
@@ -70,7 +70,7 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent
      * @return новое неизменяемое состояние батареи
      */
     @Override
-    public Battery compute(Input input, WorldContext context) {
+    public Battery compute(Input input, EcsContext context) {
         Battery previous = input.battery();
         return input.running() && previous.stored() < previous.capacity()
                 ? new Battery(previous.stored() + 1, previous.capacity())
@@ -84,8 +84,8 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent
      * @param context контекст применения и отложенных команд мира
      */
     @Override
-    public void apply(Battery result, WorldContext context) {
-        checkWorldThread();
+    public void apply(Battery result, EcsContext context) {
+        checkOwnerThread();
         battery = result;
         localTicks++;
     }
@@ -99,7 +99,7 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent
     }
 
     /**
-     * Вход worker: только неизменяемые данные, без ссылки на компонент, WorldObject или Level.
+     * Вход worker: только неизменяемые данные, без ссылки на компонент, EcsObject или Level.
      *
      * @param battery состояние батареи до тика
      * @param running активность генератора
@@ -141,7 +141,7 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent
      * @throws IllegalStateException если вызов пришёл с чужого потока менеджера
      */
     public void setOwnerId(UUID ownerId) {
-        checkWorldThread();
+        checkOwnerThread();
         this.ownerId = ownerId;
     }
 
@@ -152,17 +152,8 @@ public final class GeneratorComponent extends AnnotatedWorldObjectComponent
      * @throws IllegalStateException если вызов пришёл с чужого потока менеджера
      */
     public void setRunning(boolean running) {
-        checkWorldThread();
+        checkOwnerThread();
         this.running = running;
-    }
-
-    /**
-     * Проверяет поток прикреплённого менеджера; standalone-экземпляр координирует вызывающий код.
-     *
-     * @throws IllegalStateException если текущий поток не принадлежит менеджеру
-     */
-    private void checkWorldThread() {
-        owner().flatMap(object -> object.manager()).ifPresent(WorldObjectManager::checkThread);
     }
 
     /**

@@ -1,6 +1,6 @@
 package dev.sixik.sdmal.core.ecs.serialization;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.Component;
 import dev.sixik.sdmal.api.ecs.serialization.EcsNetworkSerializer;
 import dev.sixik.sdmal.api.ecs.serialization.TypeRef;
 import dev.sixik.sdmal.api.ecs.sync.FieldCodec;
@@ -9,7 +9,6 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.network.FriendlyByteBuf;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -215,8 +214,17 @@ public final class NetworkSerialization {
      *
      * @param type concrete component class
      */
-    public static void validateComponent(Class<? extends AnnotatedWorldObjectComponent> type) {
+    public static void validateComponent(Class<? extends Component> type) {
         COMPONENTS.get(Objects.requireNonNull(type, "type"));
+    }
+
+    /**
+     * Checks whether a component requires a binary body instead of a stateless hosted record.
+     * @param type concrete component class
+     * @return whether the automatic schema contains synchronized fields
+     */
+    public static boolean hasSyncedFields(Class<? extends Component> type) {
+        return COMPONENTS.get(type).members().length != 0;
     }
 
     /**
@@ -225,7 +233,7 @@ public final class NetworkSerialization {
      * @param type concrete component class
      * @return deterministic 64-bit wire compatibility fingerprint
      */
-    public static long schemaFingerprint(Class<? extends AnnotatedWorldObjectComponent> type) {
+    public static long schemaFingerprint(Class<? extends Component> type) {
         return COMPONENTS.get(type).fingerprint();
     }
 
@@ -237,7 +245,7 @@ public final class NetworkSerialization {
      * @param buffer    caller-owned destination buffer
      */
     public static void writeComponent(
-            AnnotatedWorldObjectComponent component, FriendlyByteBuf buffer) {
+            Component component, FriendlyByteBuf buffer) {
         COMPONENTS
                 .get(component.getClass())
                 .write(component, Objects.requireNonNull(buffer, "buffer"));
@@ -250,7 +258,7 @@ public final class NetworkSerialization {
      * @param buffer    caller-owned packet; later frames remain unread
      */
     public static void readComponent(
-            AnnotatedWorldObjectComponent component, FriendlyByteBuf buffer) {
+            Component component, FriendlyByteBuf buffer) {
         COMPONENTS
                 .get(component.getClass())
                 .read(component, Objects.requireNonNull(buffer, "buffer"));

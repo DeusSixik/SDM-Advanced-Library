@@ -2,10 +2,10 @@ package dev.sixik.sdmal.consumer.ecs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import dev.sixik.sdmal.api.ecs.AnnotatedWorldObjectComponent;
+import dev.sixik.sdmal.api.ecs.Component;
 import dev.sixik.sdmal.api.ecs.SnapshotTickableComponent;
-import dev.sixik.sdmal.api.ecs.WorldContext;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.EcsContext;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
 import dev.sixik.sdmal.api.ecs.annotations.EcsSync;
 import dev.sixik.sdmal.api.ecs.serialization.EcsNetworkSerializer;
@@ -84,13 +84,13 @@ class EcsPublicApiTest {
                     }
                 });
 
-        try (var manager = new WorldObjectManager()) {
-            Component source = manager.create().attach(new Component());
+        try (var manager = new EcsObjectManager()) {
+            ConsumerComponent source = manager.create().attach(new ConsumerComponent());
             manager.tickAll();
             assertEquals(new Value("initial!"), source.value);
             CompoundTag saved = new CompoundTag();
             source.writeNbt(saved);
-            Component copy = new Component();
+            ConsumerComponent copy = new ConsumerComponent();
             copy.readNbt(saved);
             assertEquals(source.value, copy.value);
 
@@ -117,7 +117,7 @@ class EcsPublicApiTest {
     /**
      * Ordinary consumer component; no scheduler registration or internal schema access is needed.
      */
-    private static final class Component extends AnnotatedWorldObjectComponent
+    private static final class ConsumerComponent extends Component
             implements SnapshotTickableComponent<Value, Value> {
         /**
          * Owner-thread state shared by the persisted and network snapshots.
@@ -131,7 +131,7 @@ class EcsPublicApiTest {
          * @return immutable input value
          */
         @Override
-        public Value capture(WorldContext context) {
+        public Value capture(EcsContext context) {
             return value;
         }
 
@@ -141,7 +141,7 @@ class EcsPublicApiTest {
          * @return next value
          */
         @Override
-        public Value compute(Value snapshot, WorldContext context) {
+        public Value compute(Value snapshot, EcsContext context) {
             return new Value(snapshot.text() + "!");
         }
 
@@ -150,7 +150,7 @@ class EcsPublicApiTest {
          * @param context owner context
          */
         @Override
-        public void apply(Value result, WorldContext context) {
+        public void apply(Value result, EcsContext context) {
             value = result;
         }
     }

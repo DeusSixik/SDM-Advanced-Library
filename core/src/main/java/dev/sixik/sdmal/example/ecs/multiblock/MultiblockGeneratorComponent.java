@@ -1,7 +1,7 @@
 package dev.sixik.sdmal.example.ecs.multiblock;
 
 import dev.sixik.sdmal.api.ecs.SnapshotTickableComponent;
-import dev.sixik.sdmal.api.ecs.WorldContext;
+import dev.sixik.sdmal.api.ecs.EcsContext;
 import dev.sixik.sdmal.api.ecs.annotations.EcsComponent;
 import dev.sixik.sdmal.api.ecs.annotations.EcsNoTickSkip;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
@@ -75,7 +75,7 @@ public final class MultiblockGeneratorComponent
      * @return exclusively owned primitive input/output frame
      */
     @Override
-    public Frame capture(WorldContext context) {
+    public Frame capture(EcsContext context) {
         var binding = requireOwner().getSingle(BlockEntityComponent.class).orElseThrow();
         inspect(context.level(), binding.position(), frame);
         frame.energy = energy;
@@ -90,7 +90,7 @@ public final class MultiblockGeneratorComponent
      * @return the same frame with its nextEnergy result populated
      */
     @Override
-    public Frame compute(Frame input, WorldContext context) {
+    public Frame compute(Frame input, EcsContext context) {
         int stored = Math.max(0, Math.min(CAPACITY, input.energy));
         input.nextEnergy =
                 input.status == MultiblockStatus.FORMED
@@ -107,7 +107,7 @@ public final class MultiblockGeneratorComponent
      * @param context owner-thread application context
      */
     @Override
-    public void apply(Frame result, WorldContext context) {
+    public void apply(Frame result, EcsContext context) {
         var binding = requireOwner().getSingle(BlockEntityComponent.class).orElseThrow();
         if (result.status == MultiblockStatus.FORMED) {
             inspect(context.level(), binding.position(), result);

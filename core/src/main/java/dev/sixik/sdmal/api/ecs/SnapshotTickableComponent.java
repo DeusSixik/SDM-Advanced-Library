@@ -1,5 +1,7 @@
 package dev.sixik.sdmal.api.ecs;
 
+import dev.sixik.sdmal.core.utils.ObjectArrayView;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -14,14 +16,14 @@ import java.util.Objects;
  * @param <S> independently owned snapshot type, without live component/world references
  * @param <R> independently owned result type
  */
-public interface SnapshotTickableComponent<S, R> extends WorldObjectComponent {
+public interface SnapshotTickableComponent<S, R> {
     /**
      * Captures input before worker jobs begin, respecting object sleep and tick intervals.
      *
      * @param context owner-thread context; level() is available for bound worlds
      * @return detached snapshot; null is allowed when compute supports it
      */
-    S capture(WorldContext context);
+    S capture(EcsContext context);
 
     /**
      * Computes exclusively from copied data. This method may also run on the world thread as
@@ -32,7 +34,7 @@ public interface SnapshotTickableComponent<S, R> extends WorldObjectComponent {
      * @param context  deferred world commands and current tick sequence
      * @return detached result, possibly null
      */
-    R compute(S snapshot, WorldContext context);
+    R compute(S snapshot, EcsContext context);
 
     /**
      * Validates and applies the result on the world thread if this exact attachment is still live
@@ -42,7 +44,7 @@ public interface SnapshotTickableComponent<S, R> extends WorldObjectComponent {
      * @param result  completed result
      * @param context owner-thread context and deferred world commands
      */
-    void apply(R result, WorldContext context);
+    void apply(R result, EcsContext context);
 
     /**
      * @return execution phase; metadata must be constant for every instance of the concrete class
@@ -60,7 +62,7 @@ public interface SnapshotTickableComponent<S, R> extends WorldObjectComponent {
      * @return immutable declaration, writing this concrete component class by default
      */
     default EcsAccess tickAccess() {
-        return EcsAccess.NONE.write(getClass());
+        return EcsAccess.NONE.write(getClass().asSubclass(Component.class));
     }
 
     /**
@@ -75,7 +77,7 @@ public interface SnapshotTickableComponent<S, R> extends WorldObjectComponent {
      * class
      */
     default List<String> tickAfter() {
-        return List.of();
+        return ObjectArrayView.of();
     }
 
     /**

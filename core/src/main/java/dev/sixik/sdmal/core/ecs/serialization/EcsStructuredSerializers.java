@@ -1,5 +1,7 @@
 package dev.sixik.sdmal.core.ecs.serialization;
 
+import dev.sixik.sdmal.core.utils.ObjectArrayView;
+
 import dev.sixik.sdmal.api.ecs.annotations.EcsData;
 import dev.sixik.sdmal.api.ecs.annotations.EcsPersist;
 import dev.sixik.sdmal.api.ecs.serialization.EcsSerializationException;
@@ -15,9 +17,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -104,7 +106,7 @@ final class EcsStructuredSerializers {
                 },
                 tag -> {
                     ListTag entries = entries(tag);
-                    List<Object> values = new ArrayList<>(entries.size());
+                    List<Object> values = new ObjectArrayList<>(entries.size());
                     for (int index = 0; index < entries.size(); index++) {
                         try {
                             values.add(EcsValues.read(element, entries.get(index)));
@@ -138,7 +140,7 @@ final class EcsStructuredSerializers {
                 },
                 tag -> {
                     ListTag entries = entries(tag);
-                    Map<Object, Object> values = new LinkedHashMap<>();
+                    Map<Object, Object> values = new Object2ObjectLinkedOpenHashMap<>();
                     for (int index = 0; index < entries.size(); index++) {
                         try {
                             if (!(entries.get(index) instanceof CompoundTag entry))
@@ -181,8 +183,8 @@ final class EcsStructuredSerializers {
         Class<?> raw = EcsTypes.raw(type);
         try {
             var components = raw.getRecordComponents();
-            List<EcsMember> members = new ArrayList<>();
-            Set<String> keys = new HashSet<>();
+            List<EcsMember> members = new ObjectArrayList<>();
+            Set<String> keys = new ObjectOpenHashSet<>();
             Class<?>[] parameterTypes = new Class<?>[components.length];
             var bindings = EcsTypes.bindings(type);
             for (int index = 0; index < components.length; index++) {
@@ -204,7 +206,7 @@ final class EcsStructuredSerializers {
                     lookup.findConstructor(raw, MethodType.methodType(void.class, parameterTypes))
                             .asSpreader(Object[].class, components.length)
                             .asType(MethodType.methodType(Object.class, Object[].class));
-            List<EcsMember> plan = List.copyOf(members);
+            List<EcsMember> plan = ObjectArrayView.copyOf(members);
             return EcsBuiltinSerializers.owned(
                     value -> {
                         CompoundTag tag = new CompoundTag();

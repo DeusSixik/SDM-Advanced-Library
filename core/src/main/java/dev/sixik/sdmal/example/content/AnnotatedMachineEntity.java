@@ -1,8 +1,7 @@
 package dev.sixik.sdmal.example.content;
 
 import dev.sixik.sdmal.api.content.annotations.RegisterContent;
-import dev.sixik.sdmal.api.ecs.WorldObject;
-import dev.sixik.sdmal.api.ecs.WorldObjectComponentRegistry;
+import dev.sixik.sdmal.api.ecs.EcsObject;
 import dev.sixik.sdmal.api.ecs.minecraft.blockentity.EcsBlockEntity;
 import dev.sixik.sdmal.example.ecs.blockentity.BlockGeneratorComponent;
 
@@ -30,9 +29,7 @@ public final class AnnotatedMachineEntity extends EcsBlockEntity {
      * @param object new ECS composition after the world has been assigned
      */
     @Override
-    protected void createComponents(WorldObject object) {
-        object.attach(
-                new BlockGeneratorComponent(),
-                WorldObjectComponentRegistry.instance().require(BlockGeneratorComponent.class));
+    protected void createComponents(EcsObject object) {
+        object.attach(new BlockGeneratorComponent());
     }
 }

@@ -8,10 +8,10 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.RecordComponent;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 /**
  * Automatic class/record field plans for packets, independent of ECS component selection.
@@ -36,8 +36,8 @@ final class PacketSchema {
         if (Modifier.isAbstract(type.getModifiers()) || type.isInterface())
             throw new EcsSerializationException("Packet must be concrete: " + type.getName());
         try {
-            var plans = new ArrayList<EcsNetworkMember>();
-            var keys = new HashSet<String>();
+            var plans = new ObjectArrayList<EcsNetworkMember>();
+            var keys = new ObjectOpenHashSet<String>();
             Type current = type;
             while (EcsTypes.raw(current) != Object.class && EcsTypes.raw(current) != Record.class) {
                 var raw = EcsTypes.raw(current);

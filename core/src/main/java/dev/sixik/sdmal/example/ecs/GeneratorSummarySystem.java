@@ -2,8 +2,8 @@ package dev.sixik.sdmal.example.ecs;
 
 import dev.sixik.sdmal.api.ecs.EcsAccess;
 import dev.sixik.sdmal.api.ecs.EcsSystem;
-import dev.sixik.sdmal.api.ecs.WorldContext;
-import dev.sixik.sdmal.api.ecs.WorldObjectManager;
+import dev.sixik.sdmal.api.ecs.EcsContext;
+import dev.sixik.sdmal.api.ecs.EcsObjectManager;
 
 /**
  * Copyable snapshot-system example: totals generator charge on workers without reading live
@@ -75,7 +75,7 @@ public final class GeneratorSummarySystem implements EcsSystem<int[], Long> {
      * @return exclusively owned primitive charge array; unused trailing entries are zero
      */
     @Override
-    public int[] prepare(WorldContext context, WorldObjectManager manager) {
+    public int[] prepare(EcsContext context, EcsObjectManager manager) {
         var objects = manager.query(GeneratorComponent.class);
         int[] stored = new int[objects.size()];
         int count = 0;
@@ -89,12 +89,12 @@ public final class GeneratorSummarySystem implements EcsSystem<int[], Long> {
     /**
      * Sums copied charge values; no live Level or component is accessed during computation.
      *
-     * @param stored detached charge values
+     * @param stored  detached charge values
      * @param context deferred command context, unused by this pure calculation
      * @return sum in charge units, using long to avoid int sum overflow
      */
     @Override
-    public Long compute(int[] stored, WorldContext context) {
+    public Long compute(int[] stored, EcsContext context) {
         long result = 0;
         for (int value : stored) result += value;
         return result;
@@ -103,12 +103,12 @@ public final class GeneratorSummarySystem implements EcsSystem<int[], Long> {
     /**
      * Publishes the completed statistic in the owner thread.
      *
-     * @param result completed charge sum
+     * @param result  completed charge sum
      * @param context owner-thread context for optional world commands
      * @param manager owner-thread manager
      */
     @Override
-    public void apply(Long result, WorldContext context, WorldObjectManager manager) {
+    public void apply(Long result, EcsContext context, EcsObjectManager manager) {
         totalStored = result;
     }
 

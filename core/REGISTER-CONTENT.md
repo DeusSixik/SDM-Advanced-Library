@@ -92,7 +92,7 @@ public final class MachineBlock extends RegisteredEntityBlock {
 пустой `tab`, позволяющий скрыть предмет из вкладок.
 
 Для ECS вместо `BlockEntity` наследуйте `EcsBlockEntity` и реализуйте
-`createComponents(WorldObject)`. Игровой пример `AnnotatedMachineEntity` именно
+`createComponents(EcsObject)`. Игровой пример `AnnotatedMachineEntity` именно
 так подключает существующий компонент генератора. ECS продолжает тикать через мир;
 регистрация не добавляет второй ticker. Обычные BlockEntity с vanilla-логикой
 получают ticker только из собственного блока.
