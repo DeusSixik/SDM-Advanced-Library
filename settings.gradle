@@ -14,6 +14,7 @@ plugins {
 }
 rootProject.name = 'sdmal'
 include 'ecs-processor'
+include 'repository-drivers'
 stonecutter {
     kotlinController = false
     centralScript = 'build.gradle'

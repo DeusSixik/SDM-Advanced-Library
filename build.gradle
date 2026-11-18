@@ -121,6 +121,18 @@ tasks.named('sourcesJar', Jar) {
     }
 }
 if (isLoader) {
+    def repositoryDrivers = configurations.create('repositoryDrivers') {
+        canBeConsumed = false
+        transitive = false
+    }
+    dependencies.add(repositoryDrivers.name,
+        dependencies.project(path: ':repository-drivers', configuration: 'bundledDrivers'))
+    tasks.named('jar', Jar) {
+        dependsOn repositoryDrivers
+        from({ repositoryDrivers.collect { zipTree(it) } }) {
+            exclude 'META-INF/MANIFEST.MF', 'META-INF/services/java.sql.Driver'
+        }
+    }
     tasks.named('processResources', ProcessResources) {
         from preparedSources.flatMap { it.outputDirectory.dir('resources') }
         sharedProjects.each { from it.sourceSets.main.resources }

@@ -204,6 +204,10 @@ public-конструктора без аргументов. `sdmal-ecs-processo
 
 ## Сборка
 
+Сменяемые хранилища JSON/NBT, JDBC/H2 и MongoDB, кеш и перенос данных:
+[core/REPOSITORIES.md](core/REPOSITORIES.md).
+Полный пример с запуском через Gradle — [core/REPOSITORY-EXAMPLE.md](core/REPOSITORY-EXAMPLE.md).
+
 Команды для PowerShell, из корня проекта:
 
 ```powershell

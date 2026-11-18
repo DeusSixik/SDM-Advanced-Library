@@ -6,6 +6,7 @@ apply from: rootProject.file('build.gradle')
 
 dependencies {
     minecraft "com.mojang:minecraft:${stonecutter.current.version}"
+    implementation project(path: ':repository-drivers', configuration: 'bundledDrivers')
     testImplementation 'org.ow2.asm:asm-tree:9.9.1'
     testImplementation 'org.mockito:mockito-core:5.20.0'
     testImplementation project(':ecs-processor')
@@ -29,6 +30,51 @@ configurations {
 artifacts { sharedElements tasks.named('jar') }
 loom { runs { configureEach { ideConfigGenerated = false } } }
 tasks.matching { it.name in ['remapJar', 'remapSourcesJar'] }.configureEach { enabled = false }
+
+tasks.withType(Test).configureEach {
+    if (providers.gradleProperty('repositoryMongoUri').isPresent()) {
+        systemProperty 'sdmal.test.mongo.uri', providers.gradleProperty('repositoryMongoUri').get()
+    }
+    if (providers.gradleProperty('repositoryMongoInit').isPresent()) {
+        systemProperty 'sdmal.test.mongo.init', providers.gradleProperty('repositoryMongoInit').get()
+    }
+}
+
+tasks.register('repositoryExample', JavaExec) {
+    group = 'application'
+    description = 'Run the complete local repository example with JSON, NBT, H2, cache and migration.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.sixik.sdmal.example.repository.RepositoryUsageExample'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    args layout.buildDirectory.dir('example/repository').get().asFile.absolutePath
+}
+
+tasks.register('repositoryMongoExample', JavaExec) {
+    group = 'application'
+    description = 'Run the opt-in two-client MongoDB repository example against a supplied replica set.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.sixik.sdmal.example.repository.MongoRepositoryExample'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    doFirst {
+        def uri = providers.gradleProperty('repositoryMongoUri').orNull
+        def database = providers.gradleProperty('repositoryMongoDatabase').orNull
+        if (!uri || !database) {
+            throw new GradleException('Set repositoryMongoUri and repositoryMongoDatabase for the example.')
+        }
+        args uri, database
+    }
+}
+
+tasks.register('repositoryPatchExample', JavaExec) {
+    group = 'application'
+    description = 'Run the H2 field-update example with optimistic revision conflict handling.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.sixik.sdmal.example.repository.PartialUpdateRepositoryExample'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+}
 
 // Benchmarks are isolated from the mod JAR and run only when explicitly requested.
 sourceSets {

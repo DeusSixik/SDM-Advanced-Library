@@ -1,0 +1,30 @@
+plugins {
+    id 'java-library'
+    id 'com.gradleup.shadow' version '9.4.1'
+}
+
+repositories { mavenCentral() }
+java { toolchain.languageVersion = JavaLanguageVersion.of(17) }
+
+dependencies {
+    implementation 'org.mongodb:mongodb-driver-sync:5.6.5'
+    implementation 'com.h2database:h2:2.5.252'
+    implementation 'com.google.code.gson:gson:2.13.2'
+}
+
+tasks.named('shadowJar') {
+    relocate 'com.mongodb', 'dev.sixik.sdmal.internal.driver.mongodb'
+    relocate 'org.bson', 'dev.sixik.sdmal.internal.driver.bson'
+    relocate 'org.h2', 'dev.sixik.sdmal.internal.driver.h2'
+    relocate 'com.google.gson', 'dev.sixik.sdmal.internal.driver.gson'
+    mergeServiceFiles()
+    exclude 'META-INF/versions/**/module-info.class', 'module-info.class'
+}
+
+configurations {
+    bundledDrivers {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+}
+artifacts { bundledDrivers tasks.named('shadowJar') }
