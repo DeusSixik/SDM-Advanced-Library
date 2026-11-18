@@ -76,6 +76,15 @@ tasks.register('repositoryPatchExample', JavaExec) {
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
 }
 
+tasks.register('recipesExample', JavaExec) {
+    group = 'application'
+    description = 'Run immutable standalone machine recipe lookup and generation invalidation.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.sixik.sdmal.example.recipes.StandaloneRecipesExample'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+}
+
 // Benchmarks are isolated from the mod JAR and run only when explicitly requested.
 sourceSets {
     jmh {
@@ -119,6 +128,19 @@ tasks.register('jmhNetwork', JavaExec) {
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
     args 'dev.sixik.sdmal.api.ecs.EcsNetworkBenchmark', '-prof', 'gc', '-rf', 'json',
         '-rff', layout.buildDirectory.file('reports/jmh/ecs-network.json').get().asFile.absolutePath
+    doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
+}
+
+tasks.register('jmhRecipes', JavaExec) {
+    group = 'verification'
+    description = 'Measure concurrent recipe searches against locked/unlocked scans with GC profiling.'
+    dependsOn tasks.named('jmhClasses')
+    classpath = sourceSets.jmh.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(requiredJava) }
+    args 'dev.sixik.sdmal.benchmark.RecipeBenchmark', '-prof', 'gc', '-foe', 'true',
+        '-jvmArgsAppend', '-Xms512m -Xmx512m -XX:+UseG1GC', '-rf', 'json',
+        '-rff', layout.buildDirectory.file('reports/jmh/recipes.json').get().asFile.absolutePath
     doFirst { layout.buildDirectory.dir('reports/jmh').get().asFile.mkdirs() }
 }
 

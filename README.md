@@ -13,6 +13,9 @@ ECS для игровых объектов и обычных данных: `EcsO
 Там же описаны `@NetworkRequest` с `CompletableFuture` и фрагментация больших
 сообщений до 32 МиБ.
 
+Поиск рецептов из нескольких потоков через неизменяемые поколения, примитивные
+индексы и ECS capture/compute/apply: [Recipes API и адаптеры Minecraft](core/RECIPES.md).
+
 Мультиверсионный проект на Stonecutter 0.10. Gradle запускается на JDK 25;
 Java toolchains автоматически выбирают Java 17, 21 или 25 для целевой версии.
 
